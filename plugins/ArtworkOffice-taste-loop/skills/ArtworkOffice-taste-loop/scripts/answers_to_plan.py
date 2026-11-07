@@ -248,11 +248,13 @@ def main(argv):
             s = s[:s.index(BEGIN)] + block + s[s.index(END) + len(END):]
         else:
             s = s.rstrip('\n') + '\n\n' + block + '\n'
-        out.write_text(s, encoding='utf-8')
+        out.write_bytes(s.encode('utf-8'))  # 줄바꿈을 LF 로 고정: Windows 에서 만들어도 클라우드와 같은 파일이 된다
         print('갱신:', out)
     else:
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(f'# 제작 계획 — {name}\n\n이 문서는 스킬 `ArtworkOffice-taste-loop`(SKILL.md)의 계획 문서다. 표시 블록 안은 `answers_to_plan.py`가 다시 만들고, 그 밖의 절은 손으로 채운다.\n\n' + block + '\n' + MANUAL_SECTIONS, encoding='utf-8')
+        s = (f'# 제작 계획 — {name}\n\n이 문서는 스킬 `ArtworkOffice-taste-loop`(SKILL.md)의 계획 문서다. 표시 블록 안은 `answers_to_plan.py`가 다시 만들고, 그 밖의 절은 손으로 채운다.\n\n'
+             + block + '\n' + MANUAL_SECTIONS)
+        out.write_bytes(s.encode('utf-8'))
         print('생성:', out)
     return 0
 

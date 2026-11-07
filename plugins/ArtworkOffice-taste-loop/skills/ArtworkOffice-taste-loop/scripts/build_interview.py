@@ -199,7 +199,7 @@ def main(argv):
     out = pathlib.Path(a['out'])
     out.parent.mkdir(parents=True, exist_ok=True)
     text = body if a['artifact'] else FILE_HEAD + body + FILE_TAIL
-    out.write_text(text, encoding='utf-8')
+    out.write_bytes(text.encode('utf-8'))  # 줄바꿈을 LF 로 고정: Windows 에서 만들어도 클라우드와 같은 파일이 된다
     active = sum(1 for e in prefs['entries'] if e.get('status') in ('proposed', 'confirmed'))
     print(f"wrote {out} ({len(text.encode('utf-8'))} B, {'게시용' if a['artifact'] else '파일용'}, 항목 {active}/{len(prefs['entries'])}개, 기본값 출처: {spec['defaults'].get('from', '없음')}, "
           f"저장소: 프로젝트 {len(store['projects'])} · 지난 답변 {len(store['past_answers'])} · 교훈 {len(store['lessons'])} · 실수 {len(store['mistakes'])} · 레퍼런스 {len(store['design_refs'])} · 템플릿 {len(store['templates'])} · 변경이력 {len(store['changes'])} · 선택 기록 {len(store['choices'])})")

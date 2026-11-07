@@ -3,10 +3,20 @@
 # 레포 .claude/settings.json 또는 플러그인 hooks/hooks.json 이 부른다. 아무것도 막지 않고 항상 종료 코드 0.
 # 표준 출력에는 훅 JSON만 낸다.
 scripts="$(cd "$(dirname "$0")" && pwd)"
+# 파이썬은 이름만 보지 않고 실제로 실행해 본 뒤 고른다: Windows 의 python3·python 은 스토어 바로가기(가짜)일 수 있다.
+case "${OSTYPE:-}" in
+  msys*|cygwin*) candidates="python py python3" ;;
+  *) candidates="python3 python py" ;;
+esac
 py=""
-for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { py="$c"; break; }; done
+for c in $candidates; do
+  command -v "$c" >/dev/null 2>&1 \
+    && "$c" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)' </dev/null >/dev/null 2>&1 \
+    && { py="$c"; break; }
+done
 [ -n "$py" ] || exit 0
-"$py" - "$scripts" <<'PY' 2>/dev/null || true
+# -X utf8: Windows 파이썬은 출력을 CP949 로 내보내 한글이 깨진다(Claude Code 는 UTF-8 로 읽는다).
+"$py" -X utf8 - "$scripts" <<'PY' 2>/dev/null || true
 import json, pathlib, subprocess, sys
 scripts = pathlib.Path(sys.argv[1])
 sys.dont_write_bytecode = True
@@ -26,7 +36,8 @@ try:
 except Exception as e:  # noqa: BLE001
     parts.append(f'[ArtworkOffice-taste-loop] 취향 저장소 읽기 실패: {e}')
 try:
-    out = subprocess.run([sys.executable, '-I', str(scripts / 'check_env.py'), '--brief'], capture_output=True, text=True, timeout=20)
+    out = subprocess.run([sys.executable, '-X', 'utf8', '-I', str(scripts / 'check_env.py'), '--brief'],
+                         capture_output=True, encoding='utf-8', errors='replace', timeout=20)
     if out.stdout.strip():
         parts.append('[환경 점검] ' + out.stdout.strip())
 except Exception as e:  # noqa: BLE001

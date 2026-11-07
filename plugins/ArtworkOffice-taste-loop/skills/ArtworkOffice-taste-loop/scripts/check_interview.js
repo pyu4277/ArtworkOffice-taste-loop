@@ -45,9 +45,14 @@ fs.appendFileSync(path.join(store, 'knowledge', '01_교훈_기록.md'), '\n### 2
 writeJson(path.join(proj, 'demo_prev', 'materials', '인터뷰', '01_제작인터뷰_답변.json'), {mode: 'interview', lecture: 'demo_prev', submitted_at: '2026-01-02T00:00:00Z',
   dimensions: {material_type: 'slides'}, aspects: {'P1.1.energy': {choice: 'new', value: 'calm'}}, project: {topic: '예시'}});
 const ENV = {TASTE_LOOP_STORE: store, TASTE_LOOP_PROJECT: proj, CLAUDE_PROJECT_DIR: proj};
+// 파이썬은 이름만 보지 않고 실제로 실행해 본 뒤 고른다(Windows 의 python3 는 스토어 바로가기일 수 있다).
+// -X utf8: Windows 파이썬은 파이프 입출력이 CP949 라 한글 출력 비교가 깨진다.
+const PY = (process.platform === 'win32' ? ['python', 'py', 'python3'] : ['python3', 'python', 'py'])
+  .find(c => spawnSync(c, ['-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)']).status === 0) || 'python3';
+const PYARGS = ['-X', 'utf8', '-I'];
 
 function build(args, env) {
-  const r = spawnSync('python3', ['-I', path.join(HERE, 'build_interview.py'), ...args], {encoding: 'utf8', env: Object.assign({}, process.env, env || ENV)});
+  const r = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), ...args], {encoding: 'utf8', env: Object.assign({}, process.env, env || ENV)});
   if (r.status !== 0) { console.log(r.stdout, r.stderr); throw new Error('build 실패'); }
   return r.stdout.trim();
 }
@@ -68,7 +73,7 @@ const mouse = (w, type, x, y) => new w.MouseEvent(type, {bubbles: true, cancelab
 
 // 0) 저장소 검증
 {
-  const r = spawnSync('python3', ['-I', path.join(HERE, 'check_store.py')], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  const r = spawnSync(PY, [...PYARGS, path.join(HERE, 'check_store.py')], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
   ok(r.status === 0 && /문제 없음 · 항목 5개 · 선택 기록 1개/.test(r.stdout), '가짜 저장소 검증 통과 (항목 5 · 선택 기록 1)');
 }
 // 1) 빌드·문법

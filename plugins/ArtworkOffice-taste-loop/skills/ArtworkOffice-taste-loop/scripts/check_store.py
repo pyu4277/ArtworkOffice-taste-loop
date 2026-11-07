@@ -323,7 +323,7 @@ def write_summary(data, subs, entries, info, choices=None):
     old = SUMMARY.read_text(encoding='utf-8') if SUMMARY.exists() else None
     if old is None or old.split('\n', 3)[3:] != text.split('\n', 3)[3:]:  # 생성 날짜 줄만 다르면 다시 쓰지 않음
         SUMMARY.parent.mkdir(parents=True, exist_ok=True)
-        SUMMARY.write_text(text + '\n', encoding='utf-8')
+        SUMMARY.write_bytes((text + '\n').encode('utf-8'))  # 줄바꿈 LF 고정(Windows 에서도 클라우드와 같은 파일)
         return True
     return False
 
