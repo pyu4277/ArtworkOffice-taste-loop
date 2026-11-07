@@ -1,0 +1,14 @@
+{
+  "name": "ArtworkOffice",
+  "owner": {
+    "name": "pyu4277"
+  },
+  "description": "pyu4277의 교육 자료 제작 도구 모음 (ArtworkOffice)",
+  "plugins": [
+    {
+      "name": "ArtworkOffice-taste-loop",
+      "source": "./plugins/ArtworkOffice-taste-loop",
+      "description": "교육용 자료 제작 취향을 인터뷰로 학습하고 진화시키는 스킬 (사이드 트리 인터뷰 앱 · 선택별 진화 기록 · 빈 저장소로 시작)"
+    }
+  ]
+}

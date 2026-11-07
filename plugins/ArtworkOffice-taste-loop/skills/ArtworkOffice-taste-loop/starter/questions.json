@@ -1,0 +1,1590 @@
+{
+  "version": 1,
+  "updated": "2026-11-07",
+  "note": "B층 질문 은행 — 취향 하위 항목(aspect)마다 질문·선택지·적용 조건. preferences.json의 entry.aspect / entry.value는 여기 id와 맞아야 한다(check_store.py가 대조). applies_when은 dimensions.json의 차원 id와 값 id로 쓴다. 선택지는 「등등」 규칙으로 채웠고 '기타'는 자유 입력이다. (starter 기본값 — 설치하면 init_store.py가 데이터 폴더로 복사하고, 그 뒤에는 데이터 폴더 쪽을 고친다.)",
+  "categories": [
+    {
+      "id": "P1",
+      "name": "글",
+      "subs": {
+        "P1.1": "톤앤매너·느낌",
+        "P1.2": "글 양식",
+        "P1.3": "설명 깊이·용어 처리",
+        "P1.4": "AI스러움 금지 목록",
+        "P1.5": "근거·출처 표시",
+        "P1.6": "용어·표기 기본"
+      }
+    },
+    {
+      "id": "P2",
+      "name": "시각물",
+      "subs": {
+        "P2.1": "이미지 생성·추가",
+        "P2.2": "기존 이미지 활용",
+        "P2.3": "도식·그래프·수식",
+        "P2.4": "화면 디자인·가독성",
+        "P2.5": "화면 속 글",
+        "P2.6": "움직임",
+        "P2.7": "디자인 레퍼런스"
+      }
+    },
+    {
+      "id": "P3",
+      "name": "영상·소리",
+      "subs": {
+        "P3.1": "영상 생성·활용",
+        "P3.2": "소리",
+        "P3.3": "영상 규격·리듬"
+      }
+    },
+    {
+      "id": "P4",
+      "name": "제작 방법·형식",
+      "subs": {
+        "P4.1": "종류별 방법·형식",
+        "P4.2": "재사용·템플릿",
+        "P4.3": "표시할 사람·소속",
+        "P4.4": "교육 장치",
+        "P4.5": "자원 사용"
+      }
+    },
+    {
+      "id": "P5",
+      "name": "사용자 프로필·협업",
+      "subs": {
+        "P5.1": "소통",
+        "P5.2": "질문 방식",
+        "P5.3": "검토 방식",
+        "P5.4": "자율 범위",
+        "P5.5": "가치·성향"
+      }
+    }
+  ],
+  "groups": {
+    "video": [
+      "video_explainer",
+      "video_promo",
+      "video_tutorial",
+      "video_lecture"
+    ],
+    "screen": [
+      "slides",
+      "video_explainer",
+      "video_promo",
+      "video_tutorial",
+      "video_lecture",
+      "poster",
+      "interactive"
+    ],
+    "doc": [
+      "textbook",
+      "teacher_guide",
+      "workbook",
+      "worksheet",
+      "quiz",
+      "handout",
+      "report_summary",
+      "report_result",
+      "proposal",
+      "script"
+    ]
+  },
+  "aspects": [
+    {
+      "id": "P1.1.formality",
+      "sub": "P1.1",
+      "text": "말투·격식은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "polite_written",
+          "label": "존댓말 문어체 (~합니다)"
+        },
+        {
+          "id": "polite_spoken",
+          "label": "존댓말 구어체 (말하듯 ~해요)"
+        },
+        {
+          "id": "slogan",
+          "label": "구호체·명사 끝맺음 (느낌표, 대구·반전)"
+        },
+        {
+          "id": "plain",
+          "label": "평어 (~한다)"
+        },
+        {
+          "id": "mixed",
+          "label": "혼합 (제목은 구호체, 본문은 존댓말)"
+        }
+      ]
+    },
+    {
+      "id": "P1.1.energy",
+      "sub": "P1.1",
+      "text": "글의 온도는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "calm",
+          "label": "차분"
+        },
+        {
+          "id": "normal",
+          "label": "보통"
+        },
+        {
+          "id": "lively",
+          "label": "활기"
+        }
+      ]
+    },
+    {
+      "id": "P1.1.humor",
+      "sub": "P1.1",
+      "text": "유머는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "none",
+          "label": "쓰지 않음"
+        },
+        {
+          "id": "light",
+          "label": "가끔 가볍게"
+        },
+        {
+          "id": "active",
+          "label": "적극"
+        }
+      ]
+    },
+    {
+      "id": "P1.2.form",
+      "sub": "P1.2",
+      "text": "글 양식은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "outline",
+          "label": "개조식"
+        },
+        {
+          "id": "sentence",
+          "label": "문장형 (짧은 문장)"
+        },
+        {
+          "id": "narrative",
+          "label": "서술형 (문단)"
+        },
+        {
+          "id": "story",
+          "label": "이야기형"
+        },
+        {
+          "id": "dialogue",
+          "label": "대화형"
+        },
+        {
+          "id": "mixed",
+          "label": "혼합"
+        }
+      ]
+    },
+    {
+      "id": "P1.3.depth",
+      "sub": "P1.3",
+      "text": "설명 깊이는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "phenomenon",
+          "label": "현상·개념 중심"
+        },
+        {
+          "id": "principle",
+          "label": "원리까지"
+        },
+        {
+          "id": "quantitative",
+          "label": "수식·정량까지"
+        }
+      ]
+    },
+    {
+      "id": "P1.3.terms",
+      "sub": "P1.3",
+      "text": "전문용어 처리는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "easy_first",
+          "label": "쉬운 말 먼저, 정식 명칭은 괄호"
+        },
+        {
+          "id": "formal_first",
+          "label": "정식 명칭 먼저, 풀이는 뒤에"
+        },
+        {
+          "id": "none",
+          "label": "전문용어를 쓰지 않음"
+        }
+      ]
+    },
+    {
+      "id": "P1.3.analogy",
+      "sub": "P1.3",
+      "text": "일상 비유·예시는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "active",
+          "label": "일상 예시로 시작 (적극)"
+        },
+        {
+          "id": "some",
+          "label": "필요한 곳만"
+        },
+        {
+          "id": "minimal",
+          "label": "최소"
+        }
+      ]
+    },
+    {
+      "id": "P1.3.no_level_text",
+      "sub": "P1.3",
+      "text": "설명 수준·대상·목적·날짜·제작 방식 문구를 자료 안에 넣나요?",
+      "type": "single",
+      "options": [
+        {
+          "id": "forbid",
+          "label": "넣지 않음 (학습자를 낮춰 보는 느낌 방지)"
+        },
+        {
+          "id": "allow",
+          "label": "넣어도 됨"
+        }
+      ]
+    },
+    {
+      "id": "P1.4.ai_phrasing",
+      "sub": "P1.4",
+      "text": "쓰지 않을 'AI스러운' 표현은? (여러 개)",
+      "type": "multi",
+      "options": [
+        {
+          "id": "past_ending",
+          "label": "딱딱한 '~했다' 글말 끝맺음"
+        },
+        {
+          "id": "connectives",
+          "label": "설명 접속사 ('그래서'·'때문에')"
+        },
+        {
+          "id": "fancy_question",
+          "label": "꾸민 질문형 제목 (「왜 만들었나?」)"
+        },
+        {
+          "id": "cliche",
+          "label": "과장·상투 표현"
+        },
+        {
+          "id": "none",
+          "label": "금지 목록 없음"
+        }
+      ]
+    },
+    {
+      "id": "P1.5.source_position",
+      "sub": "P1.5",
+      "text": "출처는 어디에?",
+      "type": "single",
+      "options": [
+        {
+          "id": "end",
+          "label": "마지막 장면·끝에 모아서"
+        },
+        {
+          "id": "each",
+          "label": "장면·절마다"
+        },
+        {
+          "id": "footnote",
+          "label": "각주"
+        },
+        {
+          "id": "none",
+          "label": "표시 안 함"
+        }
+      ]
+    },
+    {
+      "id": "P1.5.design_tag",
+      "sub": "P1.5",
+      "text": "설계값·추정값 꼬리표(「설계 목표」 등)는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "always",
+          "label": "항상 붙임"
+        },
+        {
+          "id": "needed",
+          "label": "실측과 혼동될 때만"
+        },
+        {
+          "id": "none",
+          "label": "붙이지 않음"
+        }
+      ]
+    },
+    {
+      "id": "P1.6.units",
+      "sub": "P1.6",
+      "text": "단위·수치 표기는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "si",
+          "label": "SI 단위로 통일"
+        },
+        {
+          "id": "original",
+          "label": "원자료 표기 그대로"
+        },
+        {
+          "id": "both",
+          "label": "SI로 쓰되 원문 표기 병기"
+        }
+      ]
+    },
+    {
+      "id": "P1.6.english",
+      "sub": "P1.6",
+      "text": "영문 병기는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "once",
+          "label": "처음 한 번만"
+        },
+        {
+          "id": "always",
+          "label": "매번"
+        },
+        {
+          "id": "never",
+          "label": "하지 않음"
+        }
+      ]
+    },
+    {
+      "id": "P2.1.gen_when",
+      "sub": "P2.1",
+      "text": "이미지 생성(Higgsfield)은 언제?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "poster",
+          "interactive",
+          "textbook",
+          "workbook",
+          "handout"
+        ]
+      },
+      "options": [
+        {
+          "id": "staging",
+          "label": "원자료로 못 채우는 연출·배경만"
+        },
+        {
+          "id": "active",
+          "label": "적극 (코드 그림도 생성으로)"
+        },
+        {
+          "id": "never",
+          "label": "쓰지 않음 (원본만)"
+        }
+      ]
+    },
+    {
+      "id": "P2.1.gen_style",
+      "sub": "P2.1",
+      "text": "생성 이미지 스타일은?",
+      "type": "single",
+      "applies_when": {
+        "sources": [
+          "gen_full",
+          "gen_staging"
+        ]
+      },
+      "options": [
+        {
+          "id": "photoreal",
+          "label": "사실 사진풍"
+        },
+        {
+          "id": "illust",
+          "label": "일러스트"
+        },
+        {
+          "id": "render3d",
+          "label": "3D 렌더"
+        },
+        {
+          "id": "mixed",
+          "label": "혼합"
+        }
+      ]
+    },
+    {
+      "id": "P2.1.gen_consistency",
+      "sub": "P2.1",
+      "text": "생성물의 일관성은?",
+      "type": "single",
+      "applies_when": {
+        "sources": [
+          "gen_full",
+          "gen_staging"
+        ]
+      },
+      "options": [
+        {
+          "id": "strict",
+          "label": "같은 색감·조명·화질로 통일"
+        },
+        {
+          "id": "free",
+          "label": "자유"
+        }
+      ]
+    },
+    {
+      "id": "P2.2.original_use",
+      "sub": "P2.2",
+      "text": "기존 이미지(원자료·검색)는 어떻게 쓰나요?",
+      "type": "single",
+      "options": [
+        {
+          "id": "original_first",
+          "label": "원본 그대로 우선 (가공 최소)"
+        },
+        {
+          "id": "edit_ok",
+          "label": "자르기·축소·가리기 자유"
+        },
+        {
+          "id": "reference_gen",
+          "label": "원본을 참조로 새로 생성"
+        }
+      ]
+    },
+    {
+      "id": "P2.2.search_images",
+      "sub": "P2.2",
+      "text": "인터넷 검색으로 찾은 이미지는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "use_asis",
+          "label": "묻지 않고 원본 그대로 사용"
+        },
+        {
+          "id": "ask",
+          "label": "사용 전 확인"
+        },
+        {
+          "id": "never",
+          "label": "쓰지 않음"
+        }
+      ]
+    },
+    {
+      "id": "P2.2.activity_photos",
+      "sub": "P2.2",
+      "text": "활동·과정 사진은?",
+      "type": "single",
+      "applies_when": {
+        "sources": [
+          "user_photos"
+        ]
+      },
+      "options": [
+        {
+          "id": "montage",
+          "label": "여러 장 겹쳐 넘김 (설명·덧그림 없음)"
+        },
+        {
+          "id": "each",
+          "label": "한 장씩 설명"
+        },
+        {
+          "id": "none",
+          "label": "넣지 않음"
+        }
+      ]
+    },
+    {
+      "id": "P2.3.diagrams",
+      "sub": "P2.3",
+      "text": "도식·그래프는 무엇으로?",
+      "type": "single",
+      "options": [
+        {
+          "id": "code",
+          "label": "코드(SVG)로 정확하게"
+        },
+        {
+          "id": "gen",
+          "label": "생성 이미지"
+        },
+        {
+          "id": "capture",
+          "label": "캡처·사진"
+        }
+      ]
+    },
+    {
+      "id": "P2.3.icons",
+      "sub": "P2.3",
+      "text": "선화 아이콘·평면 도형 장식은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "poster",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "forbid",
+          "label": "금지 ('AI스럽다')"
+        },
+        {
+          "id": "minimal",
+          "label": "최소"
+        },
+        {
+          "id": "allow",
+          "label": "허용"
+        }
+      ]
+    },
+    {
+      "id": "P2.3.math",
+      "sub": "P2.3",
+      "text": "수식은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "minimal",
+          "label": "최소화"
+        },
+        {
+          "id": "needed",
+          "label": "필요한 만큼"
+        },
+        {
+          "id": "active",
+          "label": "적극"
+        }
+      ]
+    },
+    {
+      "id": "P2.4.quality_bar",
+      "sub": "P2.4",
+      "text": "시각물 품질 기준 한 줄",
+      "type": "text"
+    },
+    {
+      "id": "P2.4.theme",
+      "sub": "P2.4",
+      "text": "바탕색은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "poster",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "dark",
+          "label": "어두운 바탕"
+        },
+        {
+          "id": "light",
+          "label": "밝은 바탕"
+        },
+        {
+          "id": "by_venue",
+          "label": "보는 환경에 따라"
+        }
+      ]
+    },
+    {
+      "id": "P2.4.font",
+      "sub": "P2.4",
+      "text": "글꼴은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "system_gothic",
+          "label": "시스템 한글 고딕 (Pretendard·맑은 고딕·Noto)"
+        },
+        {
+          "id": "embed_noto",
+          "label": "Noto Sans KR 파일 내장"
+        },
+        {
+          "id": "specified",
+          "label": "지정 글꼴 (메모에 적기)"
+        }
+      ]
+    },
+    {
+      "id": "P2.4.layout",
+      "sub": "P2.4",
+      "text": "화면 배치는?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "poster",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "fixed",
+          "label": "고정 틀 (예: 위 1/3 고정·아래 2/3 전환)"
+        },
+        {
+          "id": "free",
+          "label": "장면마다 자유"
+        },
+        {
+          "id": "template",
+          "label": "템플릿 지정 (메모에 적기)"
+        }
+      ]
+    },
+    {
+      "id": "P2.4.density",
+      "sub": "P2.4",
+      "text": "한 화면의 정보량은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "one",
+          "label": "핵심 하나"
+        },
+        {
+          "id": "normal",
+          "label": "보통"
+        },
+        {
+          "id": "dense",
+          "label": "빽빽하게"
+        }
+      ]
+    },
+    {
+      "id": "P2.4.readability",
+      "sub": "P2.4",
+      "text": "가독성 기준 (환경별 최소 글자 크기·대비)",
+      "type": "text"
+    },
+    {
+      "id": "P2.5.on_screen_text",
+      "sub": "P2.5",
+      "text": "화면 속 글은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "none",
+          "label": "글 없음"
+        },
+        {
+          "id": "caption",
+          "label": "하단 자막 한 줄"
+        },
+        {
+          "id": "keywords",
+          "label": "키워드만"
+        },
+        {
+          "id": "paragraph",
+          "label": "설명 문단"
+        }
+      ]
+    },
+    {
+      "id": "P2.5.title_date",
+      "sub": "P2.5",
+      "text": "소개용 제목·날짜 표시는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "none",
+          "label": "넣지 않음"
+        },
+        {
+          "id": "title_only",
+          "label": "제목만"
+        },
+        {
+          "id": "both",
+          "label": "제목과 날짜"
+        }
+      ]
+    },
+    {
+      "id": "P2.6.motion_strength",
+      "sub": "P2.6",
+      "text": "움직임의 세기는?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "bold",
+          "label": "눈에 확 띄게"
+        },
+        {
+          "id": "normal",
+          "label": "보통"
+        },
+        {
+          "id": "subtle",
+          "label": "절제"
+        }
+      ]
+    },
+    {
+      "id": "P2.6.motion_purpose",
+      "sub": "P2.6",
+      "text": "장식용 움직임은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "forbid",
+          "label": "금지 (이해를 돕는 움직임만)"
+        },
+        {
+          "id": "allow_some",
+          "label": "조금 허용"
+        }
+      ]
+    },
+    {
+      "id": "P2.6.motion_still",
+      "sub": "P2.6",
+      "text": "정지 화면에서도 효과가 보이게 하나요?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture"
+        ]
+      },
+      "options": [
+        {
+          "id": "yes",
+          "label": "예 (정지 화면으로 검수)"
+        },
+        {
+          "id": "no",
+          "label": "아니오"
+        }
+      ]
+    },
+    {
+      "id": "P2.7.reference_use",
+      "sub": "P2.7",
+      "text": "디자인 레퍼런스 서비스는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "before_design",
+          "label": "디자인 결정 전에 후보를 모아 고른다"
+        },
+        {
+          "id": "optional",
+          "label": "필요할 때만"
+        },
+        {
+          "id": "none",
+          "label": "쓰지 않음"
+        }
+      ]
+    },
+    {
+      "id": "P2.7.reference_board",
+      "sub": "P2.7",
+      "text": "좋아한·싫어한 레퍼런스 메모",
+      "type": "text"
+    },
+    {
+      "id": "P3.1.video_gen",
+      "sub": "P3.1",
+      "text": "생성 영상(Higgsfield 등)은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "never",
+          "label": "쓰지 않음"
+        },
+        {
+          "id": "staging",
+          "label": "연출 컷만"
+        },
+        {
+          "id": "active",
+          "label": "적극"
+        }
+      ]
+    },
+    {
+      "id": "P3.1.real_first",
+      "sub": "P3.1",
+      "text": "실제 영상이 있으면?",
+      "type": "single",
+      "applies_when": {
+        "sources": [
+          "user_video",
+          "web_search_ok"
+        ]
+      },
+      "options": [
+        {
+          "id": "always",
+          "label": "항상 실제 영상 우선"
+        },
+        {
+          "id": "prefer",
+          "label": "가능하면"
+        }
+      ]
+    },
+    {
+      "id": "P3.1.reenact_label",
+      "sub": "P3.1",
+      "text": "재현·생성 영상 표시는?",
+      "type": "single",
+      "applies_when": {
+        "sources": [
+          "gen_full",
+          "gen_staging"
+        ]
+      },
+      "options": [
+        {
+          "id": "end_only",
+          "label": "화면 위 표시 없음, 출처 장면에만"
+        },
+        {
+          "id": "on_screen",
+          "label": "화면에 「재현 영상」 표시"
+        }
+      ]
+    },
+    {
+      "id": "P3.1.framing",
+      "sub": "P3.1",
+      "text": "연출 영상의 화면 구성 원칙",
+      "type": "text"
+    },
+    {
+      "id": "P3.2.sound",
+      "sub": "P3.2",
+      "text": "소리는?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "slides",
+          "interactive"
+        ]
+      },
+      "options": [
+        {
+          "id": "mute",
+          "label": "무음"
+        },
+        {
+          "id": "sfx",
+          "label": "효과음만"
+        },
+        {
+          "id": "narration",
+          "label": "내레이션"
+        },
+        {
+          "id": "bgm",
+          "label": "배경음악"
+        },
+        {
+          "id": "narration_bgm",
+          "label": "내레이션 + 배경음악"
+        }
+      ]
+    },
+    {
+      "id": "P3.3.pace",
+      "sub": "P3.3",
+      "text": "진행 속도는?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "slides"
+        ]
+      },
+      "options": [
+        {
+          "id": "learner",
+          "label": "학습자 속도 (따라 할 수 있게)"
+        },
+        {
+          "id": "normal",
+          "label": "보통"
+        },
+        {
+          "id": "fast",
+          "label": "빠르게"
+        }
+      ]
+    },
+    {
+      "id": "P4.1.method_slides",
+      "sub": "P4.1",
+      "text": "발표자료 제작 방법은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "slides"
+        ]
+      },
+      "options": [
+        {
+          "id": "engine",
+          "label": "공통 엔진 단일 HTML 모션그래픽 (scripts/slides)"
+        },
+        {
+          "id": "pptx",
+          "label": "PPTX"
+        },
+        {
+          "id": "pdf",
+          "label": "PDF"
+        }
+      ]
+    },
+    {
+      "id": "P4.1.method_video",
+      "sub": "P4.1",
+      "text": "영상 제작 방법은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture"
+        ]
+      },
+      "options": [
+        {
+          "id": "html_render",
+          "label": "HTML 템플릿 → MP4 렌더"
+        },
+        {
+          "id": "editor",
+          "label": "편집 도구로 합성"
+        },
+        {
+          "id": "gen",
+          "label": "생성 영상 위주"
+        }
+      ]
+    },
+    {
+      "id": "P4.1.method_doc",
+      "sub": "P4.1",
+      "text": "문서(교재·보고서) 제작 방법은?",
+      "type": "single",
+      "applies_when": {
+        "material_type": [
+          "textbook",
+          "teacher_guide",
+          "workbook",
+          "worksheet",
+          "quiz",
+          "handout",
+          "report_summary",
+          "report_result",
+          "proposal",
+          "script"
+        ]
+      },
+      "options": [
+        {
+          "id": "md_office",
+          "label": "Markdown → DOCX·PDF (이음오피스)"
+        },
+        {
+          "id": "hwpx",
+          "label": "HWPX (kordoc)"
+        },
+        {
+          "id": "pptx",
+          "label": "PPTX"
+        },
+        {
+          "id": "html",
+          "label": "단일 HTML"
+        }
+      ]
+    },
+    {
+      "id": "P4.1.single_file",
+      "sub": "P4.1",
+      "text": "공유용 최종본은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "required",
+          "label": "파일 하나만 보내도 열리게 (필수)"
+        },
+        {
+          "id": "optional",
+          "label": "폴더째 공유해도 됨"
+        }
+      ]
+    },
+    {
+      "id": "P4.2.template_reuse",
+      "sub": "P4.2",
+      "text": "같은 종류를 여러 개 만들 때는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "one_template",
+          "label": "한 템플릿, 데이터만 바꿈"
+        },
+        {
+          "id": "each",
+          "label": "매번 새로 디자인"
+        }
+      ]
+    },
+    {
+      "id": "P4.3.people_display",
+      "sub": "P4.3",
+      "text": "자료에 표시할 사람·소속은? (여러 개)",
+      "type": "multi",
+      "options": [
+        {
+          "id": "team",
+          "label": "팀명"
+        },
+        {
+          "id": "members",
+          "label": "팀원"
+        },
+        {
+          "id": "advisor",
+          "label": "지도교수"
+        },
+        {
+          "id": "org",
+          "label": "기관·로고"
+        },
+        {
+          "id": "author",
+          "label": "작성자"
+        },
+        {
+          "id": "none",
+          "label": "없음"
+        }
+      ]
+    },
+    {
+      "id": "P4.4.edu_devices",
+      "sub": "P4.4",
+      "text": "넣을 교육 장치는? (여러 개; 내용은 프로젝트마다 정함)",
+      "type": "multi",
+      "applies_when": {
+        "purpose": [
+          "concept",
+          "lab",
+          "review",
+          "exam",
+          "selfstudy",
+          "teacher"
+        ]
+      },
+      "options": [
+        {
+          "id": "quiz",
+          "label": "퀴즈"
+        },
+        {
+          "id": "surprise",
+          "label": "돌발 질문"
+        },
+        {
+          "id": "lab_link",
+          "label": "실습 연결"
+        },
+        {
+          "id": "summary",
+          "label": "정리 요약"
+        },
+        {
+          "id": "extra_lab",
+          "label": "추가 실습"
+        },
+        {
+          "id": "none",
+          "label": "없음"
+        }
+      ]
+    },
+    {
+      "id": "P4.5.credit_plan",
+      "sub": "P4.5",
+      "text": "생성 크레딧은?",
+      "type": "single",
+      "applies_when": {
+        "sources": [
+          "gen_full",
+          "gen_staging"
+        ]
+      },
+      "options": [
+        {
+          "id": "plan_first",
+          "label": "생성 전 목록·예상 크레딧을 기록하고 시작"
+        },
+        {
+          "id": "free",
+          "label": "자유"
+        }
+      ]
+    },
+    {
+      "id": "P4.5.agent_budget",
+      "sub": "P4.5",
+      "text": "에이전트 배분은?",
+      "type": "single",
+      "applies_when": {
+        "exec_mode": [
+          "pc",
+          "hybrid"
+        ]
+      },
+      "options": [
+        {
+          "id": "antigravity_light",
+          "label": "Antigravity는 짧고 가벼운 일만"
+        },
+        {
+          "id": "antigravity_none",
+          "label": "Antigravity는 쓰지 않음"
+        },
+        {
+          "id": "free",
+          "label": "자유"
+        }
+      ]
+    },
+    {
+      "id": "P5.1.language",
+      "sub": "P5.1",
+      "text": "답변 언어는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "ko",
+          "label": "한국어"
+        },
+        {
+          "id": "en",
+          "label": "영어"
+        }
+      ]
+    },
+    {
+      "id": "P5.1.report_form",
+      "sub": "P5.1",
+      "text": "보고 양식은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "standard",
+          "label": "한 것·확인한 것·못 한 것·비용·정할 것 → 끝에 확인할 결과물 표"
+        },
+        {
+          "id": "brief",
+          "label": "짧게"
+        }
+      ]
+    },
+    {
+      "id": "P5.2.question_style",
+      "sub": "P5.2",
+      "text": "질문 방식은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "no_guess",
+          "label": "추측 선택지 금지, 완성된 사양을 보여 주고 확인"
+        },
+        {
+          "id": "options_ok",
+          "label": "선택지 제시 환영"
+        }
+      ]
+    },
+    {
+      "id": "P5.3.review_channel",
+      "sub": "P5.3",
+      "text": "검토는 어디서? (여러 개)",
+      "type": "multi",
+      "options": [
+        {
+          "id": "artifact",
+          "label": "휴대폰 게시 페이지"
+        },
+        {
+          "id": "file",
+          "label": "PC 파일"
+        },
+        {
+          "id": "sendfile",
+          "label": "파일 전송"
+        }
+      ]
+    },
+    {
+      "id": "P5.3.review_points",
+      "sub": "P5.3",
+      "text": "검토 시점은? (여러 개)",
+      "type": "multi",
+      "options": [
+        {
+          "id": "structure",
+          "label": "구성안 확정 후"
+        },
+        {
+          "id": "first",
+          "label": "첫 완성 장면·절"
+        },
+        {
+          "id": "mid",
+          "label": "중간"
+        },
+        {
+          "id": "final",
+          "label": "최종"
+        }
+      ]
+    },
+    {
+      "id": "P5.3.ab",
+      "sub": "P5.3",
+      "text": "안을 보여 줄 때는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "prefer",
+          "label": "A/B 비교안"
+        },
+        {
+          "id": "single",
+          "label": "하나만"
+        }
+      ]
+    },
+    {
+      "id": "P5.4.autonomy",
+      "sub": "P5.4",
+      "text": "자율 범위는?",
+      "type": "single",
+      "options": [
+        {
+          "id": "ask_ambiguous",
+          "label": "애매하면 묻기 (자동 모드에서도)"
+        },
+        {
+          "id": "act_report",
+          "label": "알아서 하고 보고"
+        },
+        {
+          "id": "ask_cost",
+          "label": "비용이 생길 때만 묻기"
+        }
+      ]
+    },
+    {
+      "id": "P5.4.user_materials",
+      "sub": "P5.4",
+      "text": "사용자가 준 자료의 이용 허락은?",
+      "type": "single",
+      "options": [
+        {
+          "id": "no_ask",
+          "label": "묻지 않고 사용"
+        },
+        {
+          "id": "ask",
+          "label": "확인 후 사용"
+        }
+      ]
+    },
+    {
+      "id": "P5.5.values",
+      "sub": "P5.5",
+      "text": "성향·가치 메모",
+      "type": "text"
+    }
+  ],
+  "review_reasons": [
+    {
+      "id": "ai_text",
+      "label": "글이 AI스럽다",
+      "aspect": "P1.4.ai_phrasing"
+    },
+    {
+      "id": "tone",
+      "label": "말투·톤이 안 맞는다",
+      "aspect": "P1.1.formality"
+    },
+    {
+      "id": "too_hard",
+      "label": "너무 어렵다",
+      "aspect": "P1.3.depth"
+    },
+    {
+      "id": "too_easy",
+      "label": "너무 쉽다·수준 낮춰 말한다",
+      "aspect": "P1.3.no_level_text"
+    },
+    {
+      "id": "too_plain",
+      "label": "너무 밋밋하다",
+      "aspect": "P2.6.motion_strength"
+    },
+    {
+      "id": "too_much",
+      "label": "과하다·산만하다",
+      "aspect": "P2.6.motion_purpose"
+    },
+    {
+      "id": "small_text",
+      "label": "글자가 작다",
+      "aspect": "P2.4.readability"
+    },
+    {
+      "id": "text_too_much",
+      "label": "글이 많다",
+      "aspect": "P2.5.on_screen_text"
+    },
+    {
+      "id": "color",
+      "label": "색·분위기가 안 맞는다",
+      "aspect": "P2.4.theme"
+    },
+    {
+      "id": "image_quality",
+      "label": "이미지가 어색하다·품질이 낮다",
+      "aspect": "P2.1.gen_style"
+    },
+    {
+      "id": "icon_ai",
+      "label": "아이콘·도형이 AI스럽다",
+      "aspect": "P2.3.icons"
+    },
+    {
+      "id": "too_fast",
+      "label": "너무 빠르다",
+      "aspect": "P3.3.pace"
+    },
+    {
+      "id": "too_slow",
+      "label": "늘어진다",
+      "aspect": "P3.3.pace"
+    },
+    {
+      "id": "wrong",
+      "label": "사실·수치가 틀렸다",
+      "aspect": null,
+      "note": "정확성 1절 — 취향이 아니라 오류. 05_실수_기록에 적는다"
+    },
+    {
+      "id": "off_topic",
+      "label": "방향이 다르다",
+      "aspect": null,
+      "note": "프로젝트별 결정"
+    },
+    {
+      "id": "missing",
+      "label": "빠진 내용이 있다",
+      "aspect": null,
+      "note": "프로젝트별 결정"
+    },
+    {
+      "id": "order",
+      "label": "순서·구성이 어색하다",
+      "aspect": null,
+      "note": "프로젝트별 결정"
+    },
+    {
+      "id": "good",
+      "label": "좋다, 이대로",
+      "aspect": null,
+      "positive": true
+    },
+    {
+      "id": "other",
+      "label": "기타 (메모에 적기)",
+      "aspect": null
+    }
+  ],
+  "project_questions": [
+    {
+      "id": "topic",
+      "text": "주제·범위를 한 줄로",
+      "type": "text"
+    },
+    {
+      "id": "goals",
+      "text": "보는 사람이 얻어 갈 것 2~3개",
+      "type": "text"
+    },
+    {
+      "id": "chapters_hint",
+      "text": "꼭 들어갈 챕터·내용 (있으면)",
+      "type": "text"
+    },
+    {
+      "id": "delivery",
+      "text": "결과물 전달 방식",
+      "type": "single",
+      "options": [
+        {
+          "id": "repo",
+          "label": "레포 파일"
+        },
+        {
+          "id": "sendfile",
+          "label": "파일 전송"
+        },
+        {
+          "id": "artifact",
+          "label": "게시 페이지"
+        },
+        {
+          "id": "all",
+          "label": "모두"
+        }
+      ]
+    },
+    {
+      "id": "review_plan",
+      "text": "이번 검토 시점 (여러 개)",
+      "type": "multi",
+      "options": [
+        {
+          "id": "structure",
+          "label": "구성안 확정 후"
+        },
+        {
+          "id": "first",
+          "label": "첫 완성 장면·절"
+        },
+        {
+          "id": "mid",
+          "label": "중간"
+        },
+        {
+          "id": "final",
+          "label": "최종"
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "text": "그 밖에 알려 줄 것",
+      "type": "text"
+    }
+  ]
+}

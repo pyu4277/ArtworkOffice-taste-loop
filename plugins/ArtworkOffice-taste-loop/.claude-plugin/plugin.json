@@ -1,0 +1,17 @@
+{
+  "name": "ArtworkOffice-taste-loop",
+  "description": "교육용 자료(발표자료·교재·보조자료·영상·보고서)를 만들 때마다 반응형 인터뷰 앱으로 취향을 확인하고, 계획 → 검토 → 비교 → 마무리 갱신으로 '이건 좋아/이건 싫어'를 학습해 다음 자료를 진화시키는 스킬.",
+  "version": "1.0.0",
+  "author": {
+    "name": "pyu4277"
+  },
+  "homepage": "https://github.com/pyu4277/ArtworkOffice-taste-loop",
+  "keywords": [
+    "education",
+    "slides",
+    "preferences",
+    "interview",
+    "korean"
+  ],
+  "repository": "https://github.com/pyu4277/ArtworkOffice-taste-loop"
+}

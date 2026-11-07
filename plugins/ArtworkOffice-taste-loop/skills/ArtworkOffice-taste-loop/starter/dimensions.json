@@ -1,0 +1,901 @@
+{
+  "version": 1,
+  "updated": "2026-11-07",
+  "note": "A층 — 프로젝트를 설명하는 차원(큰 구분)과 하위 카테고리(값). 인터뷰 1부에서 큰 구분부터 고른다. 사용자가 고른 값이 취향 항목(preferences.json)의 적용 범위(scope) 키가 된다. 값 목록은 「등등」 규칙으로 채웠고 추론으로 넣은 값은 source가 '추론'이다. 새 값은 끝에 추가한다(기존 id는 바꾸지 않는다). (starter 기본값 — 설치하면 init_store.py가 데이터 폴더로 복사하고, 그 뒤에는 데이터 폴더 쪽을 고친다.)",
+  "extra_scope_keys": [
+    "lecture",
+    "topic",
+    "pc"
+  ],
+  "screens": [
+    {
+      "id": "S1",
+      "title": "무엇을 만들까요",
+      "dimensions": [
+        "material_type",
+        "purpose"
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "누가 봅니까",
+      "dimensions": [
+        "audience_age",
+        "audience_level",
+        "audience_role",
+        "audience_size",
+        "audience_needs"
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "어디서 어떻게 봅니까",
+      "dimensions": [
+        "venue",
+        "presenter",
+        "length"
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "분야·언어·형식",
+      "dimensions": [
+        "field",
+        "language",
+        "format"
+      ]
+    },
+    {
+      "id": "S5",
+      "title": "원자료와 제약",
+      "dimensions": [
+        "sources",
+        "deadline",
+        "credits",
+        "must_include",
+        "must_not"
+      ]
+    },
+    {
+      "id": "S6",
+      "title": "시리즈와 학습 맥락",
+      "dimensions": [
+        "series",
+        "context",
+        "prereq"
+      ]
+    },
+    {
+      "id": "S7",
+      "title": "이번 작업 방식",
+      "dimensions": [
+        "exec_mode",
+        "other_agents"
+      ]
+    }
+  ],
+  "dimensions": [
+    {
+      "id": "material_type",
+      "name": "자료 종류",
+      "desc": "이번에 만드는 주 산출물 하나를 고른다. 함께 만드는 부산출물은 메모에 적는다.",
+      "type": "single",
+      "source": "사용자 2026-11-07(발표자료·교재·보조자료·영상), 나머지 추론",
+      "values": [
+        {
+          "id": "slides",
+          "label": "발표자료 (강의용 모션그래픽 HTML)"
+        },
+        {
+          "id": "video_explainer",
+          "label": "설명 영상 (익스플레이너)"
+        },
+        {
+          "id": "video_promo",
+          "label": "홍보·전시 상영 영상"
+        },
+        {
+          "id": "video_tutorial",
+          "label": "따라하기 영상 (화면 녹화·실습 안내)"
+        },
+        {
+          "id": "video_lecture",
+          "label": "수업 녹화형 영상",
+          "source": "추론"
+        },
+        {
+          "id": "textbook",
+          "label": "교재 (교과서형)"
+        },
+        {
+          "id": "teacher_guide",
+          "label": "교안 (교사·강사용)",
+          "source": "추론"
+        },
+        {
+          "id": "workbook",
+          "label": "워크북·실습 지침서"
+        },
+        {
+          "id": "worksheet",
+          "label": "워크시트·활동지"
+        },
+        {
+          "id": "quiz",
+          "label": "퀴즈·평가 문항"
+        },
+        {
+          "id": "handout",
+          "label": "요약 카드·핸드아웃·체크리스트·용어집"
+        },
+        {
+          "id": "report_summary",
+          "label": "종합보고서"
+        },
+        {
+          "id": "report_result",
+          "label": "결과보고서"
+        },
+        {
+          "id": "proposal",
+          "label": "계획서·제안서"
+        },
+        {
+          "id": "poster",
+          "label": "포스터·판넬·인포그래픽"
+        },
+        {
+          "id": "script",
+          "label": "대본·시나리오"
+        },
+        {
+          "id": "audio",
+          "label": "음성 (내레이션·팟캐스트)",
+          "source": "추론"
+        },
+        {
+          "id": "interactive",
+          "label": "웹페이지·인터랙티브 실습",
+          "source": "추론"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "purpose",
+      "name": "목적·용도",
+      "desc": "여러 개면 모두 고른다.",
+      "type": "multi",
+      "source": "추론",
+      "values": [
+        {
+          "id": "concept",
+          "label": "개념 이해 (수업)"
+        },
+        {
+          "id": "lab",
+          "label": "실습 안내"
+        },
+        {
+          "id": "review",
+          "label": "복습·요약"
+        },
+        {
+          "id": "exam",
+          "label": "시험·평가 대비"
+        },
+        {
+          "id": "judged",
+          "label": "심사·평가용 발표"
+        },
+        {
+          "id": "exhibit",
+          "label": "홍보·전시"
+        },
+        {
+          "id": "report",
+          "label": "성과·결과 보고"
+        },
+        {
+          "id": "persuade",
+          "label": "제안·설득"
+        },
+        {
+          "id": "notice",
+          "label": "안내·공지"
+        },
+        {
+          "id": "selfstudy",
+          "label": "자가 학습 (비대면)"
+        },
+        {
+          "id": "teacher",
+          "label": "교사·강사 지도용"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "audience_age",
+      "name": "대상 (연령·학년)",
+      "desc": "여러 대상이면 모두 고르고, 가장 중요한 대상 하나를 「주 대상」으로 표시한다.",
+      "type": "multi",
+      "primary": true,
+      "source": "사용자 2026-11-07, 대학원생·현직 전문가는 추론",
+      "values": [
+        {
+          "id": "age_0_3",
+          "label": "0~3세"
+        },
+        {
+          "id": "age_4_7",
+          "label": "4~7세"
+        },
+        {
+          "id": "el_1_3",
+          "label": "8~10세 (초1~3)"
+        },
+        {
+          "id": "el_4_6",
+          "label": "11~13세 (초4~6)"
+        },
+        {
+          "id": "mid",
+          "label": "14~16세 (중1~3)"
+        },
+        {
+          "id": "high",
+          "label": "17~19세 (고1~3)"
+        },
+        {
+          "id": "univ",
+          "label": "대학생"
+        },
+        {
+          "id": "grad",
+          "label": "대학원생",
+          "source": "추론"
+        },
+        {
+          "id": "early_career",
+          "label": "사회초년생"
+        },
+        {
+          "id": "adult",
+          "label": "성인 (일반)"
+        },
+        {
+          "id": "pro",
+          "label": "현직 전문가·직장인",
+          "source": "추론"
+        },
+        {
+          "id": "senior",
+          "label": "어르신 (시니어)"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "audience_level",
+      "name": "배경지식",
+      "desc": "주 대상이 이 주제를 얼마나 아는가.",
+      "type": "single",
+      "source": "추론",
+      "values": [
+        {
+          "id": "intro",
+          "label": "처음 접함 (입문)"
+        },
+        {
+          "id": "basic",
+          "label": "기초는 앎 (초급)"
+        },
+        {
+          "id": "intermediate",
+          "label": "중급"
+        },
+        {
+          "id": "advanced",
+          "label": "고급·전문가"
+        }
+      ]
+    },
+    {
+      "id": "audience_role",
+      "name": "신분·관계",
+      "desc": "자료를 받는 사람의 역할.",
+      "type": "multi",
+      "source": "추론",
+      "values": [
+        {
+          "id": "student",
+          "label": "학생"
+        },
+        {
+          "id": "teacher",
+          "label": "교사·교수"
+        },
+        {
+          "id": "parent",
+          "label": "학부모"
+        },
+        {
+          "id": "visitor",
+          "label": "일반 관람객"
+        },
+        {
+          "id": "judge",
+          "label": "심사위원·평가자"
+        },
+        {
+          "id": "officer",
+          "label": "기관 담당자·보고 수신자"
+        },
+        {
+          "id": "peer",
+          "label": "동료 연구자"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "audience_size",
+      "name": "인원·형태",
+      "desc": "",
+      "type": "single",
+      "source": "추론",
+      "values": [
+        {
+          "id": "one",
+          "label": "1:1"
+        },
+        {
+          "id": "small",
+          "label": "소그룹 (10명 안팎)"
+        },
+        {
+          "id": "class",
+          "label": "교실 (20~40명)"
+        },
+        {
+          "id": "hall",
+          "label": "대강당 (100명 이상)"
+        },
+        {
+          "id": "public",
+          "label": "불특정 다수 (전시·온라인)"
+        }
+      ]
+    },
+    {
+      "id": "audience_needs",
+      "name": "특수 요구",
+      "desc": "해당하는 것만.",
+      "type": "multi",
+      "source": "추론",
+      "values": [
+        {
+          "id": "none",
+          "label": "없음"
+        },
+        {
+          "id": "foreign",
+          "label": "외국어 사용자·다문화"
+        },
+        {
+          "id": "access",
+          "label": "접근성 (저시력·난청 등)"
+        },
+        {
+          "id": "short_attention",
+          "label": "집중 시간이 짧음"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "venue",
+      "name": "보는 환경·전달 방식",
+      "desc": "여러 개면 모두 고른다. 글자 크기·자막·소리 기준이 여기서 정해진다.",
+      "type": "multi",
+      "source": "추론(기존 두 강의: 강의실 프로젝터, 전시 모니터, 휴대폰)",
+      "values": [
+        {
+          "id": "projector",
+          "label": "강의실 프로젝터"
+        },
+        {
+          "id": "kiosk",
+          "label": "전시장 모니터 (무인 반복 재생)"
+        },
+        {
+          "id": "phone",
+          "label": "휴대폰 개인 시청"
+        },
+        {
+          "id": "pc",
+          "label": "PC 화면"
+        },
+        {
+          "id": "print",
+          "label": "인쇄물"
+        },
+        {
+          "id": "online",
+          "label": "온라인 게시 (LMS·유튜브)"
+        },
+        {
+          "id": "live",
+          "label": "실시간 화상"
+        },
+        {
+          "id": "submit",
+          "label": "제출 문서 (심사자가 읽음)"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "presenter",
+      "name": "발표자 유무",
+      "desc": "",
+      "type": "single",
+      "source": "추론",
+      "values": [
+        {
+          "id": "with",
+          "label": "발표자가 설명하며 보여 준다"
+        },
+        {
+          "id": "standalone",
+          "label": "자료 단독으로 이해되어야 한다"
+        },
+        {
+          "id": "both",
+          "label": "둘 다 (발표도 하고 배포도 한다)"
+        }
+      ]
+    },
+    {
+      "id": "length",
+      "name": "전체 길이·분량",
+      "desc": "자료 종류에 맞는 단위의 값을 하나 고른다. 챕터별 시간 배분은 인터뷰 뒤에 계산해 제안한다.",
+      "type": "single",
+      "source": "사용자 2026-11-07(전체 길이만 스킬 범주), 구간은 추론",
+      "values": [
+        {
+          "id": "v_1",
+          "label": "영상 1분 이내",
+          "group": "영상"
+        },
+        {
+          "id": "v_3",
+          "label": "영상 1~3분",
+          "group": "영상"
+        },
+        {
+          "id": "v_10",
+          "label": "영상 3~10분",
+          "group": "영상"
+        },
+        {
+          "id": "v_30",
+          "label": "영상 10~30분",
+          "group": "영상"
+        },
+        {
+          "id": "v_30p",
+          "label": "영상 30분 이상",
+          "group": "영상"
+        },
+        {
+          "id": "t_15",
+          "label": "발표 15분 안팎",
+          "group": "발표·수업"
+        },
+        {
+          "id": "t_50",
+          "label": "발표 50분 (1교시)",
+          "group": "발표·수업"
+        },
+        {
+          "id": "t_120",
+          "label": "발표 90~120분",
+          "group": "발표·수업"
+        },
+        {
+          "id": "t_day",
+          "label": "반일·종일",
+          "group": "발표·수업"
+        },
+        {
+          "id": "doc_1",
+          "label": "문서 1쪽",
+          "group": "문서"
+        },
+        {
+          "id": "doc_5",
+          "label": "문서 2~5쪽",
+          "group": "문서"
+        },
+        {
+          "id": "doc_20",
+          "label": "문서 6~20쪽",
+          "group": "문서"
+        },
+        {
+          "id": "doc_50",
+          "label": "문서 21~50쪽",
+          "group": "문서"
+        },
+        {
+          "id": "doc_50p",
+          "label": "문서 50쪽 이상",
+          "group": "문서"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력, 예: 시리즈 4회 × 50분)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "field",
+      "name": "분야·과목",
+      "desc": "",
+      "type": "single",
+      "source": "추론(전기·전자는 기존 강의)",
+      "values": [
+        {
+          "id": "ee",
+          "label": "전기·전자"
+        },
+        {
+          "id": "physics",
+          "label": "물리"
+        },
+        {
+          "id": "math",
+          "label": "수학"
+        },
+        {
+          "id": "cs",
+          "label": "컴퓨터·SW·AI"
+        },
+        {
+          "id": "mech",
+          "label": "기계·제조"
+        },
+        {
+          "id": "chem_bio",
+          "label": "화학·생물"
+        },
+        {
+          "id": "env_energy",
+          "label": "환경·에너지"
+        },
+        {
+          "id": "general",
+          "label": "일반 교양·진로"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "language",
+      "name": "언어",
+      "desc": "",
+      "type": "single",
+      "source": "추론",
+      "values": [
+        {
+          "id": "ko",
+          "label": "한국어"
+        },
+        {
+          "id": "en",
+          "label": "영어"
+        },
+        {
+          "id": "both",
+          "label": "한·영 병기"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "format",
+      "name": "제작 형식·규격",
+      "desc": "자료 종류와 보는 환경에 따라 기본값이 정해진다.",
+      "type": "single",
+      "source": "추론(기존: 16:9 HTML, 9:16 MP4, 16:9 MP4)",
+      "values": [
+        {
+          "id": "html169",
+          "label": "가로 16:9 단일 HTML (모션그래픽)"
+        },
+        {
+          "id": "mp4_916",
+          "label": "세로 9:16 MP4 (1080×1920)"
+        },
+        {
+          "id": "mp4_169",
+          "label": "가로 16:9 MP4 (1920×1080)"
+        },
+        {
+          "id": "pdf",
+          "label": "PDF"
+        },
+        {
+          "id": "hwpx",
+          "label": "HWP·HWPX"
+        },
+        {
+          "id": "docx",
+          "label": "DOCX"
+        },
+        {
+          "id": "pptx",
+          "label": "PPTX"
+        },
+        {
+          "id": "print_a4",
+          "label": "인쇄 (A4·A3)"
+        },
+        {
+          "id": "audio_file",
+          "label": "음성 파일"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "name": "원자료 상황",
+      "desc": "있는 것과 허용하는 것을 모두 고른다.",
+      "type": "multi",
+      "source": "추론",
+      "values": [
+        {
+          "id": "user_docs",
+          "label": "사용자 제공 문서 (교재·계획서·논문 등)"
+        },
+        {
+          "id": "user_photos",
+          "label": "사용자 제공 사진"
+        },
+        {
+          "id": "user_cad",
+          "label": "도면·3D 모델·렌더"
+        },
+        {
+          "id": "user_video",
+          "label": "사용자 제공 영상"
+        },
+        {
+          "id": "user_data",
+          "label": "데이터·표·측정값"
+        },
+        {
+          "id": "web_search_ok",
+          "label": "공개 자료 검색 허용"
+        },
+        {
+          "id": "gen_full",
+          "label": "이미지·영상 생성 허용 (전면)"
+        },
+        {
+          "id": "gen_staging",
+          "label": "생성은 연출·배경 컷만"
+        },
+        {
+          "id": "gen_none",
+          "label": "생성 금지 (원본만)"
+        },
+        {
+          "id": "none",
+          "label": "원자료 없음 (순수 개념)"
+        }
+      ]
+    },
+    {
+      "id": "deadline",
+      "name": "마감",
+      "desc": "",
+      "type": "single",
+      "source": "추론",
+      "values": [
+        {
+          "id": "urgent",
+          "label": "급함 (며칠 안)"
+        },
+        {
+          "id": "normal",
+          "label": "보통"
+        },
+        {
+          "id": "relaxed",
+          "label": "여유"
+        }
+      ]
+    },
+    {
+      "id": "credits",
+      "name": "생성 크레딧 한도",
+      "desc": "Higgsfield 등 생성에 쓸 수 있는 한도. 없으면 비워 둔다.",
+      "type": "text",
+      "source": "추론"
+    },
+    {
+      "id": "must_include",
+      "name": "꼭 넣을 것",
+      "desc": "기관 로고, 고정 문구, 인용 형식 등.",
+      "type": "text",
+      "source": "추론"
+    },
+    {
+      "id": "must_not",
+      "name": "넣으면 안 되는 것",
+      "desc": "",
+      "type": "text",
+      "source": "추론"
+    },
+    {
+      "id": "series",
+      "name": "시리즈·연속성",
+      "desc": "",
+      "type": "single",
+      "source": "추론",
+      "values": [
+        {
+          "id": "single",
+          "label": "단독 자료"
+        },
+        {
+          "id": "part",
+          "label": "기존 시리즈의 일부 (같은 디자인 유지)"
+        },
+        {
+          "id": "new_series",
+          "label": "새 시리즈의 첫 자료"
+        }
+      ]
+    },
+    {
+      "id": "context",
+      "name": "학습 맥락",
+      "desc": "수업·실습·복습 자료일 때.",
+      "type": "single",
+      "source": "추론",
+      "ask_when": {
+        "purpose": [
+          "concept",
+          "lab",
+          "review",
+          "exam",
+          "selfstudy"
+        ]
+      },
+      "values": [
+        {
+          "id": "intro",
+          "label": "첫 도입"
+        },
+        {
+          "id": "deep",
+          "label": "심화"
+        },
+        {
+          "id": "review",
+          "label": "복습"
+        }
+      ]
+    },
+    {
+      "id": "prereq",
+      "name": "선수 지식",
+      "desc": "학습자가 이미 배웠다고 가정할 것. 없으면 비워 둔다.",
+      "type": "text",
+      "source": "추론",
+      "ask_when": {
+        "purpose": [
+          "concept",
+          "lab",
+          "review",
+          "exam",
+          "selfstudy"
+        ]
+      }
+    },
+    {
+      "id": "exec_mode",
+      "name": "실행 환경·작업 방식",
+      "desc": "클라우드에서는 PC 전용 일을 「PC에서 할 일」로 모아 둔다. PC 모드는 필요한 도구가 설치돼 있어야 한다.",
+      "type": "single",
+      "source": "사용자 2026-11-07(선택할 수 있게)",
+      "values": [
+        {
+          "id": "cloud",
+          "label": "클라우드만 (Claude 서브에이전트 병렬, PC 전용 일은 모아 둠)"
+        },
+        {
+          "id": "pc",
+          "label": "PC(Orca) 멀티에이전트 (ego lite·Codex·Antigravity 등)"
+        },
+        {
+          "id": "hybrid",
+          "label": "혼합 (클라우드에서 만들고 PC에서 검수·보완)"
+        }
+      ]
+    },
+    {
+      "id": "other_agents",
+      "name": "함께 쓸 에이전트",
+      "desc": "PC·혼합 모드에서만. 점검 결과에 있는 것만 고른다.",
+      "type": "multi",
+      "source": "사용자 2026-11-07",
+      "ask_when": {
+        "exec_mode": [
+          "pc",
+          "hybrid"
+        ]
+      },
+      "values": [
+        {
+          "id": "codex",
+          "label": "Codex (장면 코딩)"
+        },
+        {
+          "id": "antigravity",
+          "label": "Antigravity CLI (짧고 가벼운 글 작업만)"
+        },
+        {
+          "id": "gemini",
+          "label": "Gemini"
+        },
+        {
+          "id": "none",
+          "label": "Claude Code만"
+        }
+      ]
+    }
+  ]
+}

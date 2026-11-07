@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "updated": "2026-11-07",
+  "note": "B층 취향 항목(entry) 정본. 각 항목은 '이렇게 한다' 문장이며 scope(차원 값 조건)가 비면 전체 적용. 프로젝트 규칙(AGENTS.md·CLAUDE.md 등)과 충돌하면 규칙이 우선한다. strength: 1 직접 말함 · 2 여러 안 중 고름 · 3 고치라고 함 · 4 말없이 수용 · 5 Claude 추론. status: proposed · confirmed · promoted_rule · retired. 새 항목은 끝에 추가하고 id는 <sub>-<YYMMDD>-<nn>. (starter: 빈 저장소 — 첫 인터뷰와 마무리에서 쌓인다.)",
+  "entries": []
+}

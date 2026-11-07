@@ -1,0 +1,1441 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 배치(반응형): 맨 위 메뉴 줄(고정) → 리본 → [왼쪽 사이드 트리 | 본문] → 아래 고정 이전/다음.
+   사이드 트리는 640px 이상에서 옆으로 밀어 열리고(겹치지 않음), 그보다 좁으면 겹쳐 열린다. 닫으면 왼쪽 가장자리의 세로 손잡이만 남는다.
+   트리: 1부 큰 구분 → 화면 → 차원 / 2부 취향 → P1~P5 → 하위 → 질문 / 3부 이번 자료 / 참고 서랍. 선으로 연결, 접기·펼치기·선택 펼치기.
+   질문을 펼치면 예시 줄(글 스타일·화면 그림)이 나오고, 예시를 누르면 답이 된다. 「크게 보기」는 본문에 격자로 펼친다. */
+:root{--bg:#f4f6f8;--fg:#1b2430;--muted:#5b6675;--panel:#ffffff;--line:#d6dce4;--shell:#e8edf2;--side:#f9fafc;--accent:#0f766e;--accent-soft:#e3f3ef;--good:#2e7d32;--bad:#c62828;--warn:#b26a00;--shadow:0 10px 28px rgba(16,24,32,.2);--bar:50px;--sidew:clamp(270px,32vw,340px);--font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141a;--fg:#e6ebf2;--muted:#9aa6b5;--panel:#161c24;--line:#2a3441;--shell:#131a22;--side:#10161d;--accent:#2dd4bf;--accent-soft:#12302d;--good:#4ade80;--bad:#f87171;--warn:#fbbf24;--shadow:0 10px 28px rgba(0,0,0,.5);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f141a;--fg:#e6ebf2;--muted:#9aa6b5;--panel:#161c24;--line:#2a3441;--shell:#131a22;--side:#10161d;--accent:#2dd4bf;--accent-soft:#12302d;--good:#4ade80;--bad:#f87171;--warn:#fbbf24;--shadow:0 10px 28px rgba(0,0,0,.5);color-scheme:dark}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:17px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--shell)}
+body.dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
+h1{font-size:1.25rem;margin:0 0 6px;text-wrap:balance}
+h2{font-size:1.15rem;margin:0 0 4px;text-wrap:balance}
+h3{font-size:1rem;margin:0 0 6px}
+a{color:var(--accent)}
+.small{font-size:.85rem;color:var(--muted)}
+.ok{color:var(--good)}.ng{color:var(--bad)}
+/* 메뉴 줄·리본 */
+.menubar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;min-height:var(--bar);box-sizing:border-box;display:flex;gap:6px;align-items:center;padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));background:var(--shell);border-bottom:1px solid var(--line)}
+.brand{flex:1 1 0;min-width:0;font-weight:700;font-size:1rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand small{display:block;font-weight:500;font-size:.72rem;color:var(--muted)}
+.menu{display:flex;gap:2px}
+.mbtn{font:inherit;font-size:.92rem;min-height:38px;padding:4px 10px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--fg);cursor:pointer;white-space:nowrap}
+.mbtn[aria-current="true"]{background:var(--panel);border-color:var(--line);font-weight:600}
+.mtoggle{display:none}
+.ribbon{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));background:var(--panel);border-bottom:1px solid var(--line);scrollbar-width:thin}
+.ribbon>*{flex:none}
+.ribbon .sp{flex:1 1 0;min-width:0}
+.rbtn,.chip{font:inherit;font-size:.9rem;min-height:38px;padding:4px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;white-space:nowrap}
+.rbtn[aria-pressed="true"],.rbtn[aria-current="true"],.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.rbtn[disabled]{opacity:.5;cursor:default}
+.rtxt{font-size:.85rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rin{font:inherit;font-size:.9rem;min-height:38px;padding:4px 10px;border-radius:999px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);width:220px;max-width:55vw;box-sizing:border-box}
+/* 사이드 트리 + 본문 */
+.shell{display:flex;align-items:flex-start}
+.side{width:var(--sidew);flex:none;box-sizing:border-box;position:sticky;top:calc(var(--bar) + env(safe-area-inset-top,0px));max-height:calc(100vh - var(--bar) - env(safe-area-inset-top,0px));overflow-y:auto;overflow-x:hidden;background:var(--side);border-right:1px solid var(--line);padding:8px 8px 120px max(8px,env(safe-area-inset-left,0px))}
+.side.closed{display:none}
+.main{flex:1 1 0;min-width:0}
+.wrap{max-width:720px;margin:0 auto;padding-block:12px 130px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.main.wide .wrap{max-width:1100px}
+.sidetab{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:8;writing-mode:vertical-rl;font:inherit;font-size:.8rem;padding:10px 5px;border:1px solid var(--line);border-left:0;border-radius:0 10px 10px 0;background:var(--panel);color:var(--fg);cursor:pointer;box-shadow:var(--shadow);padding-left:calc(5px + env(safe-area-inset-left,0px))}
+.scrim{position:fixed;inset:0;background:rgba(10,14,18,.4);z-index:11}
+@media (min-width:640px){.scrim{display:none}}
+@media (max-width:639px){
+  .side{position:fixed;left:0;top:0;bottom:0;max-height:none;width:min(88vw,360px);z-index:12;box-shadow:var(--shadow);padding-top:calc(env(safe-area-inset-top,0px) + 8px);border-right:0}
+}
+@media (max-width:899px){
+  .menu{display:none;position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:calc(100% + 4px);flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:var(--shadow);z-index:12}
+  .menu.open{display:flex}
+  .mtoggle{display:inline-flex}
+}
+.sidehead{display:flex;align-items:center;gap:4px;margin-bottom:6px;flex-wrap:wrap}
+.sidehead b{flex:1 1 100px;min-width:0;font-size:.95rem}
+.sin{font:inherit;font-size:.9rem;width:100%;box-sizing:border-box;min-height:38px;padding:4px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg)}
+.tools{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.tbtn{font:inherit;font-size:.8rem;min-height:32px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;white-space:nowrap}
+.tbtn[aria-expanded="true"],.tbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pop{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px;margin:4px 0 8px;font-size:.85rem;display:grid;gap:6px}
+.pop label{display:flex;gap:6px;align-items:center;min-height:30px}
+.pop .cols{display:flex;flex-wrap:wrap;gap:4px 12px}
+/* 트리 */
+.tn{position:relative}
+.tr{position:relative;display:flex;align-items:center;gap:2px;min-height:34px;padding:2px 4px 2px 0;border-radius:6px;cursor:pointer}
+.tr:hover{background:var(--accent-soft)}
+.tr.cur{background:var(--accent-soft)}
+.tr.cur .lb{font-weight:600}
+.tr .tg{flex:none;width:26px;height:26px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:.8rem;cursor:pointer;border-radius:6px;padding:0}
+.tr .lb{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
+.tr.grp .lb{font-weight:600}
+.tr .st{flex:none;font-size:.72rem;color:var(--muted);max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr .st.on{color:var(--accent)}
+.tr .n{flex:none;font-size:.7rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:2px}
+.tc{margin-left:12px;padding-left:10px;border-left:1px solid var(--line)}
+.tc>.tn>.tr::before{content:"";position:absolute;left:-10px;top:50%;width:8px;height:1px;background:var(--line)}
+.td{margin:0 0 8px 20px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:.85rem}
+.td .cur{margin:0 0 6px;font-size:.85rem;padding:6px 8px}
+.td .cur small{font-size:.76rem}
+.td .acts{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 2px}
+.td .acts .tbtn{min-height:30px}
+.td .rc{margin:6px 0 0;font-size:.82rem}
+.td .opts{gap:4px}
+.td .opt{font-size:.85rem;min-height:36px;padding:4px 10px}
+.grp{font-size:.78rem;color:var(--muted);margin:10px 0 4px;letter-spacing:.02em;text-transform:uppercase}
+/* 예시 타일·화면 그림 */
+.tiles{display:flex;gap:6px;overflow-x:auto;padding:4px 2px;scrollbar-width:thin}
+.tile{flex:none;width:136px;font:inherit;text-align:left;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);padding:5px;cursor:pointer;display:grid;gap:4px;box-sizing:border-box}
+.tile[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.tile .lb{font-size:.78rem;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.tile .ds{font-size:.74rem;color:var(--muted);line-height:1.3}
+.tile.big{width:auto}
+.tile.big .lb{font-size:.95rem}.tile.big .ds{font-size:.85rem}
+.pv{border-radius:6px;overflow:hidden;background:var(--bg);min-height:40px}
+.pv svg{display:block;width:100%;height:auto}
+.pv.txt{padding:6px 8px;font-size:.78rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line;background:var(--panel);border:1px dashed var(--line)}
+.tile.big .pv.txt{font-size:.95rem;-webkit-line-clamp:12}
+.pv.lbl{padding:8px;font-size:.8rem;color:var(--muted);text-align:center}
+.guide{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;padding:6px 10px;margin:6px 0 2px;background:var(--panel)}
+.guide p{margin:0 0 2px}.guide ul{margin:0 0 4px;padding-left:18px}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;align-items:start}
+.hl{outline:3px solid var(--accent);outline-offset:2px}
+@keyframes pv-move{from{transform:translateX(-14px)}to{transform:translateX(14px)}}
+.pv .mv{animation:pv-move 1.2s ease-in-out infinite alternate}
+.pv .mv.soft{animation-duration:2.4s}
+@media (prefers-reduced-motion:reduce){.pv .mv{animation:none}}
+/* 참고 카드 (끌 수 있음) */
+.rc{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 8px 8px 2px;margin:0 0 8px;font-size:.88rem;line-height:1.4}
+.rc.now{border-color:var(--accent)}
+.rc.dragging{opacity:.45}
+.rc .grip{flex:none;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;color:var(--muted);font-size:1.25rem;padding:0 5px;line-height:1.1}
+.rc .body{flex:1 1 0;min-width:0;display:grid;gap:3px}
+.rc p{margin:0;overflow-wrap:anywhere}
+.rc .t{font-weight:600}
+.rc .m{color:var(--muted);font-size:.78rem}
+.rc .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
+.rc .acts .chip,.rc .acts a.chip{min-height:32px;font-size:.82rem;padding:2px 10px;display:inline-flex;align-items:center;text-decoration:none}
+.rc .more{font-size:.82rem;white-space:pre-wrap;border-top:1px dashed var(--line);padding-top:4px;margin-top:2px}
+.ghost{position:fixed;left:0;top:0;z-index:30;pointer-events:none;max-width:260px;background:var(--panel);border:1.5px solid var(--accent);border-radius:10px;padding:6px 10px;font-size:.85rem;box-shadow:var(--shadow);transform:translate(-50%,-120%)}
+/* 질문 카드와 놓는 곳 */
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.step{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;margin:12px 0}
+.card.over{outline:3px solid var(--accent);outline-offset:1px}
+.card.base{border-style:dashed}
+.q{font-weight:600;margin:0 0 8px}
+.hint{color:var(--muted);font-size:.9rem;margin:-4px 0 8px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font:inherit;font-size:1rem;min-height:46px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;text-align:left;max-width:100%}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.opt.prim[aria-pressed="true"]::after{content:" ★주";color:var(--accent)}
+.opt:focus-visible,.btn:focus-visible,.chip:focus-visible,.rbtn:focus-visible,.mbtn:focus-visible,.tbtn:focus-visible,.tile:focus-visible,.tr .tg:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+textarea,input[type=text],input[type=url],select{font:inherit;width:100%;box-sizing:border-box;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);min-height:44px}
+textarea{min-height:76px;resize:vertical}
+.badge{display:inline-block;font-size:.78rem;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--fg);margin-right:4px;vertical-align:middle}
+.badge.warn{background:transparent;border:1px solid var(--warn);color:var(--warn)}
+.badge.bad{background:transparent;border:1px solid var(--bad);color:var(--bad)}
+.badge.dim{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.cur{margin:6px 0 10px;padding:10px 12px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;font-size:.98rem}
+.cur small{display:block;color:var(--muted);font-size:.82rem;margin-top:4px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.btn{font:inherit;font-size:1rem;min-height:46px;padding:8px 16px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+:root[data-theme="dark"] .btn.primary,:root:not([data-theme="light"]) .btn.primary{color:#07211e}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .btn.primary{color:#fff}}
+.btn[disabled]{opacity:.5;cursor:default}
+.btn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.drop{margin-top:10px;border:1.5px dashed var(--line);border-radius:8px;padding:6px 8px;font-size:.84rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:30px}
+.rchip{display:inline-flex;align-items:center;gap:2px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:999px;padding:2px 2px 2px 9px;color:var(--fg);font-size:.82rem;max-width:100%;min-width:0}
+.rchip .k{font-size:.72rem;color:var(--muted);margin-right:4px}
+.rchip .l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.rchip button{font:inherit;border:0;background:transparent;color:var(--fg);cursor:pointer;min-width:28px;min-height:28px;border-radius:999px}
+.foot{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;gap:8px;justify-content:space-between;align-items:center;z-index:5}
+.foot .mid{flex:1;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:4px 10px;font-size:.95rem}
+.kv b{color:var(--muted);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rank{display:flex;flex-direction:column;gap:6px}
+.rank .it{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel)}
+.rank .it span{flex:1;min-width:0}
+pre.json{font-size:.8rem;white-space:pre-wrap;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:220px;overflow:auto}
+/* 대시보드·저장소 */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin:8px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left;font:inherit;color:var(--fg)}
+.stat b{display:block;font-size:1.4rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{font-size:.8rem;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;align-items:start}
+.grid2 .rc{margin:0}
+.simlist{display:grid;gap:6px}
+.sim{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex-wrap:wrap}
+.sim .n{font-variant-numeric:tabular-nums;font-weight:600;min-width:3.2em}
+.sim .t{flex:1 1 200px;min-width:0}
+table.dm{border-collapse:collapse;width:100%;font-size:.9rem}
+table.dm th,table.dm td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--line)}
+table.dm th{color:var(--muted);font-weight:500;white-space:nowrap}
+.tbl{overflow-x:auto}
+/* 넣을 곳 고르기·알림 */
+.picker{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--panel);border-top:1px solid var(--line);border-radius:14px 14px 0 0;padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-height:70vh;overflow:auto;box-shadow:var(--shadow)}
+.picker .list{display:grid;gap:6px;margin-top:8px}
+.pscrim{position:fixed;inset:0;background:rgba(10,14,18,.4);z-index:20}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:25;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.9rem;max-width:90vw;box-sizing:border-box;box-shadow:var(--shadow);text-align:center}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+<header class="menubar" id="menubar">
+  <div class="brand" id="brand"></div>
+  <button class="rbtn" id="sidebtn" type="button" aria-pressed="false" aria-controls="side">☰ 트리</button>
+  <button class="rbtn mtoggle" id="mtoggle" type="button" aria-expanded="false" aria-controls="menu">⋮ 메뉴</button>
+  <nav class="menu" id="menu" aria-label="화면"></nav>
+</header>
+<div class="ribbon" id="ribbon"></div>
+<div class="shell">
+  <aside class="side" id="side" aria-label="사이드 트리"></aside>
+  <main class="main" id="main">
+    <div class="wrap">
+      <h1 id="title"></h1>
+      <p class="small" id="intro"></p>
+      <div class="bar" id="bar" aria-hidden="true"><i id="barfill"></i></div>
+      <div class="step" id="step" aria-live="polite"></div>
+      <div id="screen"></div>
+    </div>
+  </main>
+</div>
+<button class="sidetab" id="sidetab" type="button" hidden>트리 열기 ▸</button>
+<div class="scrim" id="scrim" hidden></div>
+<div class="foot" id="foot">
+  <button class="btn" id="prev" type="button">이전</button>
+  <div class="mid" id="midbtns"></div>
+  <button class="btn primary" id="next" type="button">다음</button>
+</div>
+<div class="ghost" id="ghost" hidden></div>
+<div class="pscrim" id="pscrim" hidden></div>
+<div class="picker" id="picker" role="dialog" aria-label="어디에 넣을까요" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+const SPEC = __SPEC__;
+(function(){
+'use strict';
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = v => v == null ? v : JSON.parse(JSON.stringify(v));
+const short = (s, n) => { s = String(s == null ? '' : s); n = n || 48; return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+const shortDate = s => (s || '').slice(0, 10);
+const KEY = 'pe:' + (SPEC.spec_id || 'spec');
+const mode = SPEC.mode || 'interview';
+const MODE_NAME = ({interview: '인터뷰', structure: '구성 확인', review: '검토', approve: '승인'})[mode] || '인터뷰';
+const dims = (SPEC.dimensions && SPEC.dimensions.dimensions) || [];
+const dimById = Object.fromEntries(dims.map(d => [d.id, d]));
+const dimScreens = (SPEC.dimensions && SPEC.dimensions.screens) || [];
+const aspects = (SPEC.questions && SPEC.questions.aspects) || [];
+const aspectById = Object.fromEntries(aspects.map(a => [a.id, a]));
+const cats = (SPEC.questions && SPEC.questions.categories) || [];
+const subName = {}; for (const c of cats) for (const [k, v] of Object.entries(c.subs || {})) subName[k] = v;
+const entries = SPEC.entries || [];
+const entryById = Object.fromEntries(entries.map(e => [e.id, e]));
+const isActive = e => e.status === 'confirmed' || e.status === 'proposed';
+const reasons = (SPEC.questions && SPEC.questions.review_reasons) || [];
+const projectQs = (SPEC.questions && SPEC.questions.project_questions) || [];
+const items = SPEC.items || [];
+const store = SPEC.store || {};
+const projects = store.projects || [];
+const projById = Object.fromEntries(projects.map(p => [p.lecture, p]));
+const pastAnswers = store.past_answers || [];
+const lessons = store.lessons || [], mistakes = store.mistakes || [], designRefs = store.design_refs || [], templates = store.templates || [], changes = store.changes || [], checklist = store.checklist || [];
+const choices = store.choices || {};
+const choiceOf = (aid, oid) => choices[aid + '|' + oid] || null;
+const KIND_NAME = {project: '프로젝트', past_all: '지난 답변', past: '지난 답', entry: '취향', decision: '결정', lesson: '교훈', mistake: '실수', design_ref: '레퍼런스', template: '템플릿', new_ref: '새 메모'};
+const CHOICE_NAME = {keep: '그대로', change: '이번엔 다르게', new: '처음 정함', skip: '나중에·해당 없음'};
+const isNarrow = () => !!(window.matchMedia && window.matchMedia('(max-width: 639px)').matches);
+const lectureName = f => { const m = /^\d{4}(?:\d{2})?_[^_/]+_(.+)$/.exec(f || ''); return m ? m[1] : (f || ''); };
+
+// ---------- 상태 (답) ----------
+const blank = () => ({dimensions: {}, aspects: {}, project: {}, items: {}, overall: '', notes: '', refs: {}, base_project: null, new_refs: []});
+let state = blank();
+try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.dimensions) state = Object.assign(blank(), saved); } catch (e) {}
+if (!state.refs || typeof state.refs !== 'object') state.refs = {};
+if (!Array.isArray(state.new_refs)) state.new_refs = [];
+if (SPEC.defaults && SPEC.defaults.dimensions) {
+  for (const [k, v] of Object.entries(SPEC.defaults.dimensions)) if (state.dimensions[k] == null) state.dimensions[k] = clone(v);
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+// ---------- 상태 (화면) ----------
+const ui = {view: 'flow', storeTab: 'entries', sideOpen: !isNarrow(), q: '', storeQ: '', open: {}, detail: {}, gallery: [], popOpen: false, filter: null};
+try { const u = JSON.parse(sessionStorage.getItem(KEY + ':ui') || 'null'); if (u) Object.assign(ui, u); } catch (e) {}
+try { const so = localStorage.getItem('pe:side'); if (so != null) ui.sideOpen = so === '1'; } catch (e) {}
+try { const t = JSON.parse(localStorage.getItem(KEY + ':tree') || 'null'); if (t && t.open) { ui.open = t.open; ui.detail = t.detail || {}; } } catch (e) {}
+function saveUi() { try { sessionStorage.setItem(KEY + ':ui', JSON.stringify({view: ui.view, storeTab: ui.storeTab, gallery: ui.gallery, filter: ui.filter || null})); localStorage.setItem(KEY + ':tree', JSON.stringify({open: ui.open, detail: ui.detail})); } catch (e) {} }
+
+// ---------- 공통 판정 (scripts/match.py 와 같은 규칙) ----------
+function projectValue(key) {
+  if (key === 'lecture') return SPEC.lecture ? [SPEC.lecture] : null;
+  if (key === 'topic') return SPEC.topics || null;
+  if (key === 'pc') return SPEC.pc ? [SPEC.pc] : null;
+  const v = state.dimensions[key];
+  if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
+  return Array.isArray(v) ? v : [v];
+}
+function applies(entry) {
+  for (const [k, vs] of Object.entries(entry.scope || {})) {
+    const pv = projectValue(k);
+    if (!pv) return false;
+    if (k === 'topic') { if (!vs.some(v => pv.some(t => String(t).includes(v)))) return false; }
+    else if (!vs.some(v => pv.includes(v))) return false;
+  }
+  return true;
+}
+function conditionOk(cond) { // applies_when / ask_when: 답하지 않은 차원은 "모름 → 보여 준다"
+  for (const [k, vs] of Object.entries(cond || {})) {
+    const pv = projectValue(k);
+    if (!pv) continue;
+    if (!vs.some(v => pv.includes(v))) return false;
+  }
+  return true;
+}
+const norm = v => JSON.stringify(Array.isArray(v) ? [...v].sort() : v);
+function matchAspect(aid) {
+  const group = entries.filter(e => e.aspect === aid && isActive(e) && applies(e));
+  if (!group.length) return null;
+  group.sort((a, b) => (a.strength === 5) - (b.strength === 5) || Object.keys(b.scope || {}).length - Object.keys(a.scope || {}).length
+    || (a.status !== 'confirmed') - (b.status !== 'confirmed') || (a.strength || 9) - (b.strength || 9) || String(b.last || '').localeCompare(String(a.last || '')));
+  const w = group[0];
+  const top = group.filter(e => Object.keys(e.scope || {}).length === Object.keys(w.scope || {}).length && (e.strength === 5) === (w.strength === 5));
+  const vals = new Set(top.map(e => norm(e.value)));
+  return {winner: w, candidates: group, conflict: vals.size > 1, conflictSet: top, inferred: w.strength === 5};
+}
+function optionLabel(aspect, v) {
+  if (!aspect || !aspect.options) return Array.isArray(v) ? v.join(', ') : String(v == null ? '' : v);
+  const lab = id => (aspect.options.find(o => o.id === id) || {}).label || id;
+  return Array.isArray(v) ? v.map(lab).join(', ') : lab(v);
+}
+function dimLabel(d, v) { const o = (d.values || []).find(x => x.id === v); return o ? o.label : v; }
+function dimText(did, v) { const d = dimById[did]; if (!d) return Array.isArray(v) ? v.join(', ') : String(v == null ? '' : v); if (d.type === 'text') return String(v == null ? '' : v); return Array.isArray(v) ? v.map(x => dimLabel(d, x)).join(', ') : dimLabel(d, v); }
+function scopeText(scope) {
+  const ks = Object.keys(scope || {});
+  if (!ks.length) return '전체';
+  return ks.map(k => { const d = dimById[k]; return (d ? d.name : k) + '=' + scope[k].map(v => d ? dimLabel(d, v) : v).join('·'); }).join(', ');
+}
+const SIM_DIMS = ['material_type', 'purpose', 'audience_age', 'audience_level', 'venue', 'presenter', 'length', 'field', 'format', 'sources'];
+function similarity(rec) {
+  let n = 0, m = 0;
+  for (const k of SIM_DIMS) { const cur = projectValue(k); if (!cur) continue; m++; const v = (rec || {})[k]; if (v == null) continue; const arr = Array.isArray(v) ? v : [v]; if (arr.some(x => cur.includes(x))) n++; }
+  return {n, m};
+}
+const dimAnswered = did => { const v = state.dimensions[did]; return !(v == null || v === '' || (Array.isArray(v) && !v.length)); };
+const aspectAnswered = aid => !!(state.aspects[aid] && state.aspects[aid].choice);
+
+// ---------- 화면 목록 (인터뷰 흐름) ----------
+const screens = [];
+screens.push({id: 'intro', kind: 'intro', title: SPEC.title || '제작 인터뷰'});
+if (mode === 'interview') {
+  for (const s of dimScreens) screens.push({id: s.id, kind: 'dims', title: s.title, dimensions: s.dimensions});
+  for (const c of cats) screens.push({id: c.id, kind: 'taste', title: c.id + ' ' + c.name, cat: c});
+  screens.push({id: 'project', kind: 'project', title: '이번 자료에 대해'});
+} else {
+  screens.push({id: 'items', kind: mode, title: SPEC.items_title || ({structure: '구성안 확인', review: '검토', approve: '업데이트 제안 승인'}[mode] || '항목')});
+}
+screens.push({id: 'summary', kind: 'summary', title: '정리·제출'});
+let idx = 0;
+try { const i = parseInt(sessionStorage.getItem(KEY + ':idx') || '0', 10); if (i >= 0 && i < screens.length) idx = i; } catch (e) {}
+function applicableAspects(cat) { return aspects.filter(a => a.sub && a.sub.startsWith(cat.id + '.') && conditionOk(a.applies_when)); }
+const screenOfAspect = aid => screens.findIndex(s => s.kind === 'taste' && aid.startsWith(s.cat.id + '.'));
+const screenOfDim = did => screens.findIndex(s => s.kind === 'dims' && s.dimensions.includes(did));
+function screenTargets(sc) {
+  const t = [];
+  if (!sc) return t;
+  if (sc.kind === 'intro' || (sc.kind === 'dims' && sc === screens[1])) t.push({id: 'base', label: '기본 양식으로 삼기 (차원 값·취향을 한 번에 맞춤)', kinds: ['project', 'past_all']});
+  if (sc.kind === 'dims') for (const did of sc.dimensions) { const d = dimById[did]; if (d && !(d.ask_when && !conditionOk(d.ask_when))) t.push({id: 'dim:' + did, label: d.name}); }
+  if (sc.kind === 'taste') for (const a of applicableAspects(sc.cat)) t.push({id: 'aspect:' + a.id, label: a.text});
+  if (sc.kind === 'project') for (const q of projectQs) t.push({id: 'pq:' + q.id, label: q.text});
+  if (sc.kind === 'structure' || sc.kind === 'review' || sc.kind === 'approve') for (const it of items) t.push({id: 'item:' + it.id, label: it.title});
+  return t;
+}
+function targetLabel(target) {
+  if (target === 'base') return '기본 양식';
+  const k = target.slice(0, target.indexOf(':')), id = target.slice(target.indexOf(':') + 1);
+  if (k === 'dim') return (dimById[id] || {}).name || id;
+  if (k === 'aspect') return (aspectById[id] || {}).text || id;
+  if (k === 'pq') return (projectQs.find(q => q.id === id) || {}).text || id;
+  if (k === 'item') return (items.find(i => i.id === id) || {}).title || id;
+  return target;
+}
+
+// ---------- 답 기록 ----------
+function pickDim(did, id) { // 차원 값 고르기 (본문 카드와 트리가 같이 쓴다)
+  const d = dimById[did]; if (!d) return;
+  if (d.type === 'multi') {
+    const arr = Array.isArray(state.dimensions[did]) ? [...state.dimensions[did]] : [];
+    const i = arr.indexOf(id);
+    if (i >= 0) { arr.splice(i, 1); if (d.primary && state.dimensions[did + '_primary'] === id) delete state.dimensions[did + '_primary']; }
+    else { arr.push(id); if (d.primary && !state.dimensions[did + '_primary']) state.dimensions[did + '_primary'] = id; }
+    state.dimensions[did] = arr;
+  } else state.dimensions[did] = id;
+  save();
+}
+function setAspectFrom(aid, val, from) { // 학습된 기본값과 같으면 「그대로」, 다르면 「이번엔 다르게」, 학습값이 없으면 「처음 정함」
+  const m = matchAspect(aid);
+  const keep = !!(m && !m.conflict && !m.inferred && norm(m.winner.value) === norm(val));
+  state.aspects[aid] = Object.assign({}, state.aspects[aid], {choice: m ? (keep ? 'keep' : 'change') : 'new', value: clone(val), winner: m ? m.winner.id : null, from: from || undefined});
+}
+function chooseExample(aid, oid) { // 예시 타일 클릭: 하나 고르기 / 여러 개 토글
+  const a = aspectById[aid]; if (!a) return;
+  let val = oid;
+  if (a.type === 'multi') { const cur = state.aspects[aid] && Array.isArray(state.aspects[aid].value) ? [...state.aspects[aid].value] : []; const i = cur.indexOf(oid); if (i >= 0) cur.splice(i, 1); else cur.push(oid); val = cur; }
+  setAspectFrom(aid, val, 'example');
+  save(); renderAll();
+  toast(`${a.text} → ${optionLabel(a, val)} (${CHOICE_NAME[state.aspects[aid].choice]})`);
+}
+
+// ---------- 참고(레퍼런스) 객체 ----------
+function refObject(kind, id) {
+  id = String(id);
+  if (kind === 'project') { const p = projById[id]; return p ? {kind, id, label: p.title || id, lecture: p.lecture} : null; }
+  if (kind === 'entry') { const e = entryById[id]; return e ? {kind, id, label: e.statement, aspect: e.aspect, value: e.value} : null; }
+  if (kind === 'past') { const i = id.lastIndexOf('#'); const file = id.slice(0, i), aid = id.slice(i + 1); const a = pastAnswers.find(x => x.file === file); const s = a && a.aspects && a.aspects[aid];
+    return s ? {kind, id, label: `${lectureName(a.lecture)} ${shortDate(a.submitted_at)} · ${(aspectById[aid] || {}).text || aid} → ${optionLabel(aspectById[aid], s.value)}`, aspect: aid, value: s.value, lecture: a.lecture} : null; }
+  if (kind === 'past_all') { const a = pastAnswers.find(x => x.file === id); return a ? {kind, id, label: `${lectureName(a.lecture)} 인터뷰 답변 ${shortDate(a.submitted_at)}`, lecture: a.lecture} : null; }
+  if (kind === 'decision') { const i = id.lastIndexOf('#'); const lec = id.slice(0, i); const p = projById[lec]; const d = p && (p.decisions || [])[+id.slice(i + 1)]; return d ? {kind, id, label: d, lecture: lec} : null; }
+  if (kind === 'lesson') { const l = lessons[+id]; return l ? {kind, id, label: l.title} : null; }
+  if (kind === 'mistake') { const m = mistakes.find(x => x.id === id); return m ? {kind, id, label: `${m.id} ${m.symptom}`} : null; }
+  if (kind === 'design_ref') { const r = designRefs.find(x => x.service === id); return r ? {kind, id, label: r.service, url: r.url} : null; }
+  if (kind === 'template') { const t = templates.find(x => x.name === id); return t ? {kind, id, label: t.name, location: t.location} : null; }
+  if (kind === 'new_ref') { const n = state.new_refs.find(x => x.id === id); return n ? {kind, id, label: n.text, url: n.url || ''} : null; }
+  return null;
+}
+function applyBase(kind, id) {
+  let dimsSrc, aspSrc = null, appliedIds = [], title;
+  if (kind === 'project') { const p = projById[id]; if (!p) return false; dimsSrc = p.dimensions || {}; appliedIds = p.applied_entries || []; title = p.title || id; }
+  else { const a = pastAnswers.find(x => x.file === id); if (!a) return false; dimsSrc = a.dimensions || {}; aspSrc = a.aspects || {}; title = `${lectureName(a.lecture)} 인터뷰 답변 ${shortDate(a.submitted_at)}`; }
+  for (const [k, v] of Object.entries(dimsSrc)) state.dimensions[k] = clone(v);
+  let n = 0;
+  if (aspSrc) {
+    for (const [aid, s] of Object.entries(aspSrc)) {
+      if (!s || !s.choice || s.choice === 'skip' || !aspectById[aid]) continue;
+      const val = s.value != null ? s.value : (s.winner && entryById[s.winner] ? entryById[s.winner].value : null);
+      if (val == null) continue;
+      setAspectFrom(aid, val, id); n++;
+    }
+  } else {
+    for (const eid of appliedIds) { const e = entryById[eid]; if (!e || !isActive(e) || !aspectById[e.aspect]) continue; setAspectFrom(e.aspect, e.value, id); n++; }
+  }
+  state.base_project = {kind, id, title, applied_at: new Date().toISOString(), dims_set: Object.keys(dimsSrc).length, aspects_set: n};
+  save(); renderAll();
+  toast(`기본 양식: ${short(title, 40)} — 차원 ${Object.keys(dimsSrc).length}개, 취향 ${n}개를 맞췄습니다`);
+  return true;
+}
+function applyRef(target, ref) {
+  if (!ref) return false;
+  if (target === 'base') {
+    if (ref.kind === 'project' || ref.kind === 'past_all') return applyBase(ref.kind, ref.id);
+    toast('기본 양식에는 지난 프로젝트나 지난 인터뷰 답변만 넣을 수 있습니다'); return false;
+  }
+  const list = state.refs[target] || (state.refs[target] = []);
+  if (!list.some(r => r.kind === ref.kind && r.id === ref.id)) {
+    const rec = {kind: ref.kind, id: ref.id, label: short(ref.label, 160), at: new Date().toISOString()};
+    if (ref.url) rec.url = ref.url; if (ref.lecture) rec.lecture = ref.lecture; if (ref.aspect) rec.aspect = ref.aspect;
+    list.push(rec);
+  }
+  let extra = '';
+  if (target.startsWith('aspect:')) {
+    const aid = target.slice(7);
+    if (ref.aspect === aid && ref.value != null) { setAspectFrom(aid, ref.value, ref.kind + ':' + ref.id); extra = ' · 답도 그 값으로 맞춤'; }
+  } else if (target.startsWith('dim:') && (ref.kind === 'project' || ref.kind === 'past_all')) {
+    const did = target.slice(4);
+    const src = ref.kind === 'project' ? (projById[ref.id] || {}).dimensions : (pastAnswers.find(x => x.file === ref.id) || {}).dimensions;
+    if (src && src[did] != null) { state.dimensions[did] = clone(src[did]); for (const sfx of ['_primary', '_other']) if (src[did + sfx] != null) state.dimensions[did + sfx] = clone(src[did + sfx]); extra = ' · 값도 같게 맞춤'; }
+  }
+  save(); renderAll();
+  toast(`「${targetLabel(target)}」에 넣었습니다: ${short(ref.label, 36)}${extra}`);
+  return true;
+}
+function removeRef(target, r) {
+  const list = state.refs[target] || [];
+  const i = list.findIndex(x => x.kind === r.kind && x.id === r.id);
+  if (i >= 0) list.splice(i, 1);
+  if (!list.length) delete state.refs[target];
+  save(); renderAll();
+}
+function refCount() { return Object.values(state.refs).reduce((n, l) => n + l.length, 0); }
+
+// ---------- 끌어다 놓기 (pointer 이벤트: 마우스·터치 공통) ----------
+const ghost = $('#ghost');
+let drag = null, overEl = null;
+function startDrag(ev, ref, el, immediate) {
+  if (!ref || drag) return;
+  if (ev.button != null && ev.button !== 0) return;
+  drag = {ref, el, x: ev.clientX, y: ev.clientY, started: false};
+  document.addEventListener('pointermove', onDragMove, {passive: false});
+  document.addEventListener('pointerup', onDragEnd);
+  document.addEventListener('pointercancel', onDragEnd);
+  if (immediate) { if (ev.cancelable) ev.preventDefault(); beginDrag(ev); }
+}
+function beginDrag(ev) {
+  drag.started = true;
+  ghost.textContent = `${KIND_NAME[drag.ref.kind] || ''} · ${short(drag.ref.label, 60)}`; ghost.hidden = false; moveGhost(ev);
+  drag.el.classList.add('dragging'); document.body.classList.add('dragging');
+  if (isNarrow() && ui.sideOpen) setSide(false);
+}
+function moveGhost(ev) { ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px'; }
+function setOver(el) { if (overEl === el) return; if (overEl) overEl.classList.remove('over'); overEl = el; if (overEl) overEl.classList.add('over'); }
+function targetAt(x, y) { if (typeof document.elementFromPoint !== 'function') return null; const el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('[data-drop]') : null; }
+function onDragMove(ev) {
+  if (!drag) return;
+  if (!drag.started) { if (Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) < 6) return; beginDrag(ev); }
+  if (ev.cancelable) ev.preventDefault();
+  moveGhost(ev); setOver(targetAt(ev.clientX, ev.clientY));
+}
+function onDragEnd(ev) {
+  document.removeEventListener('pointermove', onDragMove); document.removeEventListener('pointerup', onDragEnd); document.removeEventListener('pointercancel', onDragEnd);
+  const d = drag; drag = null;
+  if (!d || !d.started) return;
+  const t = ev.type === 'pointerup' ? targetAt(ev.clientX, ev.clientY) : null;
+  d.el.classList.remove('dragging'); document.body.classList.remove('dragging'); ghost.hidden = true; setOver(null);
+  if (t) applyRef(t.dataset.drop, d.ref);
+  else if (ev.type === 'pointerup') toast('질문 카드 위에 놓아야 합니다. 또는 카드의 「넣기」를 누르세요');
+}
+
+// ---------- 넣을 곳 고르기 · 알림 ----------
+function openPicker(ref) {
+  const pk = $('#picker'), scrim = $('#pscrim');
+  let sIdx = idx;
+  const draw = () => {
+    const sc = screens[sIdx];
+    const targets = screenTargets(sc).filter(t => !t.kinds || t.kinds.includes(ref.kind));
+    pk.innerHTML = `<h3>어디에 넣을까요</h3><p class="small">${esc(KIND_NAME[ref.kind] || '')} · ${esc(short(ref.label, 90))}</p>`
+      + (screens.length > 2 ? '<label class="small">화면 <select id="pksel"></select></label>' : '')
+      + '<div class="list" id="pklist"></div><div class="row"><button class="btn" id="pkclose" type="button">닫기</button></div>';
+    const sel = $('#pksel', pk);
+    if (sel) { screens.forEach((s, i) => { if (s.kind === 'summary') return; const o = document.createElement('option'); o.value = String(i); o.textContent = `${i + 1}. ${s.title || s.id}`; o.selected = i === sIdx; sel.appendChild(o); }); sel.onchange = () => { sIdx = parseInt(sel.value, 10); draw(); }; }
+    const list = $('#pklist', pk);
+    if (!targets.length) list.innerHTML = '<p class="small">이 화면에는 넣을 수 있는 항목이 없습니다. 다른 화면을 고르세요.</p>';
+    for (const t of targets) { const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.textContent = t.label; b.dataset.target = t.id; b.onclick = () => { closePicker(); ui.view = 'flow'; idx = sIdx; applyRef(t.id, ref); }; list.appendChild(b); }
+    $('#pkclose', pk).onclick = closePicker;
+  };
+  draw(); pk.hidden = false; scrim.hidden = false; scrim.onclick = closePicker;
+}
+function closePicker() { $('#picker').hidden = true; $('#pscrim').hidden = true; }
+let toastT = null;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3000); }
+
+// ---------- 참고 카드 (끌 수 있음) ----------
+function chipBtn(label, on) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = label; b.onclick = on; return b; }
+function badge(text, cls) { return `<span class="badge${cls ? ' ' + cls : ''}">${esc(text)}</span>`; }
+function card(ref, o) {
+  const el = document.createElement('div'); el.className = 'rc' + (o.now ? ' now' : ''); el.dataset.kind = ref.kind; el.dataset.id = ref.id;
+  const grip = document.createElement('div'); grip.className = 'grip'; grip.textContent = '⠿'; grip.setAttribute('aria-hidden', 'true'); grip.title = '끌어서 질문 카드에 놓기';
+  const body = document.createElement('div'); body.className = 'body';
+  body.innerHTML = (o.chips ? `<p>${o.chips}</p>` : '') + `<p class="t">${esc(o.title)}</p>` + (o.meta ? `<p class="m">${o.meta}</p>` : '') + (o.body ? `<p>${esc(o.body)}</p>` : '');
+  const acts = document.createElement('div'); acts.className = 'acts';
+  const ins = chipBtn('넣기 ▸', () => openPicker(ref)); ins.dataset.act = 'insert'; acts.appendChild(ins);
+  let moreEl = null;
+  if (o.more) { moreEl = document.createElement('div'); moreEl.className = 'more'; moreEl.hidden = true; moreEl.innerHTML = o.more; const mb = chipBtn('자세히', () => { moreEl.hidden = !moreEl.hidden; mb.textContent = moreEl.hidden ? '자세히' : '접기'; }); acts.appendChild(mb); }
+  if (o.link) { const a = document.createElement('a'); a.className = 'chip'; a.href = o.link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = '열기 ↗'; acts.appendChild(a); }
+  for (const b of (o.extra || [])) acts.appendChild(b);
+  body.appendChild(acts);
+  if (moreEl) body.appendChild(moreEl);
+  el.appendChild(grip); el.appendChild(body);
+  grip.addEventListener('pointerdown', ev => startDrag(ev, ref, el, true));
+  el.addEventListener('pointerdown', ev => { if (ev.pointerType && ev.pointerType !== 'mouse') return; if (ev.target.closest && ev.target.closest('button,a,input,textarea,select,.grip,.more')) return; startDrag(ev, ref, el, false); });
+  return el;
+}
+const hit = (q, ...parts) => { q = (q || '').trim().toLowerCase(); if (!q) return true; const t = parts.map(p => String(p == null ? '' : (typeof p === 'object' ? JSON.stringify(p) : p))).join(' ').toLowerCase(); return q.split(/\s+/).every(w => t.includes(w)); };
+function projectCard(p) {
+  const ref = refObject('project', p.lecture); if (!ref) return null;
+  const d = p.dimensions || {};
+  const chips = ['material_type', 'purpose', 'audience_age', 'venue'].filter(k => d[k] != null).map(k => badge(short(dimText(k, d[k]), 26), 'dim')).join('');
+  const sim = similarity(d);
+  const meta = `${esc(shortDate(p.created))} · ${esc(p.lecture)}` + (sim.m ? ` · 지금 답과 일치 ${sim.n}/${sim.m}` : '');
+  const body = (p.outcome ? '결과: ' + short(p.outcome, 90) : '') + (p.feedback && p.feedback.rounds ? ` · 검토 ${p.feedback.rounds}회` : '');
+  const more = (p.feedback && p.feedback.summary ? `<b>피드백</b> ${esc(p.feedback.summary)}\n` : '')
+    + ((p.decisions || []).length ? `<b>결정</b>\n${p.decisions.map(x => '· ' + esc(x)).join('\n')}\n` : '')
+    + `<b>적용 취향</b> ${(p.applied_entries || []).length}개\n`
+    + ((p.deliverables || []).length ? `<b>산출물</b>\n${p.deliverables.map(x => /^https?:/.test(x) ? `· <a href="${esc(x)}" target="_blank" rel="noopener">${esc(x)}</a>` : '· ' + esc(x)).join('\n')}\n` : '')
+    + (p.costs && p.costs.higgsfield_credits != null ? `<b>크레딧</b> ${esc(p.costs.higgsfield_credits)}\n` : '')
+    + ((p.pc_todo || []).length ? `<b>PC에서 할 일</b> ${esc(p.pc_todo.join(' / '))}` : '');
+  const base = chipBtn('이 양식으로 시작', () => applyBase('project', p.lecture)); base.dataset.act = 'base';
+  return card(ref, {title: p.title || p.lecture, chips, meta, body, more, extra: [base], now: !!(state.base_project && state.base_project.id === p.lecture)});
+}
+function pastAllCard(a) {
+  const ref = refObject('past_all', a.file); if (!ref) return null;
+  const d = a.dimensions || {};
+  const chips = ['material_type', 'purpose', 'audience_age'].filter(k => d[k] != null).map(k => badge(short(dimText(k, d[k]), 26), 'dim')).join('');
+  const n = Object.values(a.aspects || {}).filter(s => s && s.choice && s.choice !== 'skip').length;
+  const base = chipBtn('이 답변대로 시작', () => applyBase('past_all', a.file)); base.dataset.act = 'base';
+  return card(ref, {title: ref.label, chips, meta: `${esc(a.file)} · 차원 ${Object.keys(d).filter(k => !/_primary$|_other$/.test(k)).length}개 · 취향 답 ${n}개` + (a.base_project ? ` · 기본 양식 ${esc(a.base_project.title || a.base_project.id)}` : ''), body: a.project && a.project.topic ? '주제: ' + a.project.topic : '', extra: [base]});
+}
+function entryCard(e, opts) {
+  const ref = refObject('entry', e.id); if (!ref) return null;
+  const a = aspectById[e.aspect] || {};
+  const act = isActive(e), app = act && applies(e);
+  const chips = badge(e.sub + ' ' + (subName[e.sub] || ''), 'dim') + (app ? badge('이번에 적용') : '') + (e.status === 'retired' ? badge('은퇴', 'bad') : e.status === 'promoted_rule' ? badge('규칙 승격') : e.strength === 5 ? badge('추론', 'warn') : e.status === 'proposed' ? badge('제안', 'warn') : '');
+  const meta = `${esc(e.id)} · ${esc(a.text || e.aspect)} → <b>${esc(optionLabel(a, e.value))}</b> · 범위 ${esc(scopeText(e.scope))} · 세기 ${esc(e.strength)} · ${esc(e.count || 0)}회 · ${esc(e.last || '')}`;
+  const ex = e.examples || {};
+  const more = (e.reason ? `<b>이유</b> ${esc(e.reason)}\n` : '') + ((ex.liked || []).length ? `<b>좋았던 예</b>\n${ex.liked.map(x => '· ' + esc(x)).join('\n')}\n` : '') + ((ex.disliked || []).length ? `<b>싫었던 예</b>\n${ex.disliked.map(x => '· ' + esc(x)).join('\n')}\n` : '') + ((e.source || []).length ? `<b>출처</b> ${e.source.map(s => esc(s.file + (s.line ? ':' + s.line : ''))).join(', ')}` : '');
+  return card(ref, {title: e.statement, chips, meta, more, now: !!(opts && opts.now)});
+}
+function pastCard(a, aid) {
+  const ref = refObject('past', a.file + '#' + aid); if (!ref) return null;
+  const s = a.aspects[aid], asp = aspectById[aid] || {};
+  return card(ref, {title: `${asp.text || aid} → ${optionLabel(asp, s.value)}`, chips: badge(CHOICE_NAME[s.choice] || s.choice, 'dim') + (s.always ? badge('항상') : ''), meta: `${esc(lectureName(a.lecture))} · ${esc(shortDate(a.submitted_at))}` + (s.note ? ' · 메모: ' + esc(s.note) : '')});
+}
+function decisionCard(p, i) { const ref = refObject('decision', p.lecture + '#' + i); return ref ? card(ref, {title: p.decisions[i], chips: badge('결정', 'dim'), meta: `${esc(p.title || p.lecture)} · ${esc(shortDate(p.created))}`}) : null; }
+function lessonCard(l, i) { const ref = refObject('lesson', i); return ref ? card(ref, {title: l.title, chips: badge('교훈', 'dim'), body: short(l.body, 140), more: esc(l.body)}) : null; }
+function mistakeCard(m) { const ref = refObject('mistake', m.id); return ref ? card(ref, {title: `${m.id} · ${m.symptom}`, chips: badge(m.kind, m.kind === '오류' || m.kind === '버그' ? 'bad' : 'warn'), meta: `${esc(m.when)} · 확인 ${esc(m.confirm)}`, body: '원인: ' + m.cause, more: `<b>바람직한 방법</b> ${esc(m.fix)}`}) : null; }
+function designRefCard(r) { const ref = refObject('design_ref', r.service); return ref ? card(ref, {title: r.service, chips: badge(r.type, 'dim') + (r.access && r.access !== '미확인' ? badge('클라우드: ' + r.access, /차단/.test(r.access) ? 'bad' : '') : ''), meta: esc(r.url), body: r.what, more: `<b>라이선스·주의</b> ${esc(r.license)}`, link: /^https?:\/\//.test(r.url) ? r.url : null}) : null; }
+function templateCard(t) { const ref = refObject('template', t.name); return ref ? card(ref, {title: t.name, chips: badge(t.type, 'dim'), meta: esc(t.location), body: t.usage, more: `<b>단일 파일 공유본</b> ${esc(t.single)}`}) : null; }
+function newRefCard(n) {
+  const ref = refObject('new_ref', n.id); if (!ref) return null;
+  const del = chipBtn('지우기', () => { state.new_refs = state.new_refs.filter(x => x.id !== n.id); save(); renderAll(); });
+  return card(ref, {title: n.text, chips: badge('새 메모', 'warn'), meta: esc(n.url || '') + (n.url ? ' · ' : '') + esc(shortDate(n.at)), link: /^https?:\/\//.test(n.url || '') ? n.url : null, extra: [del]});
+}
+function memoForm() {
+  const c = document.createElement('div'); c.className = 'card'; c.style.margin = '0 0 8px';
+  c.innerHTML = '<p class="q">새 레퍼런스 메모</p><p class="hint">서랍에 없는 참고(사이트·작품·방식)를 적어 두면 제출 JSON에 함께 들어가고, 이 작업이 끝나면 서랍에 카드로 쌓입니다.</p>';
+  const t = document.createElement('input'); t.type = 'text'; t.id = 'nr-text'; t.placeholder = '무엇을 참고할지 한 줄 (필수)';
+  const u = document.createElement('input'); u.type = 'url'; u.id = 'nr-url'; u.placeholder = '주소 (선택)'; u.style.marginTop = '6px';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.id = 'nr-add'; b.textContent = '추가'; b.style.marginTop = '8px';
+  b.onclick = () => { const text = t.value.trim(); if (!text) { toast('메모 내용을 적어 주세요'); t.focus(); return; } addNewRef(text, u.value.trim()); };
+  c.appendChild(t); c.appendChild(u); c.appendChild(b);
+  return c;
+}
+function addNewRef(text, url) { const n = {id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, url: url || '', at: new Date().toISOString()}; state.new_refs.push(n); save(); ui.open['refs'] = true; ui.open['refs.memo'] = true; renderAll(); toast('메모를 서랍에 넣었습니다. 질문에 넣으려면 「넣기」나 끌기'); return n; }
+function grpTitle(text) { const p = document.createElement('p'); p.className = 'grp'; p.textContent = text; return p; }
+function refCards(gid, q) { // 참고 서랍 묶음 → 카드 목록
+  const out = []; const push = c => { if (c) out.push(c); };
+  if (gid === 'refs.projects') {
+    const ranked = projects.map(p => ({p, s: similarity(p.dimensions)})).sort((a, b) => (b.s.n - a.s.n) || String(b.p.created || '').localeCompare(String(a.p.created || '')));
+    for (const {p} of ranked) if (hit(q, p.title, p.lecture, p.outcome, p.dimensions, p.decisions)) push(projectCard(p));
+    for (const a of pastAnswers) if (a.mode === 'interview' && hit(q, a.lecture, a.file, a.dimensions)) push(pastAllCard(a));
+  } else if (gid === 'refs.history') {
+    for (const a of pastAnswers) {
+      const aids = Object.keys(a.aspects || {}).filter(k => a.aspects[k] && a.aspects[k].choice && aspectById[k]);
+      const cs = aids.filter(k => hit(q, a.lecture, (aspectById[k] || {}).text, optionLabel(aspectById[k], a.aspects[k].value), a.aspects[k].note)).map(k => pastCard(a, k)).filter(Boolean);
+      if (cs.length) { out.push(grpTitle(`${lectureName(a.lecture)} · ${shortDate(a.submitted_at)} (${cs.length})`)); cs.forEach(push); }
+    }
+  } else if (gid.startsWith('refs.entries.')) {
+    const cid = gid.slice(13);
+    for (const e of entries) if (e.sub && e.sub.startsWith(cid + '.') && hit(q, e.statement, e.id, e.sub, subName[e.sub], optionLabel(aspectById[e.aspect], e.value), scopeText(e.scope), e.status)) push(entryCard(e));
+  } else if (gid === 'refs.lessons') { lessons.forEach((l, i) => { if (hit(q, l.title, l.body)) push(lessonCard(l, i)); }); }
+  else if (gid === 'refs.mistakes') { for (const m of mistakes) if (hit(q, m.id, m.kind, m.symptom, m.cause, m.fix, m.when)) push(mistakeCard(m)); }
+  else if (gid.startsWith('refs.design.')) { const t = gid.slice(12); for (const r of designRefs) if (r.type === t && hit(q, r.type, r.service, r.what, r.license, r.url)) push(designRefCard(r)); }
+  else if (gid === 'refs.design') { for (const r of designRefs) if (hit(q, r.type, r.service, r.what, r.license, r.url)) push(designRefCard(r)); }
+  else if (gid === 'refs.entries') { for (const e of entries) if (hit(q, e.statement, e.id, e.sub, optionLabel(aspectById[e.aspect], e.value), scopeText(e.scope), e.status)) push(entryCard(e)); }
+  else if (gid === 'refs.templates') { for (const t of templates) if (hit(q, t.type, t.name, t.location, t.usage)) push(templateCard(t)); }
+  else if (gid === 'refs.memo') { if (!q) out.push(memoForm()); for (const n of [...state.new_refs].reverse()) if (hit(q, n.text, n.url)) push(newRefCard(n)); }
+  return out;
+}
+
+// ---------- 예시: 글 스타일 샘플 · 화면 그림 ----------
+const SAMPLE = {
+  'P1.1.formality': {polite_written: '전류가 흐르면 그 주위에 자기장이 생깁니다. 방향은 오른손 법칙으로 찾습니다.', polite_spoken: '전류가 흐르면요, 그 주위에 자기장이 생겨요. 방향은 오른손으로 찾아요.', slogan: '전류가 흐르면? 자기장이 생긴다!\n방향은 오른손이 안다.', plain: '전류가 흐르면 그 주위에 자기장이 생긴다. 방향은 오른손 법칙으로 찾는다.', mixed: '[제목] 전류가 흐르면? 자기장!\n[본문] 전류가 흐르면 그 주위에 자기장이 생깁니다.'},
+  'P1.1.energy': {calm: '전류가 흐르면 자기장이 생깁니다. 나침반이 천천히 돌아갑니다.', normal: '전류가 흐르면 자기장이 생깁니다. 나침반이 돌아갑니다.', lively: '전류가 흐르는 순간, 나침반이 휙 돌아갑니다!'},
+  'P1.1.humor': {none: '전류가 흐르면 나침반이 돌아갑니다.', light: '전류가 흐르면 나침반이 돌아갑니다. 나침반도 놀랐을 겁니다.', active: '나침반: 누가 저 밀었어요?\n전류: 접니다. 자기장 만든 사람.'},
+  'P1.2.form': {outline: '· 전류 → 자기장\n· 방향: 오른손 법칙\n· 세기: 전류에 비례', sentence: '전류가 흐르면 자기장이 생깁니다. 방향은 오른손 법칙으로 찾습니다.', narrative: '전선에 전류를 흘리면 그 주위에 자기장이 생깁니다. 1820년 외르스테드가 강의 중에 나침반이 움직이는 것을 보고 처음 알아냈고, 이 발견이 모터와 발전기로 이어집니다.', story: '1820년 어느 강의실. 외르스테드가 전선에 전류를 흘리자 옆에 있던 나침반 바늘이 슬쩍 돌았습니다. 그날 전기와 자기가 하나로 이어졌습니다.', dialogue: '학생: 왜 나침반이 돌아요?\n선생님: 전류가 자기장을 만들었거든요.\n학생: 전류를 끄면요?\n선생님: 바늘이 제자리로 돌아갑니다.', mixed: '전류가 흐르면 자기장이 생깁니다.\n· 방향: 오른손 법칙\n· 세기: 전류에 비례'},
+  'P1.3.depth': {phenomenon: '전류가 흐르면 옆의 나침반이 돌아갑니다. 전류 주위에 자기장이 생기기 때문입니다.', principle: '움직이는 전하가 자기장을 만듭니다. 전선을 오른손으로 감싸 쥐면 엄지가 전류, 나머지 손가락이 자기장 방향입니다.', quantitative: 'B = μ₀I / (2πr). 전류가 2배면 자기장도 2배, 거리가 2배면 자기장은 절반입니다.'},
+  'P1.3.terms': {easy_first: '전기가 퍼져 나가는 정도(발산, divergence)', formal_first: '발산(divergence): 전기가 퍼져 나가는 정도', none: '전기가 퍼져 나가는 정도'},
+  'P1.3.analogy': {active: '수도관 속 물처럼, 전선 속 전류도 흐릅니다. 물이 세게 흐르면 관이 떨리듯, 전류가 세면 자기장도 셉니다.', some: '전류는 전선 속 전하의 흐름입니다. (필요한 곳에서만 비유: 수도관의 물처럼)', minimal: '전류는 전선 속 전하의 흐름입니다.'},
+  'P1.3.no_level_text': {forbid: '자료 안에 「초등학생 수준으로」, 「일반인 대상」 같은 문구를 쓰지 않음', allow: '「이 자료는 일반인도 이해할 수 있게 만들었습니다」 같은 문구를 넣어도 됨'},
+  'P1.4.ai_phrasing': {past_ending: '피함: 「자기장이 생겼다.」\n씀: 「자기장이 생깁니다.」', connectives: '피함: 「그래서 … 때문에 …」\n씀: 접속사 없이 두 문장', fancy_question: '피함: 장 이름 「왜 만들었나?」\n씀: 「개발 배경」', cliche: '피함: 「혁신적인」, 「놀라운」, 「완벽한」', none: '금지 목록 없음'},
+  'P1.5.source_position': {end: '… (마지막 장면) 출처: ○○ 교재 3장, △△ 논문(2024)', each: '장면마다 아래쪽에 「출처: ○○ 교재 3장」', footnote: '본문¹ … ¹ ○○ 교재 3장', none: '출처 표시 없음'},
+  'P1.5.design_tag': {always: '출력 전압 18.6 V (설계 목표)', needed: '출력 전압 18.6 V (설계 목표) — 실측값과 섞일 때만 붙임', none: '출력 전압 18.6 V'},
+  'P1.6.units': {si: '18.6 V · 2.5 kg · 30 cm', original: '18.6 V · 5.5 lb · 12 in', both: '2.5 kg (5.5 lb) · 30 cm (12 in)'},
+  'P1.6.english': {once: '자기장(magnetic field)이 생깁니다. … 자기장은 …', always: '자기장(magnetic field)이 생깁니다. … 자기장(magnetic field)은 …', never: '자기장이 생깁니다. … 자기장은 …'},
+  'P2.4.font': {system_gothic: '전류가 흐르면 자기장이 생깁니다 — 시스템 고딕(Pretendard·맑은 고딕·Noto)', embed_noto: '전류가 흐르면 자기장이 생깁니다 — Noto Sans KR 파일 내장(어디서나 같은 모양)', specified: '지정 글꼴 (메모에 글꼴 이름을 적는다)'},
+  'P2.7.reference_use': {before_design: '디자인 결정 전에 서비스 2~3곳에서 후보 8~12개 → 레퍼런스 보드 → 👍/👎', optional: '필요할 때만 레퍼런스를 찾는다', none: '레퍼런스 서비스를 쓰지 않는다'},
+  'P5.1.report_form': {standard: '한 것 → 직접 확인한 것 → 못 한 것 → 쓴 비용 → 정할 것 → 맨 끝에 「확인할 결과물」 표', brief: '짧게 핵심만'},
+  'P5.2.question_style': {no_guess: '추측 선택지 대신 완성된 사양 전체를 보여 주고 확인받는다', options_ok: '선택지를 제시해도 된다'},
+  'P5.4.autonomy': {ask_ambiguous: '애매하면 자동 모드에서도 묻는다', act_report: '알아서 하고 결과를 보고한다', ask_cost: '비용이 생길 때만 묻는다'},
+};
+// 화면 그림(SVG) — 160×90 틀. 외부 이미지 없이 코드로만 그린다.
+const C = {acc: '#0f766e', photo: '#5b8aa6', sun: '#f4d58d', hill: '#3f6f5e'};
+const svgOpen = dark => `<svg viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="160" height="90" rx="4" fill="${dark ? '#111827' : '#f8fafc'}"/>`;
+const fgc = dark => dark ? '#e5e7eb' : '#1f2937', muc = dark => dark ? '#4b5563' : '#cbd5e1';
+const photo = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${C.photo}"/><circle cx="${x + w * .78}" cy="${y + h * .3}" r="${h * .12}" fill="${C.sun}"/><path d="M${x} ${y + h} L${x + w * .35} ${y + h * .45} L${x + w * .55} ${y + h * .7} L${x + w * .75} ${y + h * .5} L${x + w} ${y + h} Z" fill="${C.hill}"/>`;
+const bar = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(h / 2, 3)}" fill="${c}"/>`;
+const lines = (x, y, w, n, dark, gap) => Array.from({length: n}, (_, i) => bar(x, y + i * (gap || 7), i === n - 1 ? w * .6 : w, 3.5, muc(dark))).join('');
+const txt = (x, y, s, c, size, extra) => `<text x="${x}" y="${y}" font-size="${size || 8}" fill="${c}" font-family="inherit" ${extra || ''}>${esc(s)}</text>`;
+const tag = (x, y, s, dark) => `<rect x="${x}" y="${y}" width="${s.length * 7 + 8}" height="12" rx="6" fill="${C.acc}"/>` + txt(x + 4, y + 9, s, '#fff', 7);
+const caption = dark => bar(0, 72, 160, 18, dark ? '#0b1220' : '#e2e8f0').replace('rx="3"', 'rx="0"') + bar(14, 78, 100, 5, fgc(dark));
+const icon = (cx, cy, dark) => `<circle cx="${cx}" cy="${cy}" r="9" fill="none" stroke="${fgc(dark)}" stroke-width="1.5"/><path d="M${cx - 4} ${cy + 2} l3 -4 l3 4 M${cx} ${cy - 2} v6" fill="none" stroke="${fgc(dark)}" stroke-width="1.5"/>`;
+const chart = dark => `<path d="M24 70 V18 M24 70 H140" stroke="${fgc(dark)}" stroke-width="1.5" fill="none"/><polyline points="30,62 56,48 82,52 108,30 134,24" fill="none" stroke="${C.acc}" stroke-width="2.5"/>` + [30, 56, 82, 108, 134].map((x, i) => `<circle cx="${x}" cy="${[62, 48, 52, 30, 24][i]}" r="2.5" fill="${C.acc}"/>`).join('');
+const formula = (x, y, dark, s) => `<rect x="${x}" y="${y}" width="78" height="16" rx="4" fill="${muc(dark)}" opacity=".6"/>` + txt(x + 6, y + 11.5, s || 'B = μ₀I / 2πr', fgc(dark), 8);
+const arrow = (x, y, len, w, cls) => `<g class="${cls || ''}"><path d="M${x} ${y} h${len} M${x + len - w} ${y - w} l${w} ${w} l-${w} ${w}" fill="none" stroke="${C.acc}" stroke-width="${w / 2}" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+const speaker = (dark, waves, mute) => `<path d="M40 38 h10 l12 -10 v34 l-12 -10 h-10 z" fill="${fgc(dark)}"/>` + (mute ? `<path d="M72 36 l16 18 M88 36 l-16 18" stroke="${C.acc}" stroke-width="3"/>` : Array.from({length: waves}, (_, i) => `<path d="M${70 + i * 10} ${38 - i * 4} q${8 + i * 2} ${7 + i * 4} 0 ${14 + i * 8}" fill="none" stroke="${C.acc}" stroke-width="2.5"/>`).join(''));
+const notes = dark => `<path d="M104 58 v-24 l16 -4 v24" fill="none" stroke="${C.acc}" stroke-width="2.5"/><circle cx="100" cy="58" r="5" fill="${C.acc}"/><circle cx="116" cy="54" r="5" fill="${C.acc}"/>`;
+const person = dark => `<circle cx="36" cy="38" r="8" fill="${fgc(dark)}"/><path d="M22 62 q14 -14 28 0 z" fill="${fgc(dark)}"/>`;
+const frames = (n, dark, same) => Array.from({length: n}, (_, i) => { const x = 8 + i * 50, c = same ? C.photo : [C.photo, '#b5651d', '#6b5b95'][i % 3]; return `<rect x="${x}" y="14" width="44" height="62" rx="4" fill="${muc(dark)}" opacity=".5"/>` + bar(x + 5, 20, same ? 30 : 14 + i * 8, 5, c) + bar(x + 5, 30, 34, 3, fgc(dark)) + (same ? bar(x + 5, 40, 34, 28, c) : `<circle cx="${x + 22}" cy="${54 + i * 2}" r="${10 - i * 2}" fill="${c}"/>`); }).join('');
+const timeline = (n, dark) => Array.from({length: n}, (_, i) => { const w = 144 / n - 3; return bar(8 + i * (w + 3), 40, w, 12, i % 2 ? muc(dark) : C.acc); }).join('') + txt(8, 70, `장면 ${n}개`, fgc(dark), 8);
+const chrome = dark => `<rect x="10" y="10" width="140" height="70" rx="4" fill="none" stroke="${fgc(dark)}" stroke-width="1.5"/><circle cx="18" cy="17" r="2" fill="${fgc(dark)}"/><circle cx="25" cy="17" r="2" fill="${fgc(dark)}"/><circle cx="32" cy="17" r="2" fill="${fgc(dark)}"/>`;
+const slide = (dark, inner) => svgOpen(dark) + inner + '</svg>';
+const MOCK = {
+  'P2.4.theme': {dark: () => slide(true, photo(12, 10, 136, 54) + caption(true)), light: () => slide(false, photo(12, 10, 136, 54) + caption(false)), by_venue: d => slide(false, `<rect x="80" y="0" width="80" height="90" rx="4" fill="#111827"/>` + photo(10, 10, 60, 50) + photo(90, 10, 60, 50) + bar(14, 72, 50, 5, '#1f2937') + bar(94, 72, 50, 5, '#e5e7eb'))},
+  'P2.5.on_screen_text': {none: d => slide(d, photo(8, 8, 144, 74)), caption: d => slide(d, photo(12, 8, 136, 58) + caption(d)), keywords: d => slide(d, photo(12, 8, 136, 44) + bar(14, 60, 36, 10, C.acc) + bar(56, 60, 44, 10, C.acc) + bar(106, 60, 40, 10, C.acc)), paragraph: d => slide(d, photo(10, 12, 56, 50) + lines(74, 14, 76, 7, d))},
+  'P2.4.layout': {fixed: d => slide(d, bar(8, 8, 144, 22, C.acc) + txt(14, 23, '위 1/3 고정', '#fff', 8) + [0, 1, 2].map(i => `<rect x="${8 + i * 49}" y="36" width="46" height="46" rx="3" fill="${muc(d)}" opacity=".7"/>` + txt(14 + i * 49, 62, `장면 ${i + 1}`, fgc(d), 7)).join('')), free: d => slide(d, photo(8, 8, 70, 40) + bar(86, 14, 60, 5, fgc(d)) + bar(86, 24, 44, 5, fgc(d)) + lines(10, 58, 90, 3, d) + `<circle cx="128" cy="66" r="12" fill="${C.acc}"/>`), template: d => slide(d, `<rect x="8" y="8" width="144" height="74" rx="4" fill="none" stroke="${C.acc}" stroke-width="1.5" stroke-dasharray="4 3"/>` + bar(16, 16, 60, 7, fgc(d)) + photo(16, 30, 56, 42) + lines(80, 32, 64, 5, d) + txt(96, 78, '템플릿 틀', fgc(d), 7))},
+  'P2.4.density': {one: d => slide(d, bar(30, 30, 100, 30, C.acc) + txt(56, 49, '핵심 하나', '#fff', 10)), normal: d => slide(d, [0, 1, 2].map(i => bar(14, 14 + i * 24, 132, 16, i ? muc(d) : C.acc)).join('')), dense: d => slide(d, Array.from({length: 8}, (_, i) => bar(10 + (i % 2) * 74, 8 + Math.floor(i / 2) * 20, 66, 14, i % 3 ? muc(d) : C.acc)).join(''))},
+  'P2.3.icons': {forbid: d => slide(d, photo(8, 8, 144, 60) + txt(10, 82, '실사·원자료만', fgc(d), 7)), minimal: d => slide(d, photo(8, 8, 104, 60) + icon(136, 38, d)), allow: d => slide(d, icon(40, 42, d) + icon(80, 42, d) + icon(120, 42, d) + lines(26, 62, 108, 2, d))},
+  'P2.3.diagrams': {code: d => slide(d, chart(d)), gen: d => slide(d, `<ellipse cx="60" cy="48" rx="34" ry="22" fill="${C.photo}" opacity=".8"/><ellipse cx="104" cy="40" rx="26" ry="18" fill="${C.hill}" opacity=".7"/>` + txt(10, 82, '생성 이미지(정확도 낮음)', fgc(d), 7)), capture: d => slide(d, chrome(d) + chart(d).replace(/M24 70/g, 'M34 66').replace('V18', 'V28').replace('H140', 'H136'))},
+  'P2.3.math': {minimal: d => slide(d, lines(12, 14, 136, 4, d) + formula(40, 56, d)), needed: d => slide(d, lines(12, 12, 136, 2, d) + formula(12, 32, d) + lines(12, 56, 136, 3, d)), active: d => slide(d, formula(12, 10, d, 'B = μ₀I / 2πr') + formula(12, 34, d, '∇·E = ρ/ε₀') + formula(12, 58, d, 'F = q(E + v×B)'))},
+  'P2.1.gen_when': {staging: d => slide(d, photo(8, 8, 144, 60) + tag(104, 64, '배경·연출만 생성', d)), active: d => slide(d, photo(8, 8, 144, 60) + tag(12, 64, '전부 생성', d)), never: d => slide(d, photo(8, 8, 144, 60) + tag(12, 64, '원본만', d))},
+  'P2.1.gen_style': {photoreal: d => slide(d, photo(8, 8, 144, 74)), illust: d => slide(d, `<rect x="8" y="8" width="144" height="74" rx="4" fill="#fde68a"/><circle cx="50" cy="44" r="20" fill="#f97316"/><path d="M80 70 l24 -40 l24 40 z" fill="#2563eb"/>`), render3d: d => slide(d, `<rect x="8" y="8" width="144" height="74" rx="4" fill="${d ? '#1f2937' : '#e5e7eb'}"/><circle cx="80" cy="46" r="26" fill="#64748b"/><circle cx="70" cy="36" r="9" fill="#cbd5e1" opacity=".8"/><ellipse cx="82" cy="76" rx="26" ry="5" fill="#000" opacity=".25"/>`), mixed: d => slide(d, photo(8, 8, 70, 74) + `<rect x="82" y="8" width="70" height="74" rx="4" fill="#fde68a"/><circle cx="117" cy="45" r="18" fill="#f97316"/>`)},
+  'P2.1.gen_consistency': {strict: d => slide(d, frames(3, d, true)), free: d => slide(d, frames(3, d, false))},
+  'P2.2.original_use': {original_first: d => slide(d, photo(8, 8, 144, 74) + `<rect x="8" y="8" width="144" height="74" rx="4" fill="none" stroke="${C.acc}" stroke-width="2"/>`), edit_ok: d => slide(d, `<clipPath id="pe-clip"><rect x="30" y="16" width="100" height="58" rx="3"/></clipPath><g clip-path="url(#pe-clip)">` + photo(8, 8, 144, 74) + `</g><rect x="30" y="16" width="100" height="58" rx="3" fill="none" stroke="${C.acc}" stroke-width="2" stroke-dasharray="4 3"/>`), reference_gen: d => slide(d, photo(8, 14, 60, 48) + arrow(74, 38, 20, 5) + `<rect x="98" y="14" width="54" height="48" rx="3" fill="${C.hill}" opacity=".6"/>` + tag(100, 66, '참조 생성', d))},
+  'P2.2.activity_photos': {montage: d => slide(d, photo(8, 14, 70, 48) + photo(44, 24, 70, 48) + photo(80, 34, 70, 48)), each: d => slide(d, photo(8, 10, 70, 52) + lines(86, 14, 64, 5, d)), none: d => slide(d, lines(14, 16, 132, 7, d))},
+  'P2.5.title_date': {none: d => slide(d, photo(8, 8, 144, 74)), title_only: d => slide(d, bar(8, 8, 144, 16, C.acc) + txt(14, 20, '전자기해석강의 01', '#fff', 8) + photo(8, 30, 144, 52)), both: d => slide(d, bar(8, 8, 144, 16, C.acc) + txt(14, 20, '전자기해석강의 01', '#fff', 8) + txt(100, 20, '2026-11-07', '#fff', 7) + photo(8, 30, 144, 52))},
+  'P2.6.motion_strength': {bold: d => slide(d, arrow(30, 46, 80, 12, 'mv')), normal: d => slide(d, arrow(40, 46, 60, 8, 'mv soft')), subtle: d => slide(d, arrow(52, 46, 40, 5, 'mv soft'))},
+  'P2.6.motion_purpose': {forbid: d => slide(d, txt(14, 50, 'A', fgc(d), 14) + arrow(34, 46, 86, 7, 'mv soft') + txt(132, 50, 'B', fgc(d), 14) + txt(14, 80, '뜻이 있는 움직임만', fgc(d), 7)), allow_some: d => slide(d, txt(14, 50, 'A', fgc(d), 14) + arrow(34, 46, 86, 7, 'mv soft') + txt(132, 50, 'B', fgc(d), 14) + [20, 70, 120].map(x => `<path d="M${x} 20 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="${C.sun}"/>`).join(''))},
+  'P3.1.reenact_label': {end_only: d => slide(d, photo(8, 8, 144, 60) + txt(10, 82, '마지막 장면: 「재현 영상」 표시', fgc(d), 7)), on_screen: d => slide(d, photo(8, 8, 144, 60) + tag(12, 12, '재현 영상', d))},
+  'P3.1.video_gen': {never: d => slide(d, photo(8, 8, 144, 60) + tag(12, 64, '실제 촬영만', d)), staging: d => slide(d, photo(8, 8, 144, 60) + tag(12, 64, '연출 컷만 생성', d)), active: d => slide(d, photo(8, 8, 144, 60) + tag(12, 64, '생성 적극', d))},
+  'P3.2.sound': {mute: d => slide(d, speaker(d, 0, true)), sfx: d => slide(d, speaker(d, 1)), narration: d => slide(d, person(d) + speaker(d, 2).replace(/M40 38 h10 l12 -10 v34 l-12 -10 h-10 z/, 'M60 38 h6 l8 -8 v30 l-8 -8 h-6 z')), bgm: d => slide(d, speaker(d, 0) + notes(d)), narration_bgm: d => slide(d, person(d) + speaker(d, 1).replace(/M40 38 h10 l12 -10 v34 l-12 -10 h-10 z/, 'M60 38 h6 l8 -8 v30 l-8 -8 h-6 z') + notes(d))},
+  'P3.3.pace': {learner: d => slide(d, timeline(3, d)), normal: d => slide(d, timeline(5, d)), fast: d => slide(d, timeline(9, d))},
+  'P4.2.template_reuse': {one_template: d => slide(d, frames(3, d, true)), each: d => slide(d, frames(3, d, false))},
+};
+function themeDark() { const s = state.aspects['P2.4.theme']; if (s && s.value) return s.value === 'dark'; const m = matchAspect('P2.4.theme'); if (m) return m.winner.value === 'dark'; return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }
+function preview(aid, oid) {
+  const a = aspectById[aid]; const o = a && (a.options || []).find(x => x.id === oid);
+  if (MOCK[aid] && MOCK[aid][oid]) return `<div class="pv">${MOCK[aid][oid](themeDark())}</div>`;
+  const s = SAMPLE[aid] && SAMPLE[aid][oid];
+  if (s) return `<div class="pv txt">${esc(s)}</div>`;
+  return `<div class="pv lbl">${esc(o ? o.label : oid)}</div>`;
+}
+function tile(aid, o, big) {
+  const a = aspectById[aid], st = state.aspects[aid] || {}, m = matchAspect(aid);
+  const sel = a.type === 'multi' ? (Array.isArray(st.value) && st.value.includes(o.id)) : st.value === o.id;
+  const learned = m && !m.conflict && (Array.isArray(m.winner.value) ? m.winner.value.includes(o.id) : m.winner.value === o.id);
+  const pastN = pastAnswers.filter(p => p.aspects && p.aspects[aid] && (Array.isArray(p.aspects[aid].value) ? p.aspects[aid].value.includes(o.id) : p.aspects[aid].value === o.id)).length;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'tile' + (big ? ' big' : ''); b.dataset.aid = aid; b.dataset.oid = o.id; b.setAttribute('aria-pressed', sel ? 'true' : 'false');
+  const ch = choiceOf(aid, o.id);
+  const ds = [learned ? '학습된 기본값' : '', pastN ? '지난 답 ' + pastN : '', ch ? `방법 v${ch.version}` : ''].filter(Boolean).join(' · ') + (big && ch && ch.how && ch.how.length ? ' — ' + short(ch.how[0], 90) : '');
+  b.innerHTML = preview(aid, o.id) + `<span class="lb">${esc(o.label)}</span>` + (ds ? `<span class="ds">${esc(ds)}</span>` : '');
+  b.onclick = () => chooseExample(aid, o.id);
+  return b;
+}
+
+// ---------- 사이드 트리 ----------
+function buildTree() {
+  const T = [];
+  if (mode === 'interview') {
+    T.push({id: 'part1', label: '1부 큰 구분', kind: 'group', children: dimScreens.map(s => ({id: 'scr:' + s.id, label: s.title, kind: 'screen', screen: s,
+      children: s.dimensions.filter(did => dimById[did] && !(dimById[did].ask_when && !conditionOk(dimById[did].ask_when))).map(did => ({id: 'dim:' + did, label: dimById[did].name, kind: 'dim', did}))}))});
+    T.push({id: 'part2', label: '2부 취향', kind: 'group', children: cats.map(c => ({id: 'cat:' + c.id, label: c.id + ' ' + c.name, kind: 'cat', cat: c,
+      children: Object.entries(c.subs || {}).map(([sid, sname]) => ({id: 'sub:' + sid, label: sid + ' ' + sname, kind: 'sub',
+        children: aspects.filter(a => a.sub === sid && conditionOk(a.applies_when)).map(a => ({id: 'asp:' + a.id, label: a.text, kind: 'aspect', aid: a.id}))})).filter(n => n.children.length)}))});
+    T.push({id: 'part3', label: '3부 이번 자료', kind: 'group', children: projectQs.map(q => ({id: 'pq:' + q.id, label: q.text, kind: 'pq', qid: q.id}))});
+  } else {
+    T.push({id: 'items', label: screens[1].title, kind: 'group', children: items.map(it => ({id: 'item:' + it.id, label: it.title, kind: 'item', item: it}))});
+  }
+  const types = [...new Set(designRefs.map(r => r.type))];
+  T.push({id: 'refs', label: '참고 서랍', kind: 'group', children: [
+    {id: 'refs.projects', label: '지난 프로젝트', kind: 'rgroup', count: projects.length + pastAnswers.filter(a => a.mode === 'interview').length},
+    {id: 'refs.history', label: '지난 답 내역', kind: 'rgroup', count: pastAnswers.length},
+    {id: 'refs.entries', label: '취향 항목', kind: 'rgroup', count: entries.length, children: cats.map(c => ({id: 'refs.entries.' + c.id, label: c.id + ' ' + c.name, kind: 'rgroup', count: entries.filter(e => e.sub && e.sub.startsWith(c.id + '.')).length}))},
+    {id: 'refs.lessons', label: '교훈', kind: 'rgroup', count: lessons.length},
+    {id: 'refs.mistakes', label: '실수 기록', kind: 'rgroup', count: mistakes.length},
+    {id: 'refs.design', label: '디자인 레퍼런스', kind: 'rgroup', count: designRefs.length, children: types.map(t => ({id: 'refs.design.' + t, label: t, kind: 'rgroup', count: designRefs.filter(r => r.type === t).length}))},
+    {id: 'refs.templates', label: '템플릿', kind: 'rgroup', count: templates.length},
+    {id: 'refs.memo', label: '새 메모', kind: 'rgroup', count: state.new_refs.length},
+  ]});
+  return T;
+}
+const isLeaf = n => n.kind === 'dim' || n.kind === 'aspect' || n.kind === 'pq' || n.kind === 'item';
+const hasKids = n => !!(n.children && n.children.length) || (n.kind === 'rgroup' && !n.children);
+function walk(nodes, fn, parents) { for (const n of nodes) { fn(n, parents || []); if (n.children) walk(n.children, fn, [...(parents || []), n]); } }
+function leafText(n) { // 검색용 글
+  if (n.kind === 'dim') { const d = dimById[n.did]; return [d.name, d.desc, (d.values || []).map(v => v.label).join(' '), dimText(n.did, state.dimensions[n.did])].join(' '); }
+  if (n.kind === 'aspect') { const a = aspectById[n.aid]; return [a.text, a.sub, subName[a.sub], (a.options || []).map(o => o.label).join(' '), Object.values(SAMPLE[n.aid] || {}).join(' ')].join(' '); }
+  return n.label;
+}
+function leafDefault(n) { // 기본 열림: 지금 화면의 묶음
+  const sc = screens[idx];
+  if (n.kind === 'screen') return sc.kind === 'dims' && sc.id === n.screen.id;
+  if (n.kind === 'cat') return sc.kind === 'taste' && sc.cat.id === n.cat.id;
+  if (n.kind === 'sub') return sc.kind === 'taste' && n.id.startsWith('sub:' + sc.cat.id + '.');
+  return n.kind === 'group' && n.id !== 'refs';
+}
+const isOpen = n => ui.open[n.id] != null ? !!ui.open[n.id] : leafDefault(n);
+function leafStatus(n) { // 줄 끝의 현재 답 표시
+  if (n.kind === 'dim') { if (!dimAnswered(n.did)) return {t: '', on: false}; return {t: '✓ ' + short(dimText(n.did, state.dimensions[n.did]), 22), on: true}; }
+  if (n.kind === 'aspect') { const s = state.aspects[n.aid]; const m = matchAspect(n.aid); if (s && s.choice) return {t: (s.choice === 'skip' ? '나중에' : '✓ ' + short(optionLabel(aspectById[n.aid], s.value), 18)), on: s.choice !== 'skip'}; return {t: m ? (m.conflict ? '충돌' : m.inferred ? '추론' : '기본값 있음') : '처음', on: false}; }
+  if (n.kind === 'pq') { const v = state.project[n.qid]; return {t: v && (Array.isArray(v) ? v.length : String(v).trim()) ? '✓' : '', on: true}; }
+  if (n.kind === 'item') { const s = state.items[n.item.id]; return {t: s && s.choice ? '✓' : '', on: true}; }
+  return {t: '', on: false};
+}
+function leafCond(n, cond) {
+  if (cond === 'unanswered') return n.kind === 'dim' ? !dimAnswered(n.did) : n.kind === 'aspect' ? !aspectAnswered(n.aid) : n.kind === 'pq' ? !leafStatus(n).t : n.kind === 'item' ? !leafStatus(n).t : false;
+  if (cond === 'learned') return n.kind === 'aspect' ? !!matchAspect(n.aid) : n.kind === 'dim' ? !!(SPEC.defaults && SPEC.defaults.dimensions && SPEC.defaults.dimensions[n.did] != null) : false;
+  if (cond === 'current') { const sc = screens[idx]; return (n.kind === 'dim' && sc.kind === 'dims' && sc.dimensions.includes(n.did)) || (n.kind === 'aspect' && sc.kind === 'taste' && n.aid.startsWith(sc.cat.id + '.')) || (n.kind === 'pq' && sc.kind === 'project') || (n.kind === 'item' && sc.kind !== 'intro' && sc.kind !== 'summary'); }
+  return true;
+}
+let TREE = [];
+function expandAll() { ui.filter = null; walk(TREE, n => { if (hasKids(n) && !(n.kind === 'rgroup' && !n.children)) ui.open[n.id] = true; }); saveUi(); renderSide(); }
+function collapseAll() { ui.filter = null; walk(TREE, n => { if (hasKids(n)) ui.open[n.id] = false; }); ui.detail = {}; saveUi(); renderSide(); }
+function expandBy(o) { // o: {groups:[최상위 id], cond:'all'|'unanswered'|'learned'|'current'}
+  walk(TREE, n => { if (hasKids(n)) ui.open[n.id] = false; });
+  const groups = new Set(o.groups || TREE.map(n => n.id));
+  let n = 0;
+  walk(TREE, (node, parents) => {
+    if (!isLeaf(node)) return;
+    const top = parents[0]; if (!top || !groups.has(top.id)) return;
+    if (!leafCond(node, o.cond || 'all')) return;
+    for (const p of parents) ui.open[p.id] = true;
+    n++;
+  });
+  if (groups.has('refs')) ui.open['refs'] = true;
+  const cond = o.cond || 'all';
+  ui.filter = (cond !== 'all' || groups.size < TREE.length) ? {groups: [...groups], cond} : null; // 조건에 안 맞는 항목은 숨긴다(필터 칩으로 해제)
+  saveUi(); renderSide();
+  toast(n ? `${n}개 항목을 펼쳤습니다${ui.filter ? ' (나머지는 숨김 — 「필터 해제」로 되돌림)' : ''}` : '조건에 맞는 항목이 없습니다');
+}
+function goToLeaf(n) { // 트리 → 본문 화면으로 이동하고 그 카드를 강조
+  let i = -1, sel = null;
+  if (n.kind === 'dim') { i = screenOfDim(n.did); sel = `[data-drop="dim:${n.did}"]`; }
+  else if (n.kind === 'aspect') { i = screenOfAspect(n.aid); sel = `[data-drop="aspect:${n.aid}"]`; }
+  else if (n.kind === 'pq') { i = screens.findIndex(s => s.kind === 'project'); sel = `[data-drop="pq:${n.qid}"]`; }
+  else if (n.kind === 'item') { i = 1; sel = `[data-drop="item:${n.item.id}"]`; }
+  if (i < 0) return;
+  ui.view = 'flow'; idx = i; renderAll();
+  const el = sel && $('#screen ' + sel);
+  if (el) { el.classList.add('hl'); if (el.scrollIntoView) el.scrollIntoView({block: 'start', behavior: 'smooth'}); setTimeout(() => el.classList.remove('hl'), 1800); }
+}
+function aspectDetail(aid) {
+  const a = aspectById[aid], m = matchAspect(aid), st = state.aspects[aid] || {};
+  const d = document.createElement('div'); d.className = 'td'; d.dataset.detail = aid;
+  let h = '';
+  if (m) h += `<div class="cur">${m.conflict ? badge('충돌: 골라 주세요', 'bad') : ''}${m.inferred ? badge('추론 — 확인 필요', 'warn') : ''}${badge('세기 ' + m.winner.strength)}${badge(scopeText(m.winner.scope))}<div>${esc(optionLabel(a, m.winner.value))}</div><small>${esc(m.winner.statement)}</small></div>`;
+  else h += `<p class="small">${badge('처음 정하는 항목', 'warn')} 학습된 값이 없습니다. 아래 예시에서 고르면 그 값이 됩니다.</p>`;
+  h += `<p class="small">이번 답: ${st.choice ? esc(CHOICE_NAME[st.choice] || st.choice) + (st.value != null && st.choice !== 'skip' ? ' → <b>' + esc(optionLabel(a, st.value)) + '</b>' : '') : '아직 없음'}${st.always ? ' · ' + badge('항상') : ''}</p>`;
+  d.innerHTML = h;
+  if ((a.type === 'single' || a.type === 'multi') && (a.options || []).length) {
+    const row = document.createElement('div'); row.className = 'tiles';
+    for (const o of a.options) row.appendChild(tile(aid, o, false));
+    d.appendChild(row);
+    const g = guideBox(aid); if (g) d.appendChild(g);
+  } else {
+    const t = document.createElement('textarea'); t.placeholder = '이렇게 한다 — 한 문장'; t.value = typeof st.value === 'string' ? st.value : (m && typeof m.winner.value === 'string' ? m.winner.value : '');
+    t.oninput = () => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {choice: m ? (t.value === m.winner.value ? 'keep' : 'change') : 'new', value: t.value, winner: m ? m.winner.id : null}); save(); };
+    d.appendChild(t);
+  }
+  const acts = document.createElement('div'); acts.className = 'acts';
+  const mk = (label, on, id) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = label; b.onclick = on; if (id) b.dataset.act = id; acts.appendChild(b); };
+  mk('크게 보기', () => openGallery([aid]), 'gallery');
+  mk('비교에 추가', () => openGallery([...ui.gallery.filter(x => x !== aid), aid]), 'compare');
+  mk('화면으로', () => goToLeaf({kind: 'aspect', aid}), 'goto');
+  if (m && !m.conflict && !m.inferred) mk('이번에도 그대로', () => { state.aspects[aid] = Object.assign({}, st, {choice: 'keep', value: m.winner.value, winner: m.winner.id}); save(); renderAll(); }, 'keep');
+  mk('나중에·해당 없음', () => { state.aspects[aid] = Object.assign({}, st, {choice: 'skip', value: null}); save(); renderAll(); }, 'skip');
+  const al = document.createElement('label'); al.className = 'small'; al.style.display = 'inline-flex'; al.style.alignItems = 'center'; al.style.gap = '4px';
+  al.innerHTML = `<input type="checkbox" ${st.always ? 'checked' : ''}> 앞으로도 항상`; $('input', al).onchange = ev => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {always: ev.target.checked}); save(); renderSide(); }; acts.appendChild(al);
+  d.appendChild(acts);
+  const note = document.createElement('textarea'); note.placeholder = '메모(선택)'; note.value = st.note || ''; note.style.minHeight = '44px'; note.oninput = () => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {note: note.value}); save(); }; d.appendChild(note);
+  const pa = pastAnswers.filter(p => p.aspects && p.aspects[aid] && p.aspects[aid].choice);
+  const es = entries.filter(e => e.aspect === aid).sort((x, y) => (applies(y) && isActive(y)) - (applies(x) && isActive(x)));
+  if (pa.length || es.length) {
+    d.appendChild(grpTitle(`참고 — 지난 답 ${pa.length} · 취향 항목 ${es.length} (질문 카드에 끌어 넣기)`));
+    for (const p of pa) d.appendChild(pastCard(p, aid));
+    for (const e of es) d.appendChild(entryCard(e));
+  }
+  const ex = []; for (const e of es) { for (const x of ((e.examples || {}).liked || [])) ex.push({x, good: true}); for (const x of ((e.examples || {}).disliked || [])) ex.push({x, good: false}); }
+  const pr = projects.filter(p => (p.applied_entries || []).some(id => entryById[id] && entryById[id].aspect === aid));
+  if (ex.length || pr.length) {
+    const p = document.createElement('p'); p.className = 'small';
+    p.innerHTML = (ex.length ? '예시: ' + ex.map(o => (o.good ? '👍 ' : '👎 ') + (/^https?:/.test(o.x) ? `<a href="${esc(o.x)}" target="_blank" rel="noopener">${esc(short(o.x, 60))}</a>` : esc(short(o.x, 60)))).join(' · ') + '<br>' : '')
+      + (pr.length ? '이 항목을 쓴 프로젝트: ' + pr.map(q => esc(short(q.title || q.lecture, 30)) + ((q.deliverables || []).filter(u => /^https?:/.test(u)).map(u => ` <a href="${esc(u)}" target="_blank" rel="noopener">결과물 ↗</a>`).join(''))).join(' · ') : '');
+    d.appendChild(p);
+  }
+  return d;
+}
+function guideBox(aid) { // 고른(또는 학습된) 선택지의 현재 방법 — 같은 선택이라도 version이 오르면 새 방법
+  const a = aspectById[aid], st = state.aspects[aid] || {}, m = matchAspect(aid);
+  let val = st.choice && st.choice !== 'skip' && st.value != null ? st.value : (m ? m.winner.value : null);
+  if (val == null) return null;
+  const vals = Array.isArray(val) ? val : [val];
+  const found = vals.map(v => choiceOf(aid, v)).filter(Boolean);
+  const box = document.createElement('div'); box.className = 'guide small'; box.dataset.guide = aid;
+  if (!found.length) { box.innerHTML = `<span class="badge dim">진화 기록 없음</span> 이 선택의 방법은 아직 기록되지 않았습니다. 이번 프로젝트를 마무리할 때 기록되면 다음부터 여기에 나옵니다.`; return box; }
+  box.innerHTML = found.map(c => `<p><span class="badge">방법 v${esc(c.version)}</span> <b>${esc(optionLabel(a, c.option))}</b> · ${esc(c.updated)} · 배운 곳 ${esc((c.learned_from || []).map(lectureName).join(', '))}</p>`
+    + `<ul>${(c.how || []).map(h => '<li>' + esc(h) + '</li>').join('')}</ul>`
+    + ((c.checks || []).length ? `<p>점검: ${esc(c.checks.join(' / '))}</p>` : '')
+    + (((c.examples || {}).liked || []).length ? `<p>좋았던 예: ${c.examples.liked.map(x => /^https?:/.test(x) ? `<a href="${esc(x)}" target="_blank" rel="noopener">${esc(short(x, 50))}</a>` : esc(short(x, 60))).join(' · ')}</p>` : '')
+    + ((c.history || []).length ? `<p class="small">이력 ${c.history.length}건 — 최근: ${esc(c.history[c.history.length - 1].date)} ${esc(short(c.history[c.history.length - 1].change, 80))}</p>` : '')).join('');
+  return box;
+}
+function dimDetail(did) {
+  const dm = dimById[did]; const d = document.createElement('div'); d.className = 'td'; d.dataset.detail = did;
+  if (dm.desc) d.innerHTML = `<p class="small">${esc(dm.desc)}</p>`;
+  if (dm.type === 'text') { const t = document.createElement('input'); t.type = 'text'; t.value = state.dimensions[did] || ''; t.placeholder = '직접 입력'; t.oninput = () => { state.dimensions[did] = t.value; save(); }; d.appendChild(t); }
+  else {
+    const box = document.createElement('div'); d.appendChild(box);
+    const paint = () => { box.innerHTML = ''; box.appendChild(optButtons(dm.values || [], state.dimensions[did], dm.type === 'multi', id => { pickDim(did, id); paint(); renderMain(); renderSide(); }, dm.primary ? state.dimensions[did + '_primary'] : null)); };
+    paint();
+    if ((dm.values || []).some(o => o.free)) { const t = document.createElement('input'); t.type = 'text'; t.placeholder = '기타 내용'; t.value = state.dimensions[did + '_other'] || ''; t.style.marginTop = '6px'; t.oninput = () => { state.dimensions[did + '_other'] = t.value; save(); }; d.appendChild(t); }
+  }
+  const acts = document.createElement('div'); acts.className = 'acts';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = '화면으로'; b.dataset.act = 'goto'; b.onclick = () => goToLeaf({kind: 'dim', did}); acts.appendChild(b);
+  d.appendChild(acts);
+  return d;
+}
+function simpleDetail(n) {
+  const d = document.createElement('div'); d.className = 'td';
+  const v = n.kind === 'pq' ? state.project[n.qid] : (state.items[n.item.id] || {}).choice;
+  d.innerHTML = `<p class="small">${v ? '답: ' + esc(Array.isArray(v) ? v.join(', ') : String(v)) : '아직 답이 없습니다.'}</p>`;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = '화면으로'; b.dataset.act = 'goto'; b.onclick = () => goToLeaf(n); d.appendChild(b);
+  return d;
+}
+function renderNodes(container, nodes, q, top) {
+  const F = ui.filter;
+  for (const n of nodes) {
+    const kids = n.children || [];
+    const leaf = isLeaf(n);
+    const topId = top || n.id;
+    if (F && !F.groups.includes(topId)) continue;
+    if (F && leaf && !leafCond(n, F.cond)) continue;
+    let matched = true, contentCards = null;
+    if (q || F) {
+      if (leaf) matched = hit(q, leafText(n));
+      else if (n.kind === 'rgroup' && !n.children) { contentCards = refCards(n.id, q); matched = !q || contentCards.some(c => c.classList && c.classList.contains('rc')); }
+      else { const tmp = document.createElement('div'); renderNodes(tmp, kids, q, topId); matched = tmp.childElementCount > 0; }
+      if (!matched) continue;
+    }
+    const open = q ? true : isOpen(n);
+    const el = document.createElement('div'); el.className = 'tn'; el.dataset.id = n.id;
+    const row = document.createElement('div'); row.className = 'tr' + (leaf ? '' : ' grp') + (ui.detail[n.id] ? ' cur' : '');
+    const tg = document.createElement('button'); tg.type = 'button'; tg.className = 'tg'; tg.setAttribute('aria-label', (leaf ? (ui.detail[n.id] ? '상세 접기' : '상세 펼치기') : (open ? '접기' : '펼치기')) + ': ' + n.label);
+    tg.textContent = leaf ? (ui.detail[n.id] ? '▾' : '▸') : (open ? '▾' : '▸');
+    const lb = document.createElement('span'); lb.className = 'lb'; lb.textContent = n.label; lb.title = n.label;
+    row.appendChild(tg); row.appendChild(lb);
+    if (leaf) { const s = leafStatus(n); if (s.t) { const st = document.createElement('span'); st.className = 'st' + (s.on ? ' on' : ''); st.textContent = s.t; row.appendChild(st); } }
+    else { const cnt = document.createElement('span'); cnt.className = 'n'; cnt.textContent = n.count != null ? n.count : kids.length; row.appendChild(cnt); }
+    const toggle = () => { if (leaf) ui.detail[n.id] = !ui.detail[n.id]; else ui.open[n.id] = !open; saveUi(); renderSide(); };
+    tg.onclick = ev => { ev.stopPropagation(); toggle(); };
+    row.onclick = () => { toggle(); if (leaf && ui.detail[n.id] && ui.view === 'flow') goToLeaf(n); };
+    el.appendChild(row);
+    if (leaf && ui.detail[n.id]) el.appendChild(n.kind === 'aspect' ? aspectDetail(n.aid) : n.kind === 'dim' ? dimDetail(n.did) : simpleDetail(n));
+    if (!leaf && open) {
+      const tc = document.createElement('div'); tc.className = 'tc';
+      if (kids.length) renderNodes(tc, kids, q, topId);
+      else if (n.kind === 'rgroup') { const cards = contentCards || refCards(n.id, q); if (!cards.length) tc.innerHTML = '<p class="small">없음</p>'; for (const c of cards) tc.appendChild(c); }
+      el.appendChild(tc);
+    }
+    container.appendChild(el);
+  }
+}
+function setSide(open) {
+  ui.sideOpen = !!open;
+  try { localStorage.setItem('pe:side', ui.sideOpen ? '1' : '0'); } catch (e) {}
+  const side = $('#side'); side.classList.toggle('closed', !ui.sideOpen);
+  $('#scrim').hidden = !(ui.sideOpen && isNarrow());
+  $('#sidetab').hidden = ui.sideOpen;
+  $('#sidebtn').setAttribute('aria-pressed', ui.sideOpen ? 'true' : 'false');
+}
+const GROUP_LABELS = () => TREE.map(n => [n.id, n.label]);
+function renderSide() {
+  TREE = buildTree();
+  const side = $('#side');
+  const keepScroll = side.scrollTop;
+  side.classList.toggle('closed', !ui.sideOpen);
+  $('#scrim').hidden = !(ui.sideOpen && isNarrow());
+  $('#sidetab').hidden = ui.sideOpen;
+  $('#sidebtn').setAttribute('aria-pressed', ui.sideOpen ? 'true' : 'false');
+  side.innerHTML = `<div class="sidehead"><b>사이드 트리</b><span class="small">참고 ${refCount()} · 메모 ${state.new_refs.length}</span><button class="tbtn" id="sideclose" type="button" aria-label="트리 닫기">◂ 닫기</button></div>`
+    + `<input class="sin" id="sq" type="search" placeholder="낱말로 찾기 (항목·예시·카드)" value="${esc(ui.q)}" aria-label="트리 검색">`
+    + '<div class="tools"><button class="tbtn" id="t-collapse" type="button">모두 접기</button><button class="tbtn" id="t-expand" type="button">모두 펼치기</button><button class="tbtn" id="t-sel" type="button" aria-expanded="false">선택 펼치기 ▾</button>' + (ui.filter ? `<button class="tbtn" id="t-clear" type="button" aria-pressed="true">필터 해제: ${esc(({all: '묶음 일부', unanswered: '답 안 한 항목만', learned: '학습된 값만', current: '지금 화면만'})[ui.filter.cond] || ui.filter.cond)} ✕</button>` : '') + '</div>'
+    + '<div class="pop" id="t-pop" hidden></div><div id="tree"></div>';
+  $('#sideclose', side).onclick = () => setSide(false);
+  $('#sq', side).oninput = ev => { ui.q = ev.target.value; renderTreeOnly(); };
+  $('#t-collapse', side).onclick = collapseAll;
+  $('#t-expand', side).onclick = expandAll;
+  if ($('#t-clear', side)) $('#t-clear', side).onclick = () => { ui.filter = null; saveUi(); renderSide(); };
+  const pop = $('#t-pop', side), selBtn = $('#t-sel', side);
+  selBtn.onclick = () => { ui.popOpen = !ui.popOpen; pop.hidden = !ui.popOpen; selBtn.setAttribute('aria-expanded', ui.popOpen ? 'true' : 'false'); };
+  pop.hidden = !ui.popOpen; selBtn.setAttribute('aria-expanded', ui.popOpen ? 'true' : 'false');
+  pop.innerHTML = '<div><b>묶음</b></div><div class="cols" id="t-groups">' + GROUP_LABELS().map(([id, l]) => `<label><input type="checkbox" value="${esc(id)}" checked> ${esc(l)}</label>`).join('') + '</div>'
+    + '<div><b>조건</b></div><div class="cols" id="t-cond"><label><input type="radio" name="t-cond" value="all" checked> 전부</label><label><input type="radio" name="t-cond" value="unanswered"> 답 안 한 항목만</label><label><input type="radio" name="t-cond" value="learned"> 학습된 값이 있는 항목만</label><label><input type="radio" name="t-cond" value="current"> 지금 화면만</label></div>'
+    + '<div class="tools"><button class="tbtn" id="t-apply" type="button">펼치기</button></div>';
+  $('#t-apply', side).onclick = () => { const groups = $$('#t-groups input:checked', side).map(i => i.value); const cond = ($('#t-cond input:checked', side) || {}).value || 'all'; expandBy({groups, cond}); };
+  renderTreeOnly();
+  side.scrollTop = keepScroll;
+}
+function renderTreeOnly() { const t = $('#tree'); if (!t) return; t.innerHTML = ''; renderNodes(t, TREE, (ui.q || '').trim()); if (!t.childElementCount) t.innerHTML = '<p class="small">맞는 항목이 없습니다.</p>'; }
+
+// ---------- 메뉴 줄·리본 ----------
+const VIEWS = [['dashboard', '대시보드'], ['flow', MODE_NAME], ['gallery', '크게 보기'], ['store', '저장소'], ['help', '도움말']];
+function setView(v, tab) { ui.view = v; if (tab) ui.storeTab = tab; $('#menu').classList.remove('open'); $('#mtoggle').setAttribute('aria-expanded', 'false'); saveUi(); renderAll(); }
+function openGallery(aids) { ui.gallery = aids.filter(a => aspectById[a]); setView('gallery'); }
+function renderMenubar() {
+  $('#brand').innerHTML = `${esc(SPEC.title || '제작 인터뷰')}<small>${esc(SPEC.lecture || '')}${SPEC.defaults && SPEC.defaults.from ? ' · 기본값: ' + esc(SPEC.defaults.from) : ''}</small>`;
+  const menu = $('#menu'); menu.innerHTML = '';
+  for (const [id, label] of VIEWS) { if (id === 'gallery' && !ui.gallery.length) continue; const b = document.createElement('button'); b.type = 'button'; b.className = 'mbtn'; b.dataset.view = id; b.textContent = label; b.setAttribute('aria-current', ui.view === id ? 'true' : 'false'); b.onclick = () => setView(id); menu.appendChild(b); }
+}
+function rbtn(label, on, o) { const b = document.createElement('button'); b.type = 'button'; b.className = 'rbtn'; b.textContent = label; b.onclick = on; if (o && o.disabled) b.disabled = true; if (o && o.current) b.setAttribute('aria-current', 'true'); if (o && o.id) b.id = o.id; return b; }
+const STORE_TABS = [['entries', '취향'], ['choices', '선택 기록'], ['dimensions', '차원'], ['projects', '프로젝트'], ['history', '내역'], ['lessons', '교훈'], ['mistakes', '실수'], ['refs', '레퍼런스'], ['templates', '템플릿'], ['changes', '변경이력']];
+function openRefs(gid) { ui.open['refs'] = true; if (gid) ui.open[gid] = true; saveUi(); setSide(true); renderSide(); const el = gid && $(`#tree .tn[data-id="${gid}"]`); if (el && el.scrollIntoView) el.scrollIntoView({block: 'start'}); }
+function renderRibbon() {
+  const r = $('#ribbon'); r.innerHTML = '';
+  const add = el => r.appendChild(el);
+  if (ui.view === 'flow') {
+    add(rbtn('◀ 이전', () => { if (idx > 0) { idx--; render(); } }, {disabled: idx === 0}));
+    add(rbtn('다음 ▶', () => { idx = idx === screens.length - 1 ? 0 : idx + 1; render(); }));
+    const t = document.createElement('span'); t.className = 'rtxt'; t.id = 'rstep'; t.textContent = `${idx + 1}/${screens.length} · ${screens[idx].title || ''}`; add(t);
+    if (mode === 'interview') add(rbtn(state.base_project ? '기본 양식: ' + short(state.base_project.title, 22) : '기본 양식 고르기', () => openRefs('refs.projects'), {current: !!state.base_project, id: 'rbase'}));
+    const sc = screens[idx];
+    if (sc.kind === 'taste') add(rbtn('이 묶음 크게 보기', () => openGallery(applicableAspects(sc.cat).map(a => a.id)), {id: 'rgal'}));
+    const sp = document.createElement('span'); sp.className = 'sp'; add(sp);
+    const n = document.createElement('span'); n.className = 'rtxt'; n.textContent = `참고 ${refCount()} · 메모 ${state.new_refs.length}`; add(n);
+    add(rbtn('정리·제출', () => { idx = screens.length - 1; render(); }));
+  } else if (ui.view === 'gallery') {
+    add(rbtn(`${MODE_NAME}로`, () => setView('flow')));
+    add(rbtn('비교 비우기', () => { ui.gallery = []; setView('flow'); }));
+    for (const aid of ui.gallery) { const b = rbtn(short((aspectById[aid] || {}).text || aid, 16) + ' ✕', () => { ui.gallery = ui.gallery.filter(x => x !== aid); if (!ui.gallery.length) setView('flow'); else renderAll(); }); b.classList.add('gchip'); add(b); }
+  } else if (ui.view === 'dashboard') {
+    add(rbtn(`${MODE_NAME} 이어서 (${idx + 1}/${screens.length})`, () => setView('flow')));
+    add(rbtn('저장소 보기', () => setView('store')));
+  } else if (ui.view === 'store') {
+    for (const [id, label] of STORE_TABS) add(rbtn(label, () => setView('store', id), {current: ui.storeTab === id}));
+    const sp = document.createElement('span'); sp.className = 'sp'; add(sp);
+    const q = document.createElement('input'); q.className = 'rin'; q.type = 'search'; q.id = 'storeq'; q.placeholder = '낱말로 찾기'; q.value = ui.storeQ; q.setAttribute('aria-label', '저장소 검색'); q.oninput = () => { ui.storeQ = q.value; renderStore($('#screen')); }; add(q);
+  } else add(rbtn(`${MODE_NAME}로 돌아가기`, () => setView('flow')));
+}
+
+// ---------- 본문 ----------
+function renderAll() { renderMenubar(); renderRibbon(); renderMain(); renderSide(); }
+function renderMain() {
+  $('#main').classList.toggle('wide', ui.view !== 'flow');
+  $('#foot').hidden = ui.view !== 'flow';
+  $('#bar').hidden = ui.view !== 'flow';
+  const root = $('#screen');
+  if (ui.view === 'flow') { render(); return; }
+  $('#intro').textContent = ''; $('#step').textContent = ''; root.innerHTML = '';
+  if (ui.view === 'dashboard') { $('#title').textContent = '대시보드'; renderDashboard(root); }
+  else if (ui.view === 'store') { $('#title').textContent = '저장소 · ' + (STORE_TABS.find(t => t[0] === ui.storeTab) || ['', ''])[1]; renderStore(root); }
+  else if (ui.view === 'gallery') { $('#title').textContent = '크게 보기'; renderGallery(root); }
+  else { $('#title').textContent = '도움말'; renderHelp(root); }
+  window.scrollTo(0, 0);
+}
+function render() {
+  const sc = screens[idx];
+  ui.view = 'flow';
+  $('#title').textContent = sc.kind === 'intro' ? (SPEC.title || '제작 인터뷰') : (sc.title || '');
+  $('#intro').textContent = idx === 0 ? (SPEC.intro || '') : '';
+  $('#barfill').style.width = Math.round(idx / (screens.length - 1) * 100) + '%';
+  $('#step').textContent = `${idx + 1} / ${screens.length} · ${sc.title || ''}`;
+  const root = $('#screen'); root.innerHTML = ''; $('#midbtns').innerHTML = '';
+  $('#prev').disabled = idx === 0;
+  $('#next').textContent = idx === screens.length - 1 ? '처음으로' : '다음';
+  ({intro: renderIntro, dims: renderDims, taste: renderTaste, project: renderProject, structure: renderItems, review: renderItems, approve: renderItems, summary: renderSummary}[sc.kind])(root, sc);
+  try { sessionStorage.setItem(KEY + ':idx', String(idx)); } catch (e) {}
+  renderRibbon();
+  if ($('#tree')) renderTreeOnly();
+  window.scrollTo(0, 0);
+}
+function dropStrip(target) {
+  const d = document.createElement('div'); d.className = 'drop'; d.dataset.for = target;
+  const list = state.refs[target] || [];
+  if (!list.length) { d.innerHTML = '<span>참고를 여기에 끌어다 놓거나, 트리 카드의 「넣기」</span>'; return d; }
+  d.innerHTML = '<span>참고:</span>';
+  for (const r of list) {
+    const c = document.createElement('span'); c.className = 'rchip';
+    c.innerHTML = `<span class="k">${esc(KIND_NAME[r.kind] || r.kind)}</span><span class="l" title="${esc(r.label)}">${esc(short(r.label, 40))}</span>`;
+    const x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label', '참고 빼기: ' + r.label); x.textContent = '✕'; x.onclick = () => removeRef(target, r);
+    c.appendChild(x); d.appendChild(c);
+  }
+  return d;
+}
+function btn(label, on, cls) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (cls ? ' ' + cls : ''); b.textContent = label; b.onclick = on; return b; }
+function baseZone() {
+  const c = document.createElement('div'); c.className = 'card base'; c.dataset.drop = 'base';
+  const b = state.base_project;
+  c.innerHTML = '<p class="q">기본 양식 <span class="badge">지난 프로젝트를 끌어다 놓기</span></p><p class="hint">트리 「참고 서랍 → 지난 프로젝트」의 카드를 여기에 놓으면(또는 카드의 「이 양식으로 시작」) 그 프로젝트의 차원 값과 적용 취향이 이번 답의 출발점이 됩니다. Claude는 「이 양식을 기본 설정으로 원한다」로 읽고, 달라진 답만 차이로 다룹니다.</p>';
+  const row = document.createElement('div'); row.className = 'row';
+  if (b) {
+    c.innerHTML += `<div class="cur"><div>${esc(b.title)}</div><small>${esc(b.kind === 'project' ? '프로젝트 기록' : '지난 인터뷰 답변')} · 차원 ${esc(b.dims_set || 0)}개 · 취향 ${esc(b.aspects_set || 0)}개 맞춤 · ${esc(shortDate(b.applied_at))}</small></div>`;
+    row.appendChild(btn('기본 양식 해제 (답은 그대로)', () => { state.base_project = null; save(); renderAll(); }));
+  } else row.appendChild(btn('트리에서 고르기', () => openRefs('refs.projects')));
+  c.appendChild(row);
+  return c;
+}
+function renderIntro(root) {
+  const n = screens.length - 2;
+  const card = document.createElement('div'); card.className = 'card';
+  card.innerHTML = `<h2>${esc(SPEC.title || '제작 인터뷰')}</h2>
+    <p>${esc(SPEC.intro || '큰 구분부터 고르면, 그에 맞는 학습된 취향만 확인합니다. 이미 아는 것은 「그대로」 한 번으로 넘어갑니다.')}</p>
+    <p class="small">화면 ${n}개 · 답은 이 기기에 임시 저장되고, 마지막 화면에서 제출합니다. 왼쪽 사이드 트리에서 항목을 펼쳐 예시를 보고 고를 수도 있고, 참고 서랍의 카드를 질문 카드에 끌어다 놓을 수도 있습니다.</p>
+    <p class="small">저장소: 취향 ${entries.filter(isActive).length} · 프로젝트 ${projects.length} · 지난 답변 ${pastAnswers.length} · 교훈 ${lessons.length} · 실수 ${mistakes.length} · 레퍼런스 ${designRefs.length} · 템플릿 ${templates.length}</p>`;
+  const row = document.createElement('div'); row.className = 'row';
+  row.appendChild(btn('사이드 트리 열기', () => { setSide(true); renderSide(); }));
+  row.appendChild(btn('대시보드', () => setView('dashboard')));
+  const reset = btn('처음부터 다시', () => { state = blank(); save(); idx = 0; renderAll(); }); reset.id = 'reset'; row.appendChild(reset);
+  card.appendChild(row); root.appendChild(card);
+  if (mode === 'interview') root.appendChild(baseZone());
+}
+function optButtons(opts, selected, multi, onPick, primary) {
+  const sel = selected == null ? [] : (Array.isArray(selected) ? selected : [selected]);
+  const wrap = document.createElement('div'); wrap.className = 'opts';
+  for (const o of opts) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'opt' + (primary && o.id === primary ? ' prim' : '');
+    b.textContent = o.label; b.dataset.id = o.id; b.setAttribute('aria-pressed', sel.includes(o.id) ? 'true' : 'false');
+    b.onclick = () => onPick(o.id);
+    wrap.appendChild(b);
+  }
+  return wrap;
+}
+function freeInput(value, onChange, placeholder) { const t = document.createElement('input'); t.type = 'text'; t.value = value || ''; t.placeholder = placeholder || '직접 입력'; t.oninput = () => onChange(t.value); return t; }
+function renderDims(root, sc) {
+  if (sc === screens[1] && mode === 'interview') root.appendChild(baseZone());
+  for (const did of sc.dimensions) {
+    const d = dimById[did]; if (!d) continue;
+    if (d.ask_when && !conditionOk(d.ask_when)) continue;
+    const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'dim:' + did;
+    const def = SPEC.defaults && SPEC.defaults.dimensions && SPEC.defaults.dimensions[did] != null;
+    card.innerHTML = `<p class="q">${esc(d.name)}${d.type === 'multi' ? ' <span class="badge">여러 개</span>' : ''}${def ? ' <span class="badge">지난번과 같음</span>' : ''}</p>` + (d.desc ? `<p class="hint">${esc(d.desc)}</p>` : '');
+    const cur = state.dimensions[did];
+    if (d.type === 'text') card.appendChild(freeInput(cur, v => { state.dimensions[did] = v; save(); }, d.desc || '직접 입력'));
+    else {
+      const opts = d.values || [];
+      let box = null;
+      const freeBox = document.createElement('div'); freeBox.className = 'row';
+      const rerender = () => { const nb = optButtons(opts, state.dimensions[did], d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null); card.replaceChild(nb, box); box = nb; freeBox.hidden = !(d.type === 'multi' ? (state.dimensions[did] || []).includes('other') : state.dimensions[did] === 'other'); if ($('#tree')) renderTreeOnly(); };
+      const pick = id => { pickDim(did, id); rerender(); };
+      box = optButtons(opts, cur, d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null);
+      card.appendChild(box);
+      freeBox.appendChild(freeInput(state.dimensions[did + '_other'], v => { state.dimensions[did + '_other'] = v; save(); }, '기타 내용'));
+      freeBox.hidden = !(d.type === 'multi' ? (cur || []).includes('other') : cur === 'other');
+      if (opts.some(o => o.free)) card.appendChild(freeBox);
+      if (d.primary) {
+        const pr = document.createElement('div'); pr.className = 'row small'; pr.innerHTML = '주 대상 고르기: ';
+        const b = btn('선택한 것 중에서 주 대상 바꾸기', () => { const arr = state.dimensions[did] || []; if (!arr.length) return; const i = arr.indexOf(state.dimensions[did + '_primary']); state.dimensions[did + '_primary'] = arr[(i + 1) % arr.length]; save(); rerender(); });
+        pr.appendChild(b); card.appendChild(pr);
+      }
+    }
+    card.appendChild(dropStrip('dim:' + did));
+    root.appendChild(card);
+  }
+}
+function renderTaste(root, sc) {
+  const list = applicableAspects(sc.cat);
+  const keepAll = btn('이 묶음 모두 그대로', () => { for (const a of list) { const m = matchAspect(a.id); if (m && !m.conflict && !m.inferred) state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {choice: 'keep', value: m.winner.value, winner: m.winner.id}); } save(); render(); });
+  $('#midbtns').appendChild(keepAll);
+  if (!list.length) { root.innerHTML = '<div class="card"><p class="q">이 묶음에서 이번 자료에 해당하는 항목이 없습니다.</p></div>'; return; }
+  for (const a of list) root.appendChild(tasteCard(a));
+}
+function tasteCard(a) {
+  const m = matchAspect(a.id);
+  const st = state.aspects[a.id] || {};
+  const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'aspect:' + a.id;
+  const pastN = pastAnswers.filter(p => p.aspects && p.aspects[a.id] && p.aspects[a.id].choice).length;
+  let head = `<p class="q">${esc(a.text)} <span class="small">${esc(a.sub)}</span>${pastN ? ` <span class="badge dim">지난 답 ${pastN}</span>` : ''}</p>`;
+  if (m) {
+    const w = m.winner;
+    const badges = (m.conflict ? '<span class="badge bad">충돌: 골라 주세요</span>' : '') + (m.inferred ? '<span class="badge warn">추론 — 확인 필요</span>' : '') + `<span class="badge">세기 ${esc(w.strength)}</span><span class="badge">${esc(scopeText(w.scope))}</span>`;
+    head += `<div class="cur">${badges}<div>${esc(optionLabel(a, w.value))}</div><small>${esc(w.statement)}</small></div>`;
+  } else head += '<p class="hint"><span class="badge warn">처음 정하는 항목</span> 아직 학습된 값이 없습니다. 예시에서 고르거나 트리의 지난 답·취향을 끌어다 놓으면 그 값으로 정해집니다.</p>';
+  card.innerHTML = head;
+  const row = document.createElement('div'); row.className = 'row';
+  const mk = (label, c, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.dataset.c = c; b.textContent = label; b.onclick = on; return b; };
+  const optsBox = document.createElement('div'); optsBox.style.marginTop = '8px';
+  const always = document.createElement('label'); always.className = 'row small'; always.innerHTML = '<input type="checkbox" id="al-' + esc(a.id) + '"> 앞으로도 항상 이렇게 (취향 갱신 제안)';
+  const note = document.createElement('textarea'); note.placeholder = '메모(선택) — 새 레퍼런스가 필요하면 여기나 트리 「새 메모」에'; note.value = st.note || ''; note.oninput = () => { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {note: note.value}); save(); };
+  function setChoice(choice, value) { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {choice, value, winner: m ? m.winner.id : null, always: !!(st.always)}); save(); paint(); if ($('#tree')) renderTreeOnly(); }
+  function paint() {
+    const cur = state.aspects[a.id] || {};
+    for (const b of row.querySelectorAll('.btn')) b.setAttribute('aria-pressed', b.dataset.c === cur.choice ? 'true' : 'false');
+    const showOpts = cur.choice === 'change' || cur.choice === 'new' || (m && m.conflict && cur.choice !== 'skip') || (m && m.inferred && cur.choice !== 'skip');
+    optsBox.innerHTML = '';
+    if (showOpts) {
+      if (a.type === 'single' || a.type === 'multi') {
+        let opts = a.options || [];
+        if (m && m.conflict) opts = m.conflictSet.map(e => ({id: norm(e.value), label: optionLabel(a, e.value) + ' — ' + e.statement, raw: e.value}));
+        const picked = cur.value == null ? null : (m && m.conflict ? norm(cur.value) : cur.value);
+        optsBox.appendChild(optButtons(opts, picked, a.type === 'multi' && !(m && m.conflict), id => {
+          const o = opts.find(x => x.id === id);
+          let v = o && o.raw !== undefined ? o.raw : id;
+          if (a.type === 'multi' && !(m && m.conflict)) { const arr = Array.isArray(cur.value) ? [...cur.value] : []; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); v = arr; }
+          setChoice(cur.choice === 'keep' ? 'change' : (cur.choice || (m ? 'change' : 'new')), v);
+        }));
+      } else {
+        const t = document.createElement('textarea'); t.value = typeof cur.value === 'string' ? cur.value : (m && typeof m.winner.value === 'string' ? m.winner.value : ''); t.placeholder = '이렇게 한다 — 한 문장';
+        t.oninput = () => { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {choice: cur.choice || (m ? 'change' : 'new'), value: t.value, winner: m ? m.winner.id : null}); save(); };
+        optsBox.appendChild(t);
+      }
+      optsBox.appendChild(always);
+      $('input', always).checked = !!cur.always;
+      $('input', always).onchange = ev => { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {always: ev.target.checked}); save(); };
+    }
+  }
+  if (m && !m.conflict && !m.inferred) { row.appendChild(mk('이번에도 그대로', 'keep', () => setChoice('keep', m.winner.value))); row.appendChild(mk('이번엔 다르게', 'change', () => setChoice('change', st.value != null && st.choice === 'change' ? st.value : null))); }
+  else if (m && m.inferred) { row.appendChild(mk('추론이 맞다 (확정)', 'keep', () => setChoice('keep', m.winner.value))); row.appendChild(mk('다르게 정한다', 'change', () => setChoice('change', null))); }
+  else if (m && m.conflict) row.appendChild(mk('아래에서 고른다', 'change', () => setChoice('change', st.value)));
+  else row.appendChild(mk('지금 정한다', 'new', () => setChoice('new', st.value)));
+  row.appendChild(mk('나중에·해당 없음', 'skip', () => setChoice('skip', null)));
+  const ex = document.createElement('button'); ex.type = 'button'; ex.className = 'btn'; ex.textContent = '예시 보기'; ex.dataset.c = 'gallery'; ex.onclick = () => openGallery([a.id]); row.appendChild(ex);
+  card.appendChild(row); card.appendChild(optsBox); card.appendChild(note);
+  card.appendChild(dropStrip('aspect:' + a.id));
+  paint();
+  return card;
+}
+function renderProject(root) {
+  for (const q of projectQs) {
+    const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'pq:' + q.id;
+    card.innerHTML = `<p class="q">${esc(q.text)}</p>`;
+    const cur = state.project[q.id];
+    if (q.type === 'text') { const t = document.createElement('textarea'); t.value = cur || ''; t.oninput = () => { state.project[q.id] = t.value; save(); }; card.appendChild(t); }
+    else {
+      let box; const pick = id => { if (q.type === 'multi') { const arr = Array.isArray(state.project[q.id]) ? [...state.project[q.id]] : []; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); state.project[q.id] = arr; } else state.project[q.id] = id; save(); const nb = optButtons(q.options, state.project[q.id], q.type === 'multi', pick); card.replaceChild(nb, box); box = nb; if ($('#tree')) renderTreeOnly(); };
+      box = optButtons(q.options, cur, q.type === 'multi', pick); card.appendChild(box);
+    }
+    card.appendChild(dropStrip('pq:' + q.id));
+    root.appendChild(card);
+  }
+}
+function renderItems(root, sc) {
+  if (!items.length) { root.innerHTML = '<div class="card"><p class="q">항목이 없습니다.</p></div>'; return; }
+  if (mode === 'structure') {
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = `<p class="q">${esc(SPEC.items_question || '구성안을 고르세요')}</p>`;
+    let box; const pick = id => { state.items.chosen = id; save(); const nb = optButtons(items.map(i => ({id: i.id, label: i.title})), id, false, pick); card.replaceChild(nb, box); box = nb; renderRank(); };
+    box = optButtons(items.map(i => ({id: i.id, label: i.title})), state.items.chosen, false, pick); card.appendChild(box);
+    const rankBox = document.createElement('div'); card.appendChild(rankBox);
+    function renderRank() {
+      rankBox.innerHTML = '';
+      const it = items.find(i => i.id === state.items.chosen); if (!it || !it.chapters) return;
+      const order = state.items.order && state.items.order.length === it.chapters.length ? state.items.order : it.chapters.map((_, i) => i);
+      const removed = new Set(state.items.removed || []);
+      const wrap = document.createElement('div'); wrap.className = 'rank'; wrap.innerHTML = '<p class="hint">순서를 ▲▼로 바꾸고, 뺄 챕터는 ✕를 누르세요.</p>';
+      order.forEach((ci, pos) => {
+        const row = document.createElement('div'); row.className = 'it'; row.style.opacity = removed.has(ci) ? .45 : 1;
+        row.innerHTML = `<span>${pos + 1}. ${esc(it.chapters[ci])}</span>`;
+        const mv = (d) => { const o = [...order]; const j = pos + d; if (j < 0 || j >= o.length) return; [o[pos], o[j]] = [o[j], o[pos]]; state.items.order = o; save(); renderRank(); };
+        for (const [lab, fn] of [['▲', () => mv(-1)], ['▼', () => mv(1)], [removed.has(ci) ? '↺' : '✕', () => { if (removed.has(ci)) removed.delete(ci); else removed.add(ci); state.items.removed = [...removed]; save(); renderRank(); }]]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = lab; b.onclick = fn; row.appendChild(b); }
+        wrap.appendChild(row);
+      });
+      rankBox.appendChild(wrap);
+      const t = document.createElement('textarea'); t.placeholder = '강조할 것·바꿀 것 메모'; t.value = state.items.note || ''; t.oninput = () => { state.items.note = t.value; save(); }; rankBox.appendChild(t);
+    }
+    renderRank(); root.appendChild(card);
+    for (const it of items) { const c = document.createElement('div'); c.className = 'card'; c.dataset.drop = 'item:' + it.id; c.innerHTML = `<p class="q">${esc(it.title)} <span class="small">참고</span></p>`; c.appendChild(dropStrip('item:' + it.id)); root.appendChild(c); }
+    return;
+  }
+  for (const it of items) {
+    const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'item:' + it.id;
+    const cur = state.items[it.id] || {};
+    card.innerHTML = `<p class="q">${esc(it.title)}</p>` + (it.desc ? `<p class="hint">${esc(it.desc)}</p>` : '') + (it.url ? `<p class="small"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.url_label || '보기')}</a></p>` : '');
+    const choices = mode === 'approve' ? [['apply', '반영'], ['narrow', '범위 축소 반영'], ['hold', '보류'], ['reject', '미반영']] : [['up', '👍 좋다'], ['down', '👎 싫다'], ['fix', '✏ 수정 요청']];
+    const row = document.createElement('div'); row.className = 'row';
+    for (const [id, lab] of choices) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = lab; b.setAttribute('aria-pressed', cur.choice === id ? 'true' : 'false'); b.onclick = () => { state.items[it.id] = Object.assign({}, state.items[it.id], {choice: id}); save(); render(); }; row.appendChild(b); }
+    card.appendChild(row);
+    if (mode === 'review' && (cur.choice === 'down' || cur.choice === 'fix')) {
+      const chips = document.createElement('div'); chips.className = 'chips';
+      for (const r of reasons) { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = r.label; const on = (cur.reasons || []).includes(r.id); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.onclick = () => { const arr = [...(cur.reasons || [])]; const i = arr.indexOf(r.id); if (i >= 0) arr.splice(i, 1); else arr.push(r.id); state.items[it.id] = Object.assign({}, cur, {reasons: arr}); save(); render(); }; chips.appendChild(b); }
+      card.appendChild(chips);
+    }
+    const t = document.createElement('textarea'); t.placeholder = '메모(선택)'; t.value = cur.note || ''; t.oninput = () => { state.items[it.id] = Object.assign({}, state.items[it.id], {note: t.value}); save(); }; card.appendChild(t);
+    card.appendChild(dropStrip('item:' + it.id));
+    root.appendChild(card);
+  }
+  const ov = document.createElement('div'); ov.className = 'card'; ov.innerHTML = '<p class="q">전체 평</p>';
+  const t = document.createElement('textarea'); t.value = state.overall || ''; t.oninput = () => { state.overall = t.value; save(); }; ov.appendChild(t); root.appendChild(ov);
+}
+function payload() {
+  return {spec_id: SPEC.spec_id || null, mode, lecture: SPEC.lecture || null, submitted_at: new Date().toISOString(),
+    client: (window.claude && typeof window.claude.use === 'function') ? 'artifact' : 'file',
+    dimensions: state.dimensions, aspects: state.aspects, project: state.project, items: state.items, overall: state.overall, notes: state.notes,
+    base_project: state.base_project, refs: state.refs, new_refs: state.new_refs};
+}
+function renderSummary(root) {
+  const p = payload();
+  const card = document.createElement('div'); card.className = 'card';
+  let html = '<h2>정리</h2>';
+  if (mode === 'interview') {
+    html += '<div class="kv">';
+    if (state.base_project) html += `<b>기본 양식</b><span>${esc(state.base_project.title)} (차원 ${esc(state.base_project.dims_set || 0)} · 취향 ${esc(state.base_project.aspects_set || 0)})</span>`;
+    for (const d of dims) { const v = state.dimensions[d.id]; if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue; html += `<b>${esc(d.name)}</b><span>${esc(dimText(d.id, v))}${state.dimensions[d.id + '_other'] ? ' (' + esc(state.dimensions[d.id + '_other']) + ')' : ''}</span>`; }
+    html += '</div>';
+    const keep = Object.values(state.aspects).filter(x => x.choice === 'keep').length, change = Object.values(state.aspects).filter(x => x.choice === 'change').length, nw = Object.values(state.aspects).filter(x => x.choice === 'new').length, always = Object.values(state.aspects).filter(x => x.always).length;
+    html += `<p class="small">취향: 그대로 ${keep} · 다르게 ${change} · 처음 정함 ${nw} · 항상 바꾸기 제안 ${always}</p>`;
+    const open = aspects.filter(a => cats.some(c => a.sub.startsWith(c.id + '.')) && conditionOk(a.applies_when)).filter(a => { const m = matchAspect(a.id); const s = state.aspects[a.id]; return (m && (m.conflict || m.inferred) && !s) || (!m && !s); });
+    if (open.length) html += `<p class="small ng">아직 답하지 않은 항목 ${open.length}개: ${esc(open.map(a => a.text).join(' / '))}</p>`;
+  } else html += `<p class="small">항목 ${Object.keys(state.items).filter(k => state.items[k] && state.items[k].choice).length}개 답함</p>`;
+  const rc = refCount();
+  html += `<p class="small">참고로 넣은 것 ${rc}개${rc ? ': ' + esc(Object.keys(state.refs).map(t => targetLabel(t) + ' ← ' + state.refs[t].map(r => short(r.label, 24)).join(', ')).join(' / ')) : ''} · 새 레퍼런스 메모 ${state.new_refs.length}개</p>`;
+  html += '<div class="row"><button class="btn primary" id="submit" type="button">저장·제출</button><button class="btn" id="dl" type="button">JSON 내려받기</button><button class="btn" id="copy" type="button">복사</button></div><p class="small" id="msg" aria-live="polite"></p><pre class="json" id="json"></pre>';
+  card.innerHTML = html; root.appendChild(card);
+  $('#json', card).textContent = JSON.stringify(p, null, 1);
+  $('#submit', card).onclick = () => submit($('#msg', card));
+  $('#dl', card).onclick = () => download($('#msg', card));
+  $('#copy', card).onclick = () => copyJson($('#msg', card));
+}
+async function submit(msg) {
+  const p = payload();
+  msg.textContent = '저장 중…';
+  const use = window.claude && window.claude.use;
+  if (use) {
+    try {
+      const db = await window.claude.use('db');
+      if (db) { const ref = await db.collection('answers').add(p); msg.innerHTML = `<span class="ok">저장됨</span> (answers/${esc(ref.id)}). Claude가 이 답을 읽습니다. JSON 내려받기도 됩니다.`; return; }
+      msg.textContent = '이 화면에서는 저장소를 쓸 수 없습니다. 「JSON 내려받기」나 「복사」로 전달하세요.';
+    } catch (e) { msg.innerHTML = `<span class="ng">저장 실패</span>: ${esc(e && (e.code || e.message) || e)}. 「JSON 내려받기」나 「복사」로 전달하세요.`; }
+  } else msg.textContent = '게시 페이지가 아니라 파일로 열었습니다. 「JSON 내려받기」로 저장해 materials/인터뷰/ 에 두거나 「복사」해 대화에 붙여 넣으세요.';
+}
+async function download(msg) {
+  const p = payload(); const name = (SPEC.answers_filename || 'interview_answers') + '.json'; const text = JSON.stringify(p, null, 1);
+  if (window.claude && window.claude.use) {
+    try { const d = await window.claude.use('downloads'); if (d) { await d.save({filename: name, data: text}); msg.textContent = '내려받기 완료: ' + name; return; } }
+    catch (e) { msg.textContent = '내려받기 거절 또는 실패: ' + (e && (e.code || e.message) || e); return; }
+    msg.textContent = '이 화면에서는 내려받기를 할 수 없습니다. 「복사」를 쓰세요.'; return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type: 'application/json'})); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  msg.textContent = '내려받기: ' + name + ' (materials/인터뷰/ 에 두세요)';
+}
+async function copyJson(msg) {
+  const text = JSON.stringify(payload(), null, 1);
+  try { await navigator.clipboard.writeText(text); msg.textContent = '복사됨. 대화에 붙여 넣으세요.'; }
+  catch (e) { const pre = $('#json'); const r = document.createRange(); r.selectNodeContents(pre); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); msg.textContent = '자동 복사가 막혀 있습니다. 아래 글을 길게 눌러 복사하세요.'; }
+}
+// ---------- 크게 보기(예시 격자) · 대시보드 · 저장소 · 도움말 ----------
+function renderGallery(root) {
+  if (!ui.gallery.length) { root.innerHTML = '<div class="card"><p class="q">비교할 항목이 없습니다. 트리나 질문 카드의 「예시 보기」·「크게 보기」로 고르세요.</p></div>'; return; }
+  for (const aid of ui.gallery) {
+    const a = aspectById[aid]; if (!a) continue;
+    const m = matchAspect(aid), st = state.aspects[aid] || {};
+    const card = document.createElement('div'); card.className = 'card'; card.dataset.gallery = aid;
+    card.innerHTML = `<p class="q">${esc(a.text)} <span class="small">${esc(a.sub)} ${esc(subName[a.sub] || '')}</span></p>` + (m ? `<p class="small">학습된 기본값: <b>${esc(optionLabel(a, m.winner.value))}</b> (${esc(scopeText(m.winner.scope))}) — ${esc(short(m.winner.statement, 120))}</p>` : '<p class="small">처음 정하는 항목</p>') + `<p class="small">이번 답: ${st.choice ? esc(CHOICE_NAME[st.choice] || st.choice) + (st.value != null && st.choice !== 'skip' ? ' → <b>' + esc(optionLabel(a, st.value)) + '</b>' : '') : '아직 없음'}</p>`;
+    if ((a.type === 'single' || a.type === 'multi') && (a.options || []).length) { const g = document.createElement('div'); g.className = 'gal'; for (const o of a.options) g.appendChild(tile(aid, o, true)); card.appendChild(g); const gb = guideBox(aid); if (gb) card.appendChild(gb); }
+    else { const t = document.createElement('textarea'); t.value = typeof st.value === 'string' ? st.value : ''; t.placeholder = '이렇게 한다 — 한 문장'; t.oninput = () => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {choice: m ? 'change' : 'new', value: t.value, winner: m ? m.winner.id : null}); save(); }; card.appendChild(t); }
+    const row = document.createElement('div'); row.className = 'row';
+    row.appendChild(btn('이 질문 화면으로', () => goToLeaf({kind: 'aspect', aid})));
+    row.appendChild(btn('비교에서 빼기', () => { ui.gallery = ui.gallery.filter(x => x !== aid); if (!ui.gallery.length) setView('flow'); else renderAll(); }));
+    card.appendChild(row); root.appendChild(card);
+  }
+}
+function statTile(n, label, on) { const b = document.createElement('button'); b.type = 'button'; b.className = 'stat'; b.innerHTML = `<b>${esc(n)}</b><span>${esc(label)}</span>`; b.onclick = on; return b; }
+function renderDashboard(root) {
+  const act = entries.filter(isActive);
+  const stats = document.createElement('div'); stats.className = 'stats';
+  stats.appendChild(statTile(act.length, `취향 항목 (확정 ${act.filter(e => e.status === 'confirmed').length} · 제안 ${act.filter(e => e.status === 'proposed').length} · 추론 ${act.filter(e => e.strength === 5).length})`, () => setView('store', 'entries')));
+  stats.appendChild(statTile(Object.keys(choices).length, '선택별 진화 기록', () => setView('store', 'choices')));
+  stats.appendChild(statTile(dims.length, '차원 (큰 구분)', () => setView('store', 'dimensions')));
+  stats.appendChild(statTile(projects.length, '프로젝트 기록', () => setView('store', 'projects')));
+  stats.appendChild(statTile(pastAnswers.length, '지난 답변', () => setView('store', 'history')));
+  stats.appendChild(statTile(lessons.length, '교훈', () => setView('store', 'lessons')));
+  stats.appendChild(statTile(mistakes.length, '실수 기록', () => setView('store', 'mistakes')));
+  stats.appendChild(statTile(designRefs.length, '레퍼런스 서비스', () => setView('store', 'refs')));
+  stats.appendChild(statTile(templates.length, '템플릿', () => setView('store', 'templates')));
+  root.appendChild(stats);
+  const grid = document.createElement('div'); grid.className = 'grid2';
+  const prog = document.createElement('div'); prog.className = 'card'; prog.style.margin = '0';
+  const answeredDims = dims.filter(d => dimAnswered(d.id)).length;
+  const asp = Object.values(state.aspects);
+  const openN = aspects.filter(a => cats.some(c => a.sub.startsWith(c.id + '.')) && conditionOk(a.applies_when)).filter(a => { const m = matchAspect(a.id); const s = state.aspects[a.id]; return (m && (m.conflict || m.inferred) && !s) || (!m && !s); }).length;
+  prog.innerHTML = `<p class="q">이번 ${esc(MODE_NAME)} 진행</p><div class="bar"><i style="width:${Math.round(idx / (screens.length - 1) * 100)}%"></i></div><div class="kv">
+    <b>화면</b><span>${idx + 1} / ${screens.length} · ${esc(screens[idx].title || '')}</span>
+    <b>기본 양식</b><span>${state.base_project ? esc(state.base_project.title) : '없음'}</span>
+    <b>차원</b><span>${answeredDims} / ${dims.length} 답함</span>
+    <b>취향</b><span>그대로 ${asp.filter(x => x.choice === 'keep').length} · 다르게 ${asp.filter(x => x.choice === 'change').length} · 처음 ${asp.filter(x => x.choice === 'new').length} · 미답(물어야 함) ${openN}</span>
+    <b>참고</b><span>넣은 참고 ${refCount()} · 새 메모 ${state.new_refs.length}</span></div>`;
+  const pr = document.createElement('div'); pr.className = 'row'; pr.appendChild(btn(`${MODE_NAME} 이어서`, () => setView('flow'), 'primary')); pr.appendChild(btn('답 안 한 항목만 트리에 펼치기', () => { setSide(true); expandBy({cond: 'unanswered'}); })); prog.appendChild(pr);
+  grid.appendChild(prog);
+  const simc = document.createElement('div'); simc.className = 'card'; simc.style.margin = '0';
+  simc.innerHTML = '<p class="q">비슷한 지난 프로젝트</p><p class="hint">지금 고른 차원 값과 겹치는 수로 정렬. 결과가 좋았던 것을 기본 양식으로 삼으면 빨리 시작할 수 있습니다.</p>';
+  const sl = document.createElement('div'); sl.className = 'simlist';
+  const ranked = projects.map(p => ({p, s: similarity(p.dimensions)})).sort((a, b) => (b.s.n - a.s.n) || String(b.p.created || '').localeCompare(String(a.p.created || '')));
+  if (!ranked.length) sl.innerHTML = '<p class="small">프로젝트 기록이 없습니다.</p>';
+  for (const {p, s} of ranked) {
+    const row = document.createElement('div'); row.className = 'sim';
+    row.innerHTML = `<span class="n">${s.m ? s.n + '/' + s.m : '—'}</span><span class="t"><b>${esc(short(p.title || p.lecture, 50))}</b><br><span class="small">${esc(shortDate(p.created))} · ${esc(short(p.outcome || '결과 기록 없음', 60))}</span></span>`;
+    const b = chipBtn('이 양식으로 시작', () => applyBase('project', p.lecture)); b.dataset.act = 'base'; row.appendChild(b);
+    row.appendChild(chipBtn('넣기 ▸', () => openPicker(refObject('project', p.lecture))));
+    sl.appendChild(row);
+  }
+  simc.appendChild(sl); grid.appendChild(simc);
+  const cand = document.createElement('div'); cand.className = 'card'; cand.style.margin = '0';
+  const cands = Object.entries(state.aspects).filter(([, s]) => s && (s.always || s.choice === 'change' || s.choice === 'new'));
+  cand.innerHTML = `<p class="q">취향 갱신 후보 <span class="badge dim">${cands.length}</span></p><p class="hint">「이번엔 다르게」·「처음 정함」·「항상」으로 답한 항목. 반영 여부는 작업이 끝난 뒤 승인 화면에서 정합니다.</p>` + (cands.length ? '<ul style="margin:0;padding-left:18px">' + cands.map(([aid, s]) => `<li>${esc((aspectById[aid] || {}).text || aid)}: ${esc(CHOICE_NAME[s.choice] || s.choice)} → ${esc(optionLabel(aspectById[aid], s.value))}${s.always ? ' <span class="badge">항상</span>' : ''}</li>`).join('') + '</ul>' : '<p class="small">아직 없습니다.</p>');
+  grid.appendChild(cand);
+  const rec = document.createElement('div'); rec.className = 'card'; rec.style.margin = '0';
+  const lastL = lessons[lessons.length - 1], lastC = changes[changes.length - 1];
+  rec.innerHTML = '<p class="q">최근 기록</p><div class="kv">' + `<b>교훈</b><span>${lastL ? esc(short(lastL.title, 80)) : '없음'}</span>` + `<b>저장소 변경</b><span>${lastC ? esc(short(`${lastC.date} ${lastC.target} — ${lastC.action}`, 90)) : '없음'}</span>` + `<b>시작 전 점검표</b><span>${checklist.length ? checklist.map(x => esc(x)).join('<br>') : '없음'}</span></div>`;
+  grid.appendChild(rec);
+  root.appendChild(grid);
+}
+function renderStore(root) {
+  root.innerHTML = '';
+  const q = ui.storeQ;
+  const note = document.createElement('p'); note.className = 'small';
+  const tab = ui.storeTab;
+  if (tab === 'dimensions') {
+    note.textContent = `차원 ${dims.length}개와 하위 카테고리(값). 「추론」은 등등 규칙으로 Claude가 채운 값이라 확인이 필요합니다. 지금 고른 값은 강조됩니다.`; root.appendChild(note);
+    const tw = document.createElement('div'); tw.className = 'tbl';
+    let h = '<table class="dm"><tr><th>차원</th><th>종류</th><th>값(하위 카테고리)</th></tr>';
+    for (const d of dims) {
+      if (!hit(q, d.name, d.id, (d.values || []).map(v => v.label).join(' '))) continue;
+      const cur = projectValue(d.id) || [];
+      const vals = d.type === 'text' ? esc(state.dimensions[d.id] || '(자유 입력)') : (d.values || []).map(v => `<span class="badge${cur.includes(v.id) ? '' : ' dim'}">${esc(v.label)}${v.source === '추론' ? ' ·추론' : ''}</span>`).join(' ');
+      h += `<tr><td><b>${esc(d.name)}</b><br><span class="small">${esc(d.id)}${d.primary ? ' · 주 대상 표시' : ''}</span></td><td>${esc(d.type === 'multi' ? '여러 개' : d.type === 'text' ? '글' : '하나')}</td><td>${vals}${d.desc ? `<br><span class="small">${esc(d.desc)}</span>` : ''}</td></tr>`;
+    }
+    tw.innerHTML = h + '</table>'; root.appendChild(tw); return;
+  }
+  if (tab === 'choices') {
+    const keys = Object.keys(choices).sort();
+    note.textContent = `선택별 진화 기록 ${keys.length}개 (knowledge/choices.json). 같은 선택을 또 골라도 version이 올라 있으면 새 방법으로 만듭니다. 마무리(스킬 6절)에서 방법이 나아지면 version을 올리고 이력을 남깁니다.`; root.appendChild(note);
+    const tw = document.createElement('div'); tw.className = 'tbl';
+    tw.innerHTML = '<table class="dm"><tr><th>질문</th><th>선택</th><th>v</th><th>방법 (지금 버전)</th><th>점검</th><th>배운 곳 · 이력</th></tr>' + keys.filter(k => hit(q, k, (choices[k].how || []).join(' '), (choices[k].learned_from || []).join(' '), (aspectById[choices[k].aspect] || {}).text)).map(k => { const c = choices[k], a = aspectById[c.aspect] || {}; return `<tr><td><b>${esc(a.text || c.aspect)}</b><br><span class="small">${esc(c.aspect)}</span></td><td>${esc(optionLabel(a, c.option))}</td><td>v${esc(c.version)}<br><span class="small">${esc(c.updated)}</span></td><td><ul style="margin:0;padding-left:16px">${(c.how || []).map(h => '<li>' + esc(h) + '</li>').join('')}</ul></td><td>${esc((c.checks || []).join(' / '))}</td><td>${esc((c.learned_from || []).map(lectureName).join(', '))}<br><span class="small">${(c.history || []).map(h => esc(h.date + ' ' + short(h.change, 60))).join('<br>')}</span></td></tr>`; }).join('') + '</table>';
+    root.appendChild(tw); return;
+  }
+  if (tab === 'changes') {
+    note.textContent = `저장소 변경 이력 ${changes.length}건 (knowledge/02).`; root.appendChild(note);
+    const tw = document.createElement('div'); tw.className = 'tbl';
+    tw.innerHTML = '<table class="dm"><tr><th>날짜</th><th>프로젝트</th><th>대상</th><th>조치</th><th>근거</th><th>확인자</th></tr>' + changes.filter(c => hit(q, c.date, c.project, c.target, c.action, c.basis)).map(c => `<tr><td>${esc(c.date)}</td><td>${esc(c.project)}</td><td>${esc(c.target)}</td><td>${esc(c.action)}</td><td>${esc(c.basis)}</td><td>${esc(c.by)}</td></tr>`).join('') + '</table>';
+    root.appendChild(tw); return;
+  }
+  const gid = {entries: 'refs.entries', projects: 'refs.projects', history: 'refs.history', lessons: 'refs.lessons', mistakes: 'refs.mistakes', refs: 'refs.design', templates: 'refs.templates'}[tab] || 'refs.entries';
+  const cards = refCards(gid, q).filter(c => c.classList && c.classList.contains('rc'));
+  note.textContent = ({entries: `취향 항목 ${entries.length}개(활성 ${entries.filter(isActive).length}). 「이번에 적용」은 지금 고른 차원 값에 맞는 항목입니다.`, projects: `프로젝트 기록 ${projects.length}개 · 지난 인터뷰 답변 ${pastAnswers.filter(a => a.mode === 'interview').length}개`, history: pastAnswers.length ? '제출된 인터뷰 답변을 항목별로 펼친 것.' : '아직 제출된 인터뷰 답변이 없습니다. 이번 답을 제출하면 다음 인터뷰부터 여기에 쌓입니다.', lessons: `교훈 ${lessons.length}건 (knowledge/01).`, mistakes: `실수 기록 ${mistakes.length}건 (knowledge/05). 시작 전 점검표: ${checklist.join(' / ') || '없음'}`, refs: `디자인 레퍼런스 서비스 ${designRefs.length}곳 (knowledge/03).`, templates: `재사용 템플릿 ${templates.length}개 (knowledge/04).`})[tab] || '';
+  root.appendChild(note);
+  const grid = document.createElement('div'); grid.className = 'grid2';
+  if (!cards.length) grid.innerHTML = '<p class="small">해당하는 카드가 없습니다.</p>';
+  for (const c of cards) grid.appendChild(c);
+  root.appendChild(grid);
+}
+function renderHelp(root) {
+  const c = document.createElement('div'); c.className = 'card';
+  c.innerHTML = `<h2>이 페이지 쓰는 법</h2>
+<p><b>${esc(MODE_NAME)}</b> 화면은 아래 「이전·다음」(키보드 ←/→)으로 넘깁니다. 답은 이 기기에만 임시 저장되고, 마지막 화면의 「저장·제출」로 Claude에게 보냅니다. 파일로 열었다면 「JSON 내려받기」로 저장해 <code>materials/인터뷰/</code>에 두거나 「복사」해 대화에 붙여 넣습니다.</p>
+<p><b>사이드 트리(☰ 트리)</b>: 1부 큰 구분 → 화면 → 차원 / 2부 취향 → 묶음 → 하위 → 질문 / 3부 이번 자료 / 참고 서랍(지난 프로젝트·지난 답·취향 항목·교훈·실수·디자인 레퍼런스·템플릿·새 메모). 넓은 화면에서는 옆으로 밀어 열리고, 좁은 화면에서는 겹쳐 열립니다. 닫으면 왼쪽 가장자리의 「트리 열기」 손잡이로 다시 엽니다.</p>
+<p><b>접기·펼치기</b>: ▾/▸로 하나씩, 「모두 접기」「모두 펼치기」로 한 번에, 「선택 펼치기 ▾」로 묶음과 조건(전부 / 답 안 한 항목만 / 학습된 값이 있는 항목만 / 지금 화면만)을 골라 한 번에 펼칩니다. 열림 상태는 기억됩니다.</p>
+<p><b>질문을 펼치면</b> 학습된 현재 값, 이번 답, <b>예시 줄</b>(글은 같은 문장을 스타일별로 바꾼 샘플, 시각물·영상은 코드로 그린 작은 화면 그림), 지난 답·취향 카드가 보입니다. 예시를 누르면 그 값이 답이 됩니다(학습값과 같으면 「그대로」, 다르면 「이번엔 다르게」, 학습값이 없으면 「처음 정함」). 줄을 누르면 본문도 그 질문으로 이동합니다.</p>
+<p><b>크게 보기</b>: 질문의 「크게 보기」나 카드의 「예시 보기」, 리본의 「이 묶음 크게 보기」가 본문에 예시를 큰 격자로 펼칩니다. 「비교에 추가」로 여러 질문을 한 화면에 쌓아 동시에 봅니다. (게시 페이지에서는 브라우저 팝업이 막혀 있어 본문에 펼칩니다.)</p>
+<p><b>카드를 답에 넣는 법</b>: 카드 왼쪽 손잡이(⠿)를 끌어 질문 카드 위에 놓거나(마우스는 카드 아무 곳이나), 카드의 「넣기 ▸」를 눌러 넣을 질문을 고릅니다. 같은 항목의 취향·지난 답을 넣으면 답도 그 값으로 맞춰지고, 다른 참고는 그 질문의 「참고」 칸에 붙습니다(✕로 빼기).</p>
+<p><b>기본 양식</b>: 지난 프로젝트 카드의 「이 양식으로 시작」 또는 첫 화면의 「기본 양식」 칸에 놓기 → 그 프로젝트의 차원 값·적용 취향이 한 번에 채워집니다. 제출 JSON의 <code>base_project</code>를 Claude는 「이 양식을 기본 설정으로 원한다」로 읽습니다.</p>
+<p><b>선택별 진화 기록</b>: 예시 타일의 「방법 v1」은 그 선택을 고르면 지금 어떻게 만드는지(방법·점검·예시·배운 프로젝트·이력)가 기록돼 있다는 뜻입니다. 질문을 펼치거나 크게 보기에서 고른 선택의 방법이 보입니다. 프로젝트를 마무리할 때 방법이 나아지면 버전이 오르므로, 같은 선택을 또 골라도 다음 자료는 새 방법으로 만들어집니다. 저장소 → 「선택 기록」에서 전부 볼 수 있습니다.</p>
+<p><b>새 레퍼런스</b>: 참고 서랍 「새 메모」에 적으면 <code>new_refs</code>로 전해지고, 작업이 끝나면 다음 인터뷰부터 카드로 쌓입니다. 지난 프로젝트의 실제 결과물은 게시 URL 링크(새 탭)와 PC 경로로 보여 줍니다.</p>
+<p class="small">제출 JSON: dimensions · aspects(choice/value/always/note/from) · project · base_project · refs · new_refs · items · overall.</p>`;
+  root.appendChild(c);
+}
+
+// ---------- 공통 조작 ----------
+$('#prev').onclick = () => { if (idx > 0) { idx--; render(); } };
+$('#next').onclick = () => { idx = idx === screens.length - 1 ? 0 : idx + 1; render(); };
+$('#sidebtn').onclick = () => { setSide(!ui.sideOpen); if (ui.sideOpen) renderSide(); };
+$('#sidetab').onclick = () => { setSide(true); renderSide(); };
+$('#scrim').onclick = () => setSide(false);
+$('#mtoggle').onclick = () => { const m = $('#menu'); const open = !m.classList.contains('open'); m.classList.toggle('open', open); $('#mtoggle').setAttribute('aria-expanded', open ? 'true' : 'false'); };
+document.addEventListener('keydown', ev => {
+  const tag = (ev.target && ev.target.tagName || '').toLowerCase();
+  if (ev.key === 'Escape') { closePicker(); if (isNarrow()) setSide(false); $('#menu').classList.remove('open'); return; }
+  if (tag === 'input' || tag === 'textarea' || tag === 'select' || ui.view !== 'flow') return;
+  if (ev.key === 'ArrowLeft' && idx > 0) { idx--; render(); }
+  else if (ev.key === 'ArrowRight' && idx < screens.length - 1) { idx++; render(); }
+});
+let lastNarrow = isNarrow();
+window.addEventListener('resize', () => { const n = isNarrow(); if (n !== lastNarrow) { lastNarrow = n; $('#scrim').hidden = !(ui.sideOpen && n); } });
+renderAll();
+// 검사·자동화용 작은 API (scripts/check_interview.js 가 쓴다)
+window.PE = {get state() { return state; }, get ui() { return ui; }, store, screens, go(i) { idx = i; ui.view = 'flow'; renderAll(); }, index() { return idx; },
+  setDim(id, v) { state.dimensions[id] = v; save(); }, setAspect(aid, choice, value, always) { state.aspects[aid] = {choice, value, always: !!always, winner: (matchAspect(aid) || {winner: {}}).winner.id || null}; save(); },
+  setProject(id, v) { state.project[id] = v; save(); }, setItem(id, obj) { state.items[id] = obj; save(); },
+  matchAspect, applies, conditionOk, applicable(catId) { const c = cats.find(x => x.id === catId); return c ? applicableAspects(c).map(a => a.id) : []; },
+  view(v, tab) { setView(v, tab); }, side(open) { setSide(open); renderSide(); },
+  tree: {get nodes() { return TREE; }, open(id, v) { ui.open[id] = v !== false; saveUi(); renderSide(); }, detail(id, v) { ui.detail[id] = v !== false; saveUi(); renderSide(); }, expandAll, collapseAll, expandBy, filter(f) { ui.filter = f || null; saveUi(); renderSide(); }, search(q) { ui.q = q; renderTreeOnly(); }, visible() { return $$('#tree .tn').map(e => e.dataset.id); }},
+  screenTargets(i) { return screenTargets(screens[i == null ? idx : i]); }, refObject, applyRef, applyBase, removeRef, addNewRef, openPicker, closePicker, openGallery, chooseExample, preview, similarity,
+  payload, submit: () => submit($('#msg') || document.createElement('p')), render, renderAll};
+})();
+</script>

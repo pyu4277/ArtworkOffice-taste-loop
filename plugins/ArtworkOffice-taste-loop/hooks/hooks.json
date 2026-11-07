@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/skills/ArtworkOffice-taste-loop/scripts/session_start.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
