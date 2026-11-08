@@ -1027,7 +1027,11 @@ function renderRibbon() {
 
 // ---------- 본문 ----------
 function renderAll() { renderMenubar(); renderRibbon(); renderMain(); renderSide(); }
+// 스크롤: 다른 화면으로 옮길 때만 맨 위로. 같은 화면을 다시 그릴 때(답을 고르면 하위 질문이 나타나는 등)는 보던 자리를 지킨다
+let lastPlace = null;
+function placeScroll(place, y) { window.scrollTo(0, place === lastPlace ? y : 0); lastPlace = place; }
 function renderMain() {
+  const y0 = window.scrollY || 0;
   $('#main').classList.toggle('wide', ui.view !== 'flow');
   $('#foot').hidden = ui.view !== 'flow';
   $('#bar').hidden = ui.view !== 'flow';
@@ -1038,9 +1042,10 @@ function renderMain() {
   else if (ui.view === 'store') { $('#title').textContent = '저장소 · ' + (STORE_TABS.find(t => t[0] === ui.storeTab) || ['', ''])[1]; renderStore(root); }
   else if (ui.view === 'gallery') { $('#title').textContent = '크게 보기'; renderGallery(root); }
   else { $('#title').textContent = '도움말'; renderHelp(root); }
-  window.scrollTo(0, 0);
+  placeScroll(ui.view + ':' + (ui.view === 'store' ? ui.storeTab : ''), y0);
 }
 function render() {
+  const y0 = window.scrollY || 0;
   const sc = screens[idx];
   ui.view = 'flow';
   $('#title').textContent = sc.kind === 'intro' ? (SPEC.title || '제작 인터뷰') : (sc.title || '');
@@ -1050,12 +1055,12 @@ function render() {
   const root = $('#screen'); root.innerHTML = ''; $('#midbtns').innerHTML = '';
   $('#prev').disabled = idx === 0;
   $('#next').textContent = idx === screens.length - 1 ? '처음으로' : '다음';
-  if (!scrShown(sc)) { root.innerHTML = `<div class="card"><p class="q">이 목차는 지금 고른 내용에는 해당하지 않습니다.</p><p class="hint">${esc(condText((sc.src || sc.cat || {}).when))}을(를) 고르면 나옵니다.</p></div>`; renderRibbon(); if ($('#tree')) renderTreeOnly(); return; }
+  if (!scrShown(sc)) { root.innerHTML = `<div class="card"><p class="q">이 목차는 지금 고른 내용에는 해당하지 않습니다.</p><p class="hint">${esc(condText((sc.src || sc.cat || {}).when))}을(를) 고르면 나옵니다.</p></div>`; renderRibbon(); if ($('#tree')) renderTreeOnly(); placeScroll('flow:' + idx, y0); return; }
   ({intro: renderIntro, dims: renderDims, taste: renderTaste, project: renderProject, structure: renderItems, review: renderItems, approve: renderItems, summary: renderSummary}[sc.kind])(root, sc);
   try { sessionStorage.setItem(KEY + ':idx', String(idx)); } catch (e) {}
   renderRibbon();
   if ($('#tree')) renderTreeOnly();
-  window.scrollTo(0, 0);
+  placeScroll('flow:' + idx, y0);
 }
 function dropStrip(target) {
   const d = document.createElement('div'); d.className = 'drop'; d.dataset.for = target;

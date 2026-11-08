@@ -62,7 +62,9 @@ function open(file, withClaude) {
   const errors = [];
   const dom = new JSDOM(html, {runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://localhost/',
     beforeParse(window) {
-      window.scrollTo = () => {};
+      window.__y = 0; // 스크롤 흉내: scrollTo 가 정한 자리를 scrollY 로 돌려준다
+      window.scrollTo = (x, y) => { window.__y = y || 0; };
+      Object.defineProperty(window, 'scrollY', {configurable: true, get: () => window.__y});
       window.addEventListener('error', e => errors.push(e.message));
       if (withClaude) window.claude = {use: async name => name === 'db' ? {collection: () => ({add: async p => { calls.add.push(p); return {id: 'doc1'}; }})}
         : name === 'downloads' ? {save: async req => { calls.save.push(req); return {status: 'saved'}; }} : null};
@@ -130,6 +132,14 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   PE.go(iSF - 1); d.querySelector('#next').click();
   ok(PE.index() === iSF, '다음 → 화면·지면 규격'); d.querySelector('#next').click();
   ok(PE.screens[PE.index()].id !== 'SH', 'HTML을 안 고르면 「HTML 화면 구성」 목차는 건너뜀');
+  // 답을 골라 같은 화면을 다시 그려도 보던 자리를 지킨다(맨 위로 튀지 않음) — 화면을 옮길 때만 맨 위로
+  PE.go(PE.screens.findIndex(s => s.id === 'S1')); w.__y = 640;
+  cardOf('file_format').querySelector('.opt[data-id="html"]').click();
+  ok(w.scrollY === 640 && !!cardOf('pdf_export'), '조건에 쓰이는 답(파일 형식)을 골라 화면을 다시 그려도 스크롤 자리 유지 (' + w.scrollY + ')');
+  cardOf('material_type').querySelector('.opt[data-id="slides"]').click();
+  ok(w.scrollY === 640, '콘텐츠 형태를 골라도 스크롤 자리 유지');
+  d.querySelector('#next').click();
+  ok(w.scrollY === 0, '「다음」으로 화면을 옮기면 맨 위로');
   PE.setDim('file_format', ['pptx', 'html']); PE.setDim('orientation', ['portrait']); PE.go(iSF);
   ok(optIds('orientation').includes('responsive') && optIds('format').join() === 'v916,a4p,a3,mobile,other', 'HTML 추가+세로 → 크기: 9:16 · A4 세로 · A3(PPT) · 휴대폰 폭 ' + optIds('format').join());
   PE.go(iSH);
