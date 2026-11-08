@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "updated": "2026-11-07",
   "note": "B층 질문 은행 — 취향 하위 항목(aspect)마다 질문·선택지·적용 조건. preferences.json의 entry.aspect / entry.value는 여기 id와 맞아야 한다(check_store.py가 대조). applies_when은 dimensions.json의 차원 id와 값 id로 쓴다. 선택지는 「등등」 규칙으로 채웠고 '기타'는 자유 입력이다. (starter 기본값 — 설치하면 init_store.py가 데이터 폴더로 복사하고, 그 뒤에는 데이터 폴더 쪽을 고친다.)",
   "categories": [
@@ -611,17 +611,24 @@
       "sub": "P2.4",
       "text": "바탕색은?",
       "type": "single",
-      "applies_when": {
-        "material_type": [
-          "slides",
-          "video_explainer",
-          "video_promo",
-          "video_tutorial",
-          "video_lecture",
-          "poster",
-          "interactive"
-        ]
-      },
+      "applies_when": [
+        {
+          "material_type": [
+            "slides",
+            "video_explainer",
+            "video_promo",
+            "video_tutorial",
+            "video_lecture",
+            "poster",
+            "interactive"
+          ]
+        },
+        {
+          "file_format": [
+            "html"
+          ]
+        }
+      ],
       "options": [
         {
           "id": "dark",
@@ -660,7 +667,7 @@
     {
       "id": "P2.4.layout",
       "sub": "P2.4",
-      "text": "화면 배치는?",
+      "text": "장면 안 배치는?",
       "type": "single",
       "applies_when": {
         "material_type": [
@@ -1034,15 +1041,30 @@
       "options": [
         {
           "id": "engine",
-          "label": "공통 엔진 단일 HTML 모션그래픽 (scripts/slides)"
+          "label": "공통 엔진 단일 HTML 모션그래픽 (scripts/slides)",
+          "when": {
+            "file_format": [
+              "html"
+            ]
+          }
         },
         {
           "id": "pptx",
-          "label": "PPTX"
+          "label": "PPTX",
+          "when": {
+            "file_format": [
+              "pptx"
+            ]
+          }
         },
         {
           "id": "pdf",
-          "label": "PDF"
+          "label": "PDF",
+          "when": {
+            "file_format": [
+              "html"
+            ]
+          }
         }
       ]
     },
@@ -1096,19 +1118,39 @@
       "options": [
         {
           "id": "md_office",
-          "label": "Markdown → DOCX·PDF (이음오피스)"
+          "label": "Markdown → DOCX·PDF (이음오피스)",
+          "when": {
+            "file_format": [
+              "docx"
+            ]
+          }
         },
         {
           "id": "hwpx",
-          "label": "HWPX (kordoc)"
+          "label": "HWPX (kordoc)",
+          "when": {
+            "file_format": [
+              "hwpx"
+            ]
+          }
         },
         {
           "id": "pptx",
-          "label": "PPTX"
+          "label": "PPTX",
+          "when": {
+            "file_format": [
+              "pptx"
+            ]
+          }
         },
         {
           "id": "html",
-          "label": "단일 HTML"
+          "label": "단일 HTML",
+          "when": {
+            "file_format": [
+              "html"
+            ]
+          }
         }
       ]
     },

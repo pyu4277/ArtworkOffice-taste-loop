@@ -97,6 +97,8 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   ok(m && m.inferred, '추론(세기 5) 항목은 확인 필요로 표시');
   PE.setDim('material_type', 'slides');
   ok(PE.matchAspect('P2.5.on_screen_text').winner.id === 'P2.5-260101-02', '범위가 안 맞으면 전체 범위 항목');
+  ok(!PE.applicable('P4').includes('P4.1.method_slides'), '파일 형식을 안 고르면 발표자료 방법(선택지마다 파일 형식 조건)은 숨음');
+  PE.setDim('file_format', ['html']);
   ok(PE.applicable('P4').includes('P4.1.method_slides') && !PE.applicable('P4').includes('P4.1.method_video'), 'applies_when: 발표자료면 발표자료 방법만');
   let cards = 0; for (let i = 0; i < PE.screens.length; i++) { PE.go(i); cards += d.querySelectorAll('#screen .card').length; }
   ok(cards > 20, `모든 화면 렌더 (카드 ${cards})`);
@@ -106,6 +108,44 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   PE.setAspect('P1.1.formality', 'new', 'plain', true); PE.setProject('topic', '시험');
   const p = PE.payload();
   ok(p.client === 'file' && p.aspects['P1.1.formality'].always && p.project.topic === '시험' && 'refs' in p && 'base_project' in p && 'new_refs' in p, '제출 JSON 필드');
+  // 파일형식(여러 개) → PDF 변환본은 HTML을 골랐을 때만 보임 → 콘텐츠 유형(여러 개) → 목적·용도
+  const s1 = PE.screens.findIndex(s => s.id === 'S1');
+  ok(PE.screens[s1].dimensions.slice(0, 4).join(',') === 'file_format,pdf_export,material_type,purpose', 'S1 순서: 파일형식 · PDF 변환본 · 콘텐츠 유형 · 목적·용도');
+  delete PE.state.dimensions.file_format; PE.go(s1);
+  const cardOf = id => d.querySelector(`#screen .card[data-drop="dim:${id}"]`);
+  ok(!!cardOf('file_format') && !cardOf('pdf_export') && /여러 개/.test(cardOf('file_format').textContent) && /여러 개/.test(cardOf('material_type').textContent), '처음엔 PDF 변환본 숨김, 파일형식·콘텐츠 유형은 여러 개');
+  ['HTML', 'PPT(X)', 'DOC(X)', 'HWP(X)', 'Excel'].forEach(lb => ok(Array.from(cardOf('file_format').querySelectorAll('.opt')).some(o => o.textContent.includes(lb)), `파일형식 기본 탑재: ${lb}`));
+  cardOf('file_format').querySelector('.opt[data-id="pptx"]').click();
+  ok(!cardOf('pdf_export'), 'PPT(X)만 고르면 PDF 변환본 질문 없음');
+  cardOf('file_format').querySelector('.opt[data-id="html"]').click();
+  ok(PE.state.dimensions.file_format.join(',') === 'pptx,html' && !!cardOf('pdf_export'), 'HTML도 고르면 → 두 형식 동시 + PDF 변환본 질문이 나타남');
+  cardOf('material_type').querySelector('.opt[data-id="slides"]').click();
+  ok(Array.isArray(PE.state.dimensions.material_type), '콘텐츠 유형 여러 개 선택(옛 한 값도 목록으로 받음)');
+  ok(!!cardOf('material_type').querySelector('.ogrp') && /영상/.test(cardOf('material_type').textContent), '콘텐츠 형태 선택지에 묶음 제목');
+  // 선택에 따라 다음 목록이 달라진다 — 목차·질문·선택지 모두
+  const iSF = PE.screens.findIndex(s => s.id === 'SF'), iSH = PE.screens.findIndex(s => s.id === 'SH');
+  const optIds = id => cardOf(id) ? Array.from(cardOf(id).querySelectorAll('.opt')).map(o => o.dataset.id) : null;
+  PE.setDim('file_format', ['pptx']); PE.setDim('orientation', ['landscape']); PE.go(iSF);
+  ok(!optIds('orientation').includes('responsive') && optIds('format').join() === 'w169,w43,a4l,a3,other', 'PPT(X)+가로 → 크기: 16:9 · 4:3 · A4 가로 · A3만 (반응형·9:16 없음) ' + optIds('format').join());
+  PE.go(iSF - 1); d.querySelector('#next').click();
+  ok(PE.index() === iSF, '다음 → 화면·지면 규격'); d.querySelector('#next').click();
+  ok(PE.screens[PE.index()].id !== 'SH', 'HTML을 안 고르면 「HTML 화면 구성」 목차는 건너뜀');
+  PE.setDim('file_format', ['pptx', 'html']); PE.setDim('orientation', ['portrait']); PE.go(iSF);
+  ok(optIds('orientation').includes('responsive') && optIds('format').join() === 'v916,a4p,a3,mobile,other', 'HTML 추가+세로 → 크기: 9:16 · A4 세로 · A3(PPT) · 휴대폰 폭 ' + optIds('format').join());
+  PE.go(iSH);
+  ok(!!cardOf('view_mode') && !cardOf('frame') && !cardOf('nav'), 'HTML 화면 구성: 처음엔 넘겨 보는 방식만');
+  cardOf('view_mode').querySelector('.opt[data-id="scenes"]').click();
+  ok(!cardOf('frame') && !cardOf('nav') && !optIds('html_features').includes('progress'), '장면 자동 재생 → 화면 틀·목차 모양 안 물음, 진행 막대는 기본이라 선택지에 없음');
+  cardOf('view_mode').querySelector('.opt[data-id="scroll"]').click();
+  ok(!!cardOf('frame') && !cardOf('nav') && cardOf('frame').classList.contains('sub') && /골라서 나온 질문/.test(cardOf('frame').textContent), '스크롤 → 화면 틀(하위 질문 표시), 목차 모양은 아직');
+  cardOf('frame').querySelector('.opt[data-id="left"]').click();
+  ok(!!cardOf('nav'), '왼쪽 사이드바 → 목차 모양 질문이 나타남');
+  cardOf('nav').querySelector('.opt[data-id="tree"]').click();
+  cardOf('view_mode').querySelector('.opt[data-id="scenes"]').click();
+  const pl = PE.payload();
+  ok(!('frame' in pl.dimensions) && !('nav' in pl.dimensions) && PE.state.dimensions.nav === 'tree', '숨은 질문의 답은 제출에서 빠짐(화면에는 남아 다시 고르면 살아남)');
+  PE.setDim('file_format', ['pptx']);
+  ok(!('view_mode' in PE.payload().dimensions), 'HTML을 빼면 그 목차 안의 답도 제출에서 빠짐');
   ok(errors.length === 0, '오류 없음' + (errors.length ? ': ' + errors.join(' | ') : ''));
 }
 // 3) 앱 셸·트리·예시·진화 기록·크게 보기

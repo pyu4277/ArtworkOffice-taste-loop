@@ -118,8 +118,12 @@ def main(argv):
             print(__doc__, file=sys.stderr); return 2
     if not a.get('lecture') or not a.get('answers'):
         print(__doc__, file=sys.stderr); return 2
-    dims = json.loads(ST.path('dimensions.json').read_text(encoding='utf-8'))
-    qs = json.loads(ST.path('questions.json').read_text(encoding='utf-8'))
+    import upgrade_store as UP
+    import structure as SX
+    import structure_edits as SE
+    dims, _o = UP.migrate_dims(json.loads(ST.path('dimensions.json').read_text(encoding='utf-8')))
+    qs, _o = UP.migrate_qs(json.loads(ST.path('questions.json').read_text(encoding='utf-8')))
+    dims, qs, _n, _p = SE.with_pending(dims, qs)  # 반영 대기 구조 편집도 인터뷰 페이지와 같게 적용
     prefs = json.loads(ST.path('preferences.json').read_text(encoding='utf-8'))
     ans = json.loads(pathlib.Path(a['answers']).read_text(encoding='utf-8'))
     aspects = {x['id']: x for x in qs['aspects']}
@@ -127,7 +131,8 @@ def main(argv):
     name = lecture_name(a['lecture'])
     out = pathlib.Path(a.get('out') or REPO / a['lecture'] / 'materials' / '00_제작계획.md')
     today = datetime.date.today().isoformat()
-    dv = ans.get('dimensions') or {}
+    # 숨은 질문·선택지의 답은 뺀다(인터뷰 페이지의 cleanAnswers 와 같은 규칙)
+    dv, ans['aspects'], ans['project'] = SX.clean_answers(dims, qs, dict(ans, dimensions=UP.migrate_answers_dims(ans.get('dimensions') or {})))
 
     # 적용 취향 계산
     project = {k: (v if isinstance(v, list) else [v]) for k, v in dv.items() if not k.endswith('_other') and not k.endswith('_primary') and v not in (None, '', [])}
@@ -237,8 +242,38 @@ def main(argv):
     rp = pr.get('review_plan') or ['structure', 'first', 'mid', 'final']
     lab = {o['id']: o['label'] for o in pq.get('review_plan', {}).get('options', [])}
     L += ['', '## 검토 일정 (스킬 4절)', ''] + [f'- [ ] {lab.get(x, x)} — 검토 페이지: materials/인터뷰/03_검토_v?.html' for x in rp]
-    ext = EXT.get(dv.get('format'), 'html')
-    L += ['', '## 산출물 이름 후보 (최상위 6절 — 확정 뒤 `scripts/check-filenames.py`로 확인)', '', f'- `{name}_01_<주제>.{ext}` (공유본은 단일 파일 — 2.1절)', END]
+    dv2 = dv
+    ff = [x for x in (dv2.get('file_format') or []) if x != 'other'] if isinstance(dv2.get('file_format'), list) else ([dv2['file_format']] if dv2.get('file_format') else [])
+    if not ff:
+        ff = [EXT.get(dv2.get('format'), 'html')]
+    FEXT = {'html': 'html', 'pptx': 'pptx', 'docx': 'docx', 'hwpx': 'hwpx', 'xlsx': 'xlsx', 'mp4': 'mp4', 'audio': 'mp3'}
+    fdim = next((x for x in dims.get('dimensions', []) if x['id'] == 'format'), {})
+    chosen = dv2.get('format') if isinstance(dv2.get('format'), list) else ([dv2['format']] if dv2.get('format') else [])
+
+    def size_for(fmt):  # 그 파일 형식에 맞는 크기·비율 답
+        out = []
+        for v in fdim.get('values', []):
+            if v['id'] not in chosen:
+                continue
+            w = v.get('when') or {}
+            groups = w if isinstance(w, list) else [w]
+            if v['id'] == 'other' or any(fmt in (g.get('file_format') or [fmt]) for g in groups):
+                out.append(v['label'] + (f" ({dv2.get('format_other')})" if v['id'] == 'other' and dv2.get('format_other') else ''))
+        return ', '.join(out)
+    L += ['', '## 산출물 — 파일형식마다 하나씩 (같은 내용을 확장자만 달리 동시에 만든다)', '']
+    if len(ff) > 1:
+        L.append(f'- 파일형식 {len(ff)}개: 내용·구성·문구는 하나로 정하고, 형식마다 같은 내용으로 만든다. 한 형식에서 고친 내용은 나머지 형식에도 똑같이 반영한다.')
+    if dv2.get('file_format_other'):
+        L.append(f'- 기타 형식: {dv2["file_format_other"]}')
+    L += [f'- `{name}_01_<주제>.{FEXT.get(x, x)}`' + (' (공유본은 단일 파일 — 2.1절)' if x == 'html' else '') + (f' — 크기·비율: {size_for(x)}' if size_for(x) else '') for x in ff]
+    if 'html' in ff:
+        if dv2.get('pdf_export') == 'with':
+            L.append(f'- `{name}_01_<주제>.pdf` — HTML의 PDF 변환본(장면마다 한 쪽). 만드는 법은 PROJECT.md 「PDF 변환」')
+        else:
+            L.append('- PDF 변환본: 필요할 때 만든다(HTML은 언제든 PDF로 바꿀 수 있다 — PROJECT.md 「PDF 변환」)')
+    if any(x in ('pptx', 'docx', 'hwpx', 'xlsx') for x in ff):
+        L.append('- HTML이 아닌 형식의 PDF는 사용자가 그 프로그램에서 직접 저장한다(사용자 결정 2026-11-07)')
+    L += ['', '파일 이름은 확정 뒤 이름 검사로 확인한다(검사 명령은 PROJECT.md).', END]
     block = '\n'.join(L)
     if out.exists():
         s = out.read_text(encoding='utf-8')

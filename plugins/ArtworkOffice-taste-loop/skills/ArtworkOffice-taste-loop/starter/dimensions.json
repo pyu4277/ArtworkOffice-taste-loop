@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "updated": "2026-11-07",
   "note": "A층 — 프로젝트를 설명하는 차원(큰 구분)과 하위 카테고리(값). 인터뷰 1부에서 큰 구분부터 고른다. 사용자가 고른 값이 취향 항목(preferences.json)의 적용 범위(scope) 키가 된다. 값 목록은 「등등」 규칙으로 채웠고 추론으로 넣은 값은 source가 '추론'이다. 새 값은 끝에 추가한다(기존 id는 바꾸지 않는다). (starter 기본값 — 설치하면 init_store.py가 데이터 폴더로 복사하고, 그 뒤에는 데이터 폴더 쪽을 고친다.)",
   "extra_scope_keys": [
@@ -10,10 +10,35 @@
   "screens": [
     {
       "id": "S1",
-      "title": "무엇을 만들까요",
+      "title": "자료 종류",
       "dimensions": [
+        "file_format",
+        "pdf_export",
         "material_type",
         "purpose"
+      ]
+    },
+    {
+      "id": "SF",
+      "title": "화면·지면 규격",
+      "dimensions": [
+        "orientation",
+        "format"
+      ]
+    },
+    {
+      "id": "SH",
+      "title": "HTML 화면 구성",
+      "when": {
+        "file_format": [
+          "html"
+        ]
+      },
+      "dimensions": [
+        "view_mode",
+        "frame",
+        "nav",
+        "html_features"
       ]
     },
     {
@@ -38,11 +63,10 @@
     },
     {
       "id": "S4",
-      "title": "분야·언어·형식",
+      "title": "분야·언어",
       "dimensions": [
         "field",
-        "language",
-        "format"
+        "language"
       ]
     },
     {
@@ -76,87 +100,41 @@
   ],
   "dimensions": [
     {
-      "id": "material_type",
-      "name": "자료 종류",
-      "desc": "이번에 만드는 주 산출물 하나를 고른다. 함께 만드는 부산출물은 메모에 적는다.",
-      "type": "single",
-      "source": "사용자 2026-11-07(발표자료·교재·보조자료·영상), 나머지 추론",
+      "id": "file_format",
+      "name": "파일 형식",
+      "type": "multi",
+      "desc": "만들 파일의 형식. 여러 개를 고르면 같은 내용을 확장자만 달리 동시에 만든다. HTML은 언제든 PDF로도 바꿀 수 있다(아래 「PDF 변환본」).",
+      "source": "사용자 2026-11-07(HTML·PPT(X)·DOC(X)·HWP(X)·Excel 기본 탑재)",
       "values": [
         {
-          "id": "slides",
-          "label": "발표자료 (강의용 모션그래픽 HTML)"
+          "id": "html",
+          "label": "HTML (웹·단일 파일)"
         },
         {
-          "id": "video_explainer",
-          "label": "설명 영상 (익스플레이너)"
+          "id": "pptx",
+          "label": "PPT(X) (파워포인트)"
         },
         {
-          "id": "video_promo",
-          "label": "홍보·전시 상영 영상"
+          "id": "docx",
+          "label": "DOC(X) (워드)"
         },
         {
-          "id": "video_tutorial",
-          "label": "따라하기 영상 (화면 녹화·실습 안내)"
+          "id": "hwpx",
+          "label": "HWP(X) (한글)"
         },
         {
-          "id": "video_lecture",
-          "label": "수업 녹화형 영상",
-          "source": "추론"
+          "id": "xlsx",
+          "label": "Excel (XLSX)"
         },
         {
-          "id": "textbook",
-          "label": "교재 (교과서형)"
-        },
-        {
-          "id": "teacher_guide",
-          "label": "교안 (교사·강사용)",
-          "source": "추론"
-        },
-        {
-          "id": "workbook",
-          "label": "워크북·실습 지침서"
-        },
-        {
-          "id": "worksheet",
-          "label": "워크시트·활동지"
-        },
-        {
-          "id": "quiz",
-          "label": "퀴즈·평가 문항"
-        },
-        {
-          "id": "handout",
-          "label": "요약 카드·핸드아웃·체크리스트·용어집"
-        },
-        {
-          "id": "report_summary",
-          "label": "종합보고서"
-        },
-        {
-          "id": "report_result",
-          "label": "결과보고서"
-        },
-        {
-          "id": "proposal",
-          "label": "계획서·제안서"
-        },
-        {
-          "id": "poster",
-          "label": "포스터·판넬·인포그래픽"
-        },
-        {
-          "id": "script",
-          "label": "대본·시나리오"
+          "id": "mp4",
+          "label": "MP4 (영상)",
+          "source": "기존 프로젝트 산출물(전시 영상)"
         },
         {
           "id": "audio",
-          "label": "음성 (내레이션·팟캐스트)",
-          "source": "추론"
-        },
-        {
-          "id": "interactive",
-          "label": "웹페이지·인터랙티브 실습",
-          "source": "추론"
+          "label": "음성 파일 (MP3·WAV)",
+          "source": "추론(콘텐츠 형태 「음성」에 맞춤)"
         },
         {
           "id": "other",
@@ -166,60 +144,203 @@
       ]
     },
     {
+      "id": "pdf_export",
+      "name": "PDF 변환본 (HTML)",
+      "type": "single",
+      "when": {
+        "file_format": [
+          "html"
+        ]
+      },
+      "desc": "HTML 자료는 언제나 PDF로 바꿀 수 있다(장면마다 한 쪽, 다 그려진 모습 + 자막). 이번에 PDF도 함께 만들지 고른다. 다른 형식은 그 프로그램에서 직접 PDF로 저장한다.",
+      "source": "사용자 2026-11-07(HTML만 PDF 변환을 항상 지원, 나머지는 사용자가 프로그램에서 직접 변환)",
+      "values": [
+        {
+          "id": "with",
+          "label": "이번에 PDF 변환본도 함께 만든다"
+        },
+        {
+          "id": "later",
+          "label": "필요할 때 변환한다 (바꿀 수 있게만 만든다)"
+        }
+      ]
+    },
+    {
+      "id": "material_type",
+      "name": "콘텐츠 형태",
+      "desc": "무엇을 담은 결과물인가. 여러 개를 고를 수 있다(예: 발표자료 + 요약 카드).",
+      "type": "multi",
+      "source": "사용자 2026-11-07(발표자료·교재·보조자료·영상), 나머지 추론",
+      "values": [
+        {
+          "id": "slides",
+          "label": "발표자료 (강의·발표용)",
+          "group": "발표"
+        },
+        {
+          "id": "video_explainer",
+          "label": "설명 영상 (익스플레이너)",
+          "group": "영상"
+        },
+        {
+          "id": "video_promo",
+          "label": "홍보·전시 상영 영상",
+          "group": "영상"
+        },
+        {
+          "id": "video_tutorial",
+          "label": "따라하기 영상 (화면 녹화·실습 안내)",
+          "group": "영상"
+        },
+        {
+          "id": "video_lecture",
+          "label": "수업 녹화형 영상",
+          "source": "추론",
+          "group": "영상"
+        },
+        {
+          "id": "textbook",
+          "label": "교재 (교과서형)",
+          "group": "교재·학습지"
+        },
+        {
+          "id": "teacher_guide",
+          "label": "교안 (교사·강사용)",
+          "source": "추론",
+          "group": "교재·학습지"
+        },
+        {
+          "id": "workbook",
+          "label": "워크북·실습 지침서",
+          "group": "교재·학습지"
+        },
+        {
+          "id": "worksheet",
+          "label": "워크시트·활동지",
+          "group": "교재·학습지"
+        },
+        {
+          "id": "quiz",
+          "label": "퀴즈·평가 문항",
+          "group": "교재·학습지"
+        },
+        {
+          "id": "handout",
+          "label": "요약 카드·핸드아웃·체크리스트·용어집",
+          "group": "교재·학습지"
+        },
+        {
+          "id": "report_summary",
+          "label": "종합보고서",
+          "group": "보고·기획 문서"
+        },
+        {
+          "id": "report_result",
+          "label": "결과보고서",
+          "group": "보고·기획 문서"
+        },
+        {
+          "id": "proposal",
+          "label": "계획서·제안서",
+          "group": "보고·기획 문서"
+        },
+        {
+          "id": "poster",
+          "label": "포스터·판넬·인포그래픽",
+          "group": "그 밖의 형태"
+        },
+        {
+          "id": "script",
+          "label": "대본·시나리오",
+          "group": "그 밖의 형태"
+        },
+        {
+          "id": "audio",
+          "label": "음성 (내레이션·팟캐스트)",
+          "source": "추론",
+          "group": "그 밖의 형태"
+        },
+        {
+          "id": "interactive",
+          "label": "웹페이지·인터랙티브 실습",
+          "source": "추론",
+          "group": "그 밖의 형태"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true,
+          "group": "그 밖의 형태"
+        }
+      ]
+    },
+    {
       "id": "purpose",
-      "name": "목적·용도",
+      "name": "활용 목적",
       "desc": "여러 개면 모두 고른다.",
       "type": "multi",
       "source": "추론",
       "values": [
         {
           "id": "concept",
-          "label": "개념 이해 (수업)"
+          "label": "개념 이해 (수업)",
+          "group": "수업·학습"
         },
         {
           "id": "lab",
-          "label": "실습 안내"
+          "label": "실습 안내",
+          "group": "수업·학습"
         },
         {
           "id": "review",
-          "label": "복습·요약"
+          "label": "복습·요약",
+          "group": "수업·학습"
         },
         {
           "id": "exam",
-          "label": "시험·평가 대비"
-        },
-        {
-          "id": "judged",
-          "label": "심사·평가용 발표"
-        },
-        {
-          "id": "exhibit",
-          "label": "홍보·전시"
-        },
-        {
-          "id": "report",
-          "label": "성과·결과 보고"
-        },
-        {
-          "id": "persuade",
-          "label": "제안·설득"
-        },
-        {
-          "id": "notice",
-          "label": "안내·공지"
+          "label": "시험·평가 대비",
+          "group": "수업·학습"
         },
         {
           "id": "selfstudy",
-          "label": "자가 학습 (비대면)"
+          "label": "자가 학습 (비대면)",
+          "group": "수업·학습"
         },
         {
           "id": "teacher",
-          "label": "교사·강사 지도용"
+          "label": "교사·강사 지도용",
+          "group": "수업·학습"
+        },
+        {
+          "id": "judged",
+          "label": "심사·평가용 발표",
+          "group": "평가·보고"
+        },
+        {
+          "id": "report",
+          "label": "성과·결과 보고",
+          "group": "평가·보고"
+        },
+        {
+          "id": "persuade",
+          "label": "제안·설득",
+          "group": "평가·보고"
+        },
+        {
+          "id": "exhibit",
+          "label": "홍보·전시",
+          "group": "홍보·안내"
+        },
+        {
+          "id": "notice",
+          "label": "안내·공지",
+          "group": "홍보·안내"
         },
         {
           "id": "other",
           "label": "기타 (직접 입력)",
-          "free": true
+          "free": true,
+          "group": "기타"
         }
       ]
     },
@@ -490,73 +611,346 @@
       "values": [
         {
           "id": "v_1",
-          "label": "영상 1분 이내",
-          "group": "영상"
+          "label": "영상·음성 1분 이내",
+          "group": "영상·음성",
+          "when": [
+            {
+              "file_format": [
+                "mp4",
+                "audio"
+              ]
+            },
+            {
+              "material_type": [
+                "video_explainer",
+                "video_promo",
+                "video_tutorial",
+                "video_lecture",
+                "audio"
+              ]
+            }
+          ]
         },
         {
           "id": "v_3",
-          "label": "영상 1~3분",
-          "group": "영상"
+          "label": "영상·음성 1~3분",
+          "group": "영상·음성",
+          "when": [
+            {
+              "file_format": [
+                "mp4",
+                "audio"
+              ]
+            },
+            {
+              "material_type": [
+                "video_explainer",
+                "video_promo",
+                "video_tutorial",
+                "video_lecture",
+                "audio"
+              ]
+            }
+          ]
         },
         {
           "id": "v_10",
-          "label": "영상 3~10분",
-          "group": "영상"
+          "label": "영상·음성 3~10분",
+          "group": "영상·음성",
+          "when": [
+            {
+              "file_format": [
+                "mp4",
+                "audio"
+              ]
+            },
+            {
+              "material_type": [
+                "video_explainer",
+                "video_promo",
+                "video_tutorial",
+                "video_lecture",
+                "audio"
+              ]
+            }
+          ]
         },
         {
           "id": "v_30",
-          "label": "영상 10~30분",
-          "group": "영상"
+          "label": "영상·음성 10~30분",
+          "group": "영상·음성",
+          "when": [
+            {
+              "file_format": [
+                "mp4",
+                "audio"
+              ]
+            },
+            {
+              "material_type": [
+                "video_explainer",
+                "video_promo",
+                "video_tutorial",
+                "video_lecture",
+                "audio"
+              ]
+            }
+          ]
         },
         {
           "id": "v_30p",
-          "label": "영상 30분 이상",
-          "group": "영상"
+          "label": "영상·음성 30분 이상",
+          "group": "영상·음성",
+          "when": [
+            {
+              "file_format": [
+                "mp4",
+                "audio"
+              ]
+            },
+            {
+              "material_type": [
+                "video_explainer",
+                "video_promo",
+                "video_tutorial",
+                "video_lecture",
+                "audio"
+              ]
+            }
+          ]
         },
         {
           "id": "t_15",
           "label": "발표 15분 안팎",
-          "group": "발표·수업"
+          "group": "발표·수업",
+          "when": [
+            {
+              "material_type": [
+                "slides"
+              ]
+            },
+            {
+              "file_format": [
+                "pptx"
+              ]
+            },
+            {
+              "purpose": [
+                "judged"
+              ]
+            }
+          ]
         },
         {
           "id": "t_50",
           "label": "발표 50분 (1교시)",
-          "group": "발표·수업"
+          "group": "발표·수업",
+          "when": [
+            {
+              "material_type": [
+                "slides"
+              ]
+            },
+            {
+              "file_format": [
+                "pptx"
+              ]
+            },
+            {
+              "purpose": [
+                "judged"
+              ]
+            }
+          ]
         },
         {
           "id": "t_120",
           "label": "발표 90~120분",
-          "group": "발표·수업"
+          "group": "발표·수업",
+          "when": [
+            {
+              "material_type": [
+                "slides"
+              ]
+            },
+            {
+              "file_format": [
+                "pptx"
+              ]
+            },
+            {
+              "purpose": [
+                "judged"
+              ]
+            }
+          ]
         },
         {
           "id": "t_day",
           "label": "반일·종일",
-          "group": "발표·수업"
+          "group": "발표·수업",
+          "when": [
+            {
+              "material_type": [
+                "slides"
+              ]
+            },
+            {
+              "file_format": [
+                "pptx"
+              ]
+            },
+            {
+              "purpose": [
+                "judged"
+              ]
+            }
+          ]
         },
         {
           "id": "doc_1",
           "label": "문서 1쪽",
-          "group": "문서"
+          "group": "문서",
+          "when": [
+            {
+              "file_format": [
+                "docx",
+                "hwpx",
+                "xlsx"
+              ]
+            },
+            {
+              "material_type": [
+                "textbook",
+                "teacher_guide",
+                "workbook",
+                "worksheet",
+                "quiz",
+                "handout",
+                "report_summary",
+                "report_result",
+                "proposal",
+                "poster",
+                "script"
+              ]
+            }
+          ]
         },
         {
           "id": "doc_5",
           "label": "문서 2~5쪽",
-          "group": "문서"
+          "group": "문서",
+          "when": [
+            {
+              "file_format": [
+                "docx",
+                "hwpx",
+                "xlsx"
+              ]
+            },
+            {
+              "material_type": [
+                "textbook",
+                "teacher_guide",
+                "workbook",
+                "worksheet",
+                "quiz",
+                "handout",
+                "report_summary",
+                "report_result",
+                "proposal",
+                "poster",
+                "script"
+              ]
+            }
+          ]
         },
         {
           "id": "doc_20",
           "label": "문서 6~20쪽",
-          "group": "문서"
+          "group": "문서",
+          "when": [
+            {
+              "file_format": [
+                "docx",
+                "hwpx",
+                "xlsx"
+              ]
+            },
+            {
+              "material_type": [
+                "textbook",
+                "teacher_guide",
+                "workbook",
+                "worksheet",
+                "quiz",
+                "handout",
+                "report_summary",
+                "report_result",
+                "proposal",
+                "poster",
+                "script"
+              ]
+            }
+          ]
         },
         {
           "id": "doc_50",
           "label": "문서 21~50쪽",
-          "group": "문서"
+          "group": "문서",
+          "when": [
+            {
+              "file_format": [
+                "docx",
+                "hwpx",
+                "xlsx"
+              ]
+            },
+            {
+              "material_type": [
+                "textbook",
+                "teacher_guide",
+                "workbook",
+                "worksheet",
+                "quiz",
+                "handout",
+                "report_summary",
+                "report_result",
+                "proposal",
+                "poster",
+                "script"
+              ]
+            }
+          ]
         },
         {
           "id": "doc_50p",
           "label": "문서 50쪽 이상",
-          "group": "문서"
+          "group": "문서",
+          "when": [
+            {
+              "file_format": [
+                "docx",
+                "hwpx",
+                "xlsx"
+              ]
+            },
+            {
+              "material_type": [
+                "textbook",
+                "teacher_guide",
+                "workbook",
+                "worksheet",
+                "quiz",
+                "handout",
+                "report_summary",
+                "report_result",
+                "proposal",
+                "poster",
+                "script"
+              ]
+            }
+          ]
         },
         {
           "id": "other",
@@ -638,54 +1032,181 @@
       ]
     },
     {
-      "id": "format",
-      "name": "제작 형식·규격",
-      "desc": "자료 종류와 보는 환경에 따라 기본값이 정해진다.",
-      "type": "single",
-      "source": "추론(기존: 16:9 HTML, 9:16 MP4, 16:9 MP4)",
+      "id": "orientation",
+      "name": "방향",
+      "type": "multi",
+      "when": {
+        "file_format": [
+          "html",
+          "pptx",
+          "docx",
+          "hwpx",
+          "xlsx",
+          "mp4",
+          "other"
+        ]
+      },
+      "desc": "가로로 만들지 세로로 만들지. 파일 형식이 여러 개면 형식마다 다를 수 있어 여러 개 고를 수 있다(예: HTML 가로 + 한글 문서 세로).",
+      "source": "사용자 2026-11-07",
       "values": [
         {
-          "id": "html169",
-          "label": "가로 16:9 단일 HTML (모션그래픽)"
+          "id": "landscape",
+          "label": "가로"
         },
         {
-          "id": "mp4_916",
-          "label": "세로 9:16 MP4 (1080×1920)"
+          "id": "portrait",
+          "label": "세로"
         },
         {
-          "id": "mp4_169",
-          "label": "가로 16:9 MP4 (1920×1080)"
+          "id": "responsive",
+          "label": "화면에 맞춤 (반응형 웹)",
+          "when": {
+            "file_format": [
+              "html"
+            ]
+          },
+          "source": "추론"
+        }
+      ]
+    },
+    {
+      "id": "format",
+      "name": "크기·비율",
+      "desc": "고른 파일 형식과 방향에 맞는 크기만 보인다. 형식이 여러 개면 형식마다 하나씩 고른다.",
+      "type": "multi",
+      "source": "사용자 2026-11-07(가로·세로·크기), 값은 기존 프로젝트 + 추론",
+      "values": [
+        {
+          "id": "w169",
+          "label": "16:9 와이드 (1920×1080)",
+          "when": {
+            "orientation": [
+              "landscape"
+            ],
+            "file_format": [
+              "html",
+              "pptx",
+              "mp4"
+            ]
+          },
+          "source": "기존 프로젝트(발표자료 HTML·영상)"
         },
         {
-          "id": "pdf",
-          "label": "PDF"
+          "id": "w43",
+          "label": "4:3 (표준 슬라이드)",
+          "when": {
+            "orientation": [
+              "landscape"
+            ],
+            "file_format": [
+              "html",
+              "pptx"
+            ]
+          },
+          "source": "추론"
         },
         {
-          "id": "hwpx",
-          "label": "HWP·HWPX"
+          "id": "v916",
+          "label": "9:16 세로 (1080×1920)",
+          "when": {
+            "orientation": [
+              "portrait"
+            ],
+            "file_format": [
+              "html",
+              "mp4"
+            ]
+          },
+          "source": "기존 프로젝트(전시 세로 영상)"
         },
         {
-          "id": "docx",
-          "label": "DOCX"
+          "id": "a4p",
+          "label": "A4 세로 (210×297mm)",
+          "when": {
+            "orientation": [
+              "portrait"
+            ],
+            "file_format": [
+              "docx",
+              "hwpx",
+              "xlsx",
+              "pptx"
+            ]
+          },
+          "source": "추론"
         },
         {
-          "id": "pptx",
-          "label": "PPTX"
+          "id": "a4l",
+          "label": "A4 가로 (297×210mm)",
+          "when": {
+            "orientation": [
+              "landscape"
+            ],
+            "file_format": [
+              "docx",
+              "hwpx",
+              "xlsx",
+              "pptx"
+            ]
+          },
+          "source": "추론"
         },
         {
-          "id": "print_a4",
-          "label": "인쇄 (A4·A3)"
+          "id": "a3",
+          "label": "A3 (포스터·판넬)",
+          "when": {
+            "file_format": [
+              "pptx",
+              "docx",
+              "hwpx"
+            ]
+          },
+          "source": "추론(옛 「인쇄 (A4·A3)」에서 나눔)"
         },
         {
-          "id": "audio_file",
-          "label": "음성 파일"
+          "id": "fluid",
+          "label": "창 크기에 맞춤 (반응형)",
+          "when": {
+            "orientation": [
+              "responsive"
+            ],
+            "file_format": [
+              "html"
+            ]
+          },
+          "source": "추론"
+        },
+        {
+          "id": "mobile",
+          "label": "휴대폰 폭 우선 (세로로 내려 읽기)",
+          "when": {
+            "orientation": [
+              "portrait",
+              "responsive"
+            ],
+            "file_format": [
+              "html"
+            ]
+          },
+          "source": "추론"
         },
         {
           "id": "other",
           "label": "기타 (직접 입력)",
           "free": true
         }
-      ]
+      ],
+      "when": {
+        "file_format": [
+          "html",
+          "pptx",
+          "docx",
+          "hwpx",
+          "xlsx",
+          "mp4",
+          "other"
+        ]
+      }
     },
     {
       "id": "sources",
@@ -762,7 +1283,13 @@
       "name": "생성 크레딧 한도",
       "desc": "Higgsfield 등 생성에 쓸 수 있는 한도. 없으면 비워 둔다.",
       "type": "text",
-      "source": "추론"
+      "source": "추론",
+      "when": {
+        "sources": [
+          "gen_full",
+          "gen_staging"
+        ]
+      }
     },
     {
       "id": "must_include",
@@ -894,6 +1421,251 @@
         {
           "id": "none",
           "label": "Claude Code만"
+        }
+      ]
+    },
+    {
+      "id": "view_mode",
+      "name": "넘겨 보는 방식",
+      "type": "single",
+      "desc": "내용을 어떤 흐름으로 보게 할지. 화면 틀·목차 모양은 이 답에 따라 묻는다.",
+      "source": "사용자 2026-11-07(한 페이지 스크롤 / 메뉴·사이드바가 있는 구성), 나머지 추론",
+      "values": [
+        {
+          "id": "scenes",
+          "label": "장면 자동 재생 (영상처럼 흐름 · 재생/이전/다음)",
+          "source": "기존 발표 형식"
+        },
+        {
+          "id": "slide",
+          "label": "한 장씩 넘김 (클릭·화살표)",
+          "source": "추론"
+        },
+        {
+          "id": "scroll",
+          "label": "한 페이지 스크롤 (위에서 아래로 읽기)"
+        },
+        {
+          "id": "snap",
+          "label": "한 화면씩 끊어 내리기",
+          "source": "추론"
+        },
+        {
+          "id": "app",
+          "label": "메뉴로 여러 화면 오가기 (앱형)"
+        },
+        {
+          "id": "dashboard",
+          "label": "한 화면에 카드 모음 (대시보드)",
+          "source": "추론"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "frame",
+      "name": "화면 틀",
+      "type": "multi",
+      "when": {
+        "view_mode": [
+          "slide",
+          "scroll",
+          "snap",
+          "app",
+          "dashboard",
+          "other"
+        ]
+      },
+      "desc": "본문 둘레에 고정해 둘 요소. 여러 개 고를 수 있다. 장면 자동 재생은 틀(재생 막대·자막)이 정해져 있어 묻지 않는다.",
+      "source": "사용자 2026-11-07(메뉴바·사이드바 왼쪽/오른쪽·리본메뉴), 나머지 추론",
+      "values": [
+        {
+          "id": "none",
+          "label": "틀 없음 (본문만)",
+          "source": "추론"
+        },
+        {
+          "id": "top",
+          "label": "위쪽 메뉴 줄"
+        },
+        {
+          "id": "ribbon",
+          "label": "리본 (도구 단추 모음)"
+        },
+        {
+          "id": "left",
+          "label": "왼쪽 사이드바"
+        },
+        {
+          "id": "right",
+          "label": "오른쪽 사이드바"
+        },
+        {
+          "id": "bottom",
+          "label": "아래 조작 막대 (이전·다음)",
+          "source": "추론"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "nav",
+      "name": "목차(메뉴) 모양",
+      "type": "single",
+      "when": [
+        {
+          "frame": [
+            "top",
+            "ribbon",
+            "left",
+            "right"
+          ]
+        },
+        {
+          "view_mode": [
+            "app"
+          ]
+        }
+      ],
+      "desc": "목차·메뉴를 어떤 모양으로 보여 줄지. 메뉴가 없는 구성이면 묻지 않는다.",
+      "source": "사용자 2026-11-07(트리·목록·나열), 나머지 추론",
+      "values": [
+        {
+          "id": "tree",
+          "label": "접고 펴는 트리 (큰 묶음 → 작은 항목)"
+        },
+        {
+          "id": "list",
+          "label": "목록 (차례대로 한 줄씩)"
+        },
+        {
+          "id": "tabs",
+          "label": "탭 (가로로 늘어놓은 단추)"
+        },
+        {
+          "id": "steps",
+          "label": "단계 표시 (1 → 2 → 3)",
+          "source": "추론"
+        },
+        {
+          "id": "floating",
+          "label": "필요할 때 여는 목차 (떠 있는 단추)",
+          "source": "추론"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true
+        }
+      ]
+    },
+    {
+      "id": "html_features",
+      "name": "넣을 기능",
+      "type": "multi",
+      "desc": "화면에 더 넣을 기능. 장면 자동 재생은 재생·이전/다음·진행 막대·자막·키보드 조작이 기본으로 들어간다. 퀴즈 같은 교육 장치는 2부 P4.4에서 고른다.",
+      "source": "사용자 2026-11-07(에셋 등등 — 「등등」 규칙으로 추론해 채움)",
+      "values": [
+        {
+          "id": "progress",
+          "label": "진행 막대",
+          "group": "위치 알기",
+          "when": {
+            "view_mode": [
+              "slide",
+              "scroll",
+              "snap",
+              "app",
+              "dashboard",
+              "other"
+            ]
+          },
+          "source": "기존 발표·인터뷰 페이지"
+        },
+        {
+          "id": "pagenum",
+          "label": "쪽(장면) 번호",
+          "group": "위치 알기",
+          "source": "추론"
+        },
+        {
+          "id": "toc_jump",
+          "label": "목차로 바로 가기",
+          "group": "위치 알기",
+          "source": "추론"
+        },
+        {
+          "id": "search",
+          "label": "검색",
+          "group": "읽기 돕기",
+          "source": "기존 인터뷰 페이지"
+        },
+        {
+          "id": "fold",
+          "label": "접기·펼치기",
+          "group": "읽기 돕기",
+          "source": "기존 인터뷰 페이지"
+        },
+        {
+          "id": "tooltip",
+          "label": "용어 풀이 말풍선",
+          "group": "읽기 돕기",
+          "source": "추론"
+        },
+        {
+          "id": "fontsize",
+          "label": "글자 크기 조절",
+          "group": "읽기 돕기",
+          "source": "추론"
+        },
+        {
+          "id": "theme_toggle",
+          "label": "밝게·어둡게 바꾸기 단추",
+          "group": "읽기 돕기",
+          "source": "추론"
+        },
+        {
+          "id": "timer",
+          "label": "타이머",
+          "group": "발표 돕기",
+          "source": "추론"
+        },
+        {
+          "id": "pen",
+          "label": "판서 펜",
+          "group": "발표 돕기",
+          "source": "추론"
+        },
+        {
+          "id": "fullscreen",
+          "label": "전체 화면 단추",
+          "group": "발표 돕기",
+          "source": "추론"
+        },
+        {
+          "id": "print_btn",
+          "label": "인쇄·PDF 저장 단추",
+          "group": "저장·공유",
+          "source": "추론"
+        },
+        {
+          "id": "none",
+          "label": "더 넣지 않음",
+          "group": "저장·공유"
+        },
+        {
+          "id": "other",
+          "label": "기타 (직접 입력)",
+          "free": true,
+          "group": "저장·공유"
         }
       ]
     }

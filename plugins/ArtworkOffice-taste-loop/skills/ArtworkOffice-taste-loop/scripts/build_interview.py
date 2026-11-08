@@ -7,6 +7,12 @@
   python3 build_interview.py --lecture <강의폴더> --mode structure --spec <구성안.json> --out <출력.html>
   python3 build_interview.py --lecture <강의폴더> --mode review --spec <항목.json> --out <출력.html>
   python3 build_interview.py --lecture <강의폴더> --mode approve --spec <제안.json> --out <출력.html>
+  python3 build_interview.py --lecture <강의폴더> --mode edit --out <출력.html> [--artifact]
+      구조 편집기(GUI-Structure.html): 목차 → 질문 → 선택지(1부), 취향 묶음 → 하위 → 질문 → 선택지(2부), 3부 질문을
+      고치고 「보이는 조건」을 단다. 고친 것은 편집 기록 JSON(05_구조편집.json)으로 내보내고
+      structure_edits.py add <JSON> 으로 「반영 대기」에 쌓았다가 마무리 때 structure_edits.py apply --yes 로 반영한다.
+--no-pending: 기록 모음(knowledge/structure_edits.json)의 반영 대기 구조 편집을 적용하지 않고 파일 그대로 보여 준다.
+              (기본: 인터뷰·구성 확인·검토·승인 페이지는 반영 대기 편집을 메모리에서 적용해 보여 준다. 파일은 마무리 때 바뀐다)
 
 --artifact: claude.ai 게시용(문서 머리 없음). 없으면 브라우저로 여는 파일용(doctype·head 포함).
 --like: 그 프로젝트 기록(knowledge/projects/<강의폴더>.json)의 차원 값을 기본값으로 미리 선택한다.
@@ -32,8 +38,9 @@ import store as ST  # noqa: E402  엔진과 데이터 분리
 SKILL = ST.ENGINE
 REPO = ST.project_root()
 TEMPLATE = SKILL / 'GUI-Interview.html'
+EDIT_TEMPLATE = SKILL / 'GUI-Structure.html'
 KNOW = ST.KNOW if ST.KNOW.exists() else ST.STARTER / 'knowledge'
-MODES = ('interview', 'structure', 'review', 'approve')
+MODES = ('interview', 'structure', 'review', 'approve', 'edit')
 FILE_HEAD = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n</head>\n<body>\n'
 FILE_TAIL = '\n</body>\n</html>\n'
 ANSWER_KEYS = ('spec_id', 'mode', 'lecture', 'submitted_at', 'client', 'dimensions', 'aspects', 'project', 'base_project', 'refs', 'new_refs', 'items', 'overall')
@@ -90,6 +97,7 @@ def rows_as(text, keys, pick=None):
 
 
 def load_store():
+    import upgrade_store as UP
     store = {'projects': [], 'past_answers': [], 'lessons': [], 'mistakes': [], 'checklist': [], 'design_refs': [], 'templates': [], 'changes': [], 'choices': {}}
     if (KNOW / 'choices.json').exists():
         try:
@@ -102,6 +110,7 @@ def load_store():
         except ValueError:
             continue
         rec.setdefault('lecture', p.stem)
+        rec['dimensions'] = UP.migrate_answers_dims(rec.get('dimensions'))
         store['projects'].append(rec)
     for p in sorted(list(REPO.glob('*/materials/인터뷰/*답변*.json')) + list(REPO.glob('materials/인터뷰/*답변*.json'))):
         try:
@@ -111,6 +120,8 @@ def load_store():
         if not isinstance(ans, dict) or not ans.get('dimensions') and not ans.get('items'):
             continue
         slim = {k: ans.get(k) for k in ANSWER_KEYS if ans.get(k) is not None}
+        if 'dimensions' in slim:
+            slim['dimensions'] = UP.migrate_answers_dims(slim['dimensions'])
         slim['file'] = str(p.relative_to(REPO))
         store['past_answers'].append(slim)
     # 01 교훈: 「---」 뒤의 「### 제목」 블록
@@ -137,12 +148,14 @@ def load_store():
 
 
 def parse(argv):
-    a = {'topics': [], 'artifact': False}
+    a = {'topics': [], 'artifact': False, 'no_pending': False}
     i = 0
     while i < len(argv):
         k = argv[i]
         if k == '--artifact':
             a['artifact'] = True; i += 1; continue
+        if k == '--no-pending':
+            a['no_pending'] = True; i += 1; continue
         if k == '--topic':
             a['topics'].append(argv[i + 1]); i += 2; continue
         if k in ('--lecture', '--mode', '--out', '--like', '--answers', '--spec', '--title', '--intro', '--pc'):
@@ -156,13 +169,50 @@ def parse(argv):
     return a
 
 
+def write_page(a, template, spec):
+    html = template.read_text(encoding='utf-8')
+    body = html.replace('__TITLE__', spec['title'].replace('<', '&lt;')).replace('__SPEC__', json.dumps(spec, ensure_ascii=False).replace('</', '<\\/'))
+    out = pathlib.Path(a['out'])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    text = body if a['artifact'] else FILE_HEAD + body + FILE_TAIL
+    out.write_bytes(text.encode('utf-8'))  # 줄바꿈을 LF 로 고정
+    return out, text
+
+
+def build_edit(a, dims, qs, pending, name, today):
+    """구조 편집기 페이지. 원본(데이터 폴더 파일, 메모리 이관) + 반영 대기 편집(pending_ops)을 품는다."""
+    spec = {
+        'spec_id': f"{a['lecture']}/edit/{today}",
+        'mode': 'edit', 'lecture': a['lecture'],
+        'title': a.get('title') or f'{name} 구조 편집',
+        'answers_filename': '05_구조편집',
+        'dimensions': dims, 'questions': qs, 'pending_ops': pending,
+    }
+    out, text = write_page(a, EDIT_TEMPLATE, spec)
+    print(f"wrote {out} ({len(text.encode('utf-8'))} B, {'게시용' if a['artifact'] else '파일용'}, 구조 편집기: 목차 {len(dims.get('screens', []))} · 질문 {len(dims.get('dimensions', []))} · "
+          f"취향 질문 {len(qs.get('aspects', []))} · 3부 질문 {len(qs.get('project_questions', []))} · 반영 대기 편집 {len(pending)}건)")
+    return 0
+
+
 def main(argv):
     a = parse(argv)
-    dims = load_json(ST.path('dimensions.json'))
-    qs = load_json(ST.path('questions.json'))
-    prefs = load_json(ST.path('preferences.json'))
+    import upgrade_store as UP
+    dims, old = UP.migrate_dims(load_json(ST.path('dimensions.json')))
+    if old:
+        print('알림: 데이터 폴더의 dimensions.json 이 옛 구조라 새 구조(파일형식·PDF 변환본·콘텐츠 유형)로 읽었습니다. upgrade_store.py 로 파일도 올리세요.', file=sys.stderr)
+    qs, _qold = UP.migrate_qs(load_json(ST.path('questions.json')))
     name = lecture_name(a['lecture'])
     today = datetime.date.today().isoformat()
+    import structure_edits as SE
+    if a['mode'] == 'edit':
+        return build_edit(a, dims, qs, SE.pending_ops() if SE.ledger_path().exists() else [], name, today)
+    if not a['no_pending']:
+        dims, qs, n_pend, probs = SE.with_pending(dims, qs)
+        if n_pend:
+            print(f'알림: 반영 대기 구조 편집 {n_pend}건을 적용해 보여 줍니다(파일은 마무리 때 바뀜).', file=sys.stderr)
+        for pr in probs:
+            print(f'알림: 반영 대기 구조 편집 중 적용되지 않은 것 — {pr}', file=sys.stderr)
+    prefs = load_json(ST.path('preferences.json'))
     store = load_store()
     spec = {
         'spec_id': f"{a['lecture']}/{a['mode']}/{today}",
@@ -180,11 +230,11 @@ def main(argv):
         like = a.get('like') or a['lecture']
         rec = KNOW / 'projects' / f'{like}.json'
         if rec.exists():
-            spec['defaults']['dimensions'] = load_json(rec).get('dimensions', {})
+            spec['defaults']['dimensions'] = UP.migrate_answers_dims(load_json(rec).get('dimensions', {}))
             spec['defaults']['from'] = like
         if a.get('answers'):
             prev = load_json(a['answers'])
-            spec['defaults']['dimensions'].update(prev.get('dimensions', {}))
+            spec['defaults']['dimensions'].update(UP.migrate_answers_dims(prev.get('dimensions', {})))
             spec['defaults']['from'] = a['answers']
     else:
         if not a.get('spec'):
@@ -194,12 +244,7 @@ def main(argv):
         for k in ('items_title', 'items_question', 'title', 'intro'):
             if extra.get(k) and not a.get(k):
                 spec[k] = extra[k]
-    html = TEMPLATE.read_text(encoding='utf-8')
-    body = html.replace('__TITLE__', spec['title'].replace('<', '&lt;')).replace('__SPEC__', json.dumps(spec, ensure_ascii=False).replace('</', '<\\/'))
-    out = pathlib.Path(a['out'])
-    out.parent.mkdir(parents=True, exist_ok=True)
-    text = body if a['artifact'] else FILE_HEAD + body + FILE_TAIL
-    out.write_bytes(text.encode('utf-8'))  # 줄바꿈을 LF 로 고정: Windows 에서 만들어도 클라우드와 같은 파일이 된다
+    out, text = write_page(a, TEMPLATE, spec)
     active = sum(1 for e in prefs['entries'] if e.get('status') in ('proposed', 'confirmed'))
     print(f"wrote {out} ({len(text.encode('utf-8'))} B, {'게시용' if a['artifact'] else '파일용'}, 항목 {active}/{len(prefs['entries'])}개, 기본값 출처: {spec['defaults'].get('from', '없음')}, "
           f"저장소: 프로젝트 {len(store['projects'])} · 지난 답변 {len(store['past_answers'])} · 교훈 {len(store['lessons'])} · 실수 {len(store['mistakes'])} · 레퍼런스 {len(store['design_refs'])} · 템플릿 {len(store['templates'])} · 변경이력 {len(store['changes'])} · 선택 기록 {len(store['choices'])})")

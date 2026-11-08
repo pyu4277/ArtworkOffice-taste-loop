@@ -1,0 +1,795 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 구조 편집기 — 인터뷰의 목차(1부) · 취향 묶음(2부) · 3부 질문과 그 아래 질문·선택지를 고친다.
+   고친 것은 편집 기록(op)으로 쌓이고, 내보낸 JSON을 structure_edits.py add 로 「반영 대기」에 넣었다가
+   프로젝트 마무리(마지막 업데이트) 때 structure_edits.py apply --yes 로 데이터 폴더에 반영한다.
+   op 적용 규칙은 scripts/structure.py 와 같다(check_structure.js 가 대조한다). */
+:root{--bg:#f4f6f8;--fg:#1b2430;--muted:#5b6675;--panel:#ffffff;--line:#d6dce4;--shell:#e8edf2;--accent:#0f766e;--accent-soft:#e3f3ef;--good:#2e7d32;--bad:#c62828;--warn:#b26a00;--font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141a;--fg:#e6ebf2;--muted:#9aa6b5;--panel:#161c24;--line:#2a3441;--shell:#131a22;--accent:#2dd4bf;--accent-soft:#12302d;--good:#4ade80;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f141a;--fg:#e6ebf2;--muted:#9aa6b5;--panel:#161c24;--line:#2a3441;--shell:#131a22;--accent:#2dd4bf;--accent-soft:#12302d;--good:#4ade80;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:17px;line-height:1.5;overflow-x:hidden}
+h1{font-size:1.2rem;margin:0;text-wrap:balance}
+h2{font-size:1.05rem;margin:0 0 6px}
+a{color:var(--accent)}
+.small{font-size:.85rem;color:var(--muted)}
+.ok{color:var(--good)}.ng{color:var(--bad)}.wn{color:var(--warn)}
+.top{position:sticky;top:0;z-index:5;background:var(--shell);border-bottom:1px solid var(--line);padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+.guide{margin:4px 0 6px;font-size:.88rem;color:var(--muted)}
+.guide code{font-size:.8rem;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 5px;word-break:break-all}
+.tabs{display:flex;gap:6px;overflow-x:auto}
+.tab{font:inherit;font-size:.92rem;min-height:40px;padding:4px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;white-space:nowrap;flex:none}
+.tab[aria-current="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+main{padding:8px max(16px,env(safe-area-inset-right,0px)) 120px max(16px,env(safe-area-inset-left,0px));max-width:980px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.btn{font:inherit;font-size:.92rem;min-height:40px;padding:6px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer}
+.btn.pri{border-color:var(--accent);background:var(--accent);color:#fff}
+.btn.warn{border-color:var(--warn);color:var(--warn)}
+.btn[disabled]{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+input[type=text],textarea,select{font:inherit;width:100%;padding:9px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);min-height:44px}
+textarea{min-height:64px;resize:vertical}
+.btn:focus-visible,.tab:focus-visible,.tg:focus-visible,.nl:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.badge{display:inline-block;font-size:.75rem;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--fg);margin-left:4px;vertical-align:middle;white-space:nowrap}
+.badge.cond{background:transparent;border:1px solid var(--accent);color:var(--accent)}
+.badge.off{background:transparent;border:1px solid var(--bad);color:var(--bad)}
+.badge.chg{background:transparent;border:1px solid var(--warn);color:var(--warn)}
+/* 트리 */
+.part{font-weight:700;margin:14px 0 4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tn{margin:0}
+.tc{margin-left:14px;border-left:2px solid var(--line);padding-left:8px}
+.tr{display:flex;align-items:center;gap:4px;min-height:42px}
+.tg{font:inherit;width:34px;height:34px;flex:none;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:8px}
+.tg.leaf{visibility:hidden}
+.nl{font:inherit;text-align:left;flex:1 1 auto;min-width:0;min-height:40px;border:none;background:transparent;color:var(--fg);cursor:pointer;padding:4px 6px;border-radius:8px;overflow-wrap:anywhere}
+.nl[aria-pressed="true"]{background:var(--accent-soft);font-weight:600}
+.tn.retired>.tr .nl{color:var(--muted);text-decoration:line-through}
+.kind{font-size:.72rem;color:var(--muted);margin-right:4px}
+.panel{background:var(--panel);border:1.5px solid var(--accent);border-radius:12px;padding:10px;margin:4px 0 8px}
+.panel h3{font-size:.95rem;margin:8px 0 4px}
+.panel .f{margin:6px 0}
+.panel label{font-size:.85rem;color:var(--muted);display:block;margin-bottom:2px}
+.cg{border:1px dashed var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.cv{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.opt{font:inherit;font-size:.92rem;min-height:40px;padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;text-align:left;max-width:100%}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.ctext{color:var(--accent);font-weight:600}
+.chg-list li{margin:6px 0}
+.pend{color:var(--muted)}
+.hid{color:var(--muted)}
+pre{white-space:pre-wrap;word-break:break-all;font-size:.78rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:50vh;overflow:auto}
+.msg{min-height:1.4em;margin:6px 0}
+@media (max-width:639px){.tc{margin-left:8px;padding-left:6px}body{font-size:16px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<div class="top">
+  <h1 id="title"></h1>
+  <p class="guide">여기서 고친 것은 기록으로 쌓였다가, 프로젝트 마무리(마지막 업데이트) 때 반영됩니다. 반영: 내려받은 JSON을 <code>structure_edits.py add &lt;내려받은 JSON&gt;</code> → 마무리 때 <code>structure_edits.py apply --yes</code></p>
+  <nav class="tabs" aria-label="보기">
+    <button class="tab" data-view="tree" type="button">구조</button>
+    <button class="tab" data-view="preview" type="button">미리보기</button>
+    <button class="tab" data-view="changes" type="button" id="tab-changes">바뀐 것</button>
+    <button class="tab" data-view="export" type="button">내보내기</button>
+  </nav>
+</div>
+<main id="main"></main>
+<script>
+const SPEC = __SPEC__;
+(function(){
+'use strict';
+const $ = (s, el) => (el || document).querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = v => v == null ? v : JSON.parse(JSON.stringify(v));
+const KEY = 'pe-edit:' + (SPEC.spec_id || 'spec');
+const BASE = {dims: clone(SPEC.dimensions || {screens: [], dimensions: []}), qs: clone(SPEC.questions || {categories: [], aspects: [], project_questions: []})};
+const PENDING = Array.isArray(SPEC.pending_ops) ? SPEC.pending_ops : [];
+const T_NAME = {screen: '목차', dim: '질문', value: '선택지', cat: '취향 묶음', sub: '하위 묶음', aspect: '취향 질문', option: '취향 선택지', pq: '3부 질문', pqopt: '3부 선택지'};
+const F_NAME = {title: '이름', name: '이름', label: '이름', text: '질문 글', desc: '설명', type: '유형', when: '보이는 조건', free: '직접 입력 칸', group: '묶음 제목', retired: '빼기'};
+const FIELDS = {screen: ['title', 'when', 'retired'], dim: ['name', 'desc', 'type', 'when', 'retired'], value: ['label', 'when', 'free', 'group', 'retired'],
+  cat: ['name', 'when', 'retired'], sub: ['name'], aspect: ['text', 'type', 'when', 'retired'], option: ['label', 'when', 'group', 'retired'],
+  pq: ['text', 'type', 'when', 'retired'], pqopt: ['label', 'when', 'group', 'retired']};
+const LEGACY = ['ask_when', 'ask_strict', 'applies_when'];
+const TYPE_NAME = {single: '하나 고르기', multi: '여러 개 고르기', text: '글로 쓰기', scale: '척도', rank: '순서', approve: '승인', compare: '비교'};
+
+// ---------- 편집 기록 적용 (scripts/structure.py 와 같은 규칙) ----------
+class EditError extends Error {}
+const find = (lst, i) => (lst || []).find(x => x && x.id === i) || null;
+const nameOf = (t, i) => `${T_NAME[t] || t} '${i}'`;
+function locate(m, node) {
+  const t = node.t, i = node.id, D = m.dims, Q = m.qs;
+  let lst;
+  if (t === 'screen') lst = D.screens = D.screens || [];
+  else if (t === 'dim') lst = D.dimensions = D.dimensions || [];
+  else if (t === 'value') { const d = find(D.dimensions, node.dim); if (!d) throw new EditError(`질문 '${node.dim}' 없음`); lst = d.values = d.values || []; }
+  else if (t === 'cat') lst = Q.categories = Q.categories || [];
+  else if (t === 'sub') {
+    const c = find(Q.categories, node.cat); if (!c) throw new EditError(`취향 묶음 '${node.cat}' 없음`);
+    c.subs = c.subs || {};
+    if (!(i in c.subs)) throw new EditError(`하위 묶음 '${i}' 없음`);
+    return [c.subs, c];
+  }
+  else if (t === 'aspect') lst = Q.aspects = Q.aspects || [];
+  else if (t === 'option') { const a = find(Q.aspects, node.aspect); if (!a) throw new EditError(`취향 질문 '${node.aspect}' 없음`); lst = a.options = a.options || []; }
+  else if (t === 'pq') lst = Q.project_questions = Q.project_questions || [];
+  else if (t === 'pqopt') { const q = find(Q.project_questions, node.pq); if (!q) throw new EditError(`3부 질문 '${node.pq}' 없음`); lst = q.options = q.options || []; }
+  else throw new EditError(`모르는 항목 종류 '${t}'`);
+  const x = find(lst, i);
+  if (!x) throw new EditError(nameOf(t, i) + ' 없음');
+  return [x, lst];
+}
+function listOf(m, node) {
+  const t = node.t, D = m.dims, Q = m.qs;
+  if (t === 'screen') return D.screens = D.screens || [];
+  if (t === 'dim') return D.dimensions = D.dimensions || [];
+  if (t === 'value') { const d = find(D.dimensions, node.dim); if (!d) throw new EditError(`질문 '${node.dim}' 없음`); return d.values = d.values || []; }
+  if (t === 'cat') return Q.categories = Q.categories || [];
+  if (t === 'aspect') return Q.aspects = Q.aspects || [];
+  if (t === 'option') { const a = find(Q.aspects, node.aspect); if (!a) throw new EditError(`취향 질문 '${node.aspect}' 없음`); return a.options = a.options || []; }
+  if (t === 'pq') return Q.project_questions = Q.project_questions || [];
+  if (t === 'pqopt') { const q = find(Q.project_questions, node.pq); if (!q) throw new EditError(`3부 질문 '${node.pq}' 없음`); return q.options = q.options || []; }
+  throw new EditError(`모르는 항목 종류 '${t}'`);
+}
+function ins(lst, x, index) { if (index == null || index < 0 || index > lst.length) lst.push(x); else lst.splice(index, 0, x); }
+function subCat(m, sub) { return (m.qs.categories || []).find(c => c.subs && Object.prototype.hasOwnProperty.call(c.subs, sub)) || null; }
+const insPos = (len, idx) => idx == null ? len : Math.max(0, Math.min(idx, len));
+function aspectPlace(m, aid, sub, index) {
+  const A = m.qs.aspects;
+  const a = find(A, aid);
+  A.splice(A.indexOf(a), 1);
+  a.sub = sub;
+  const same = A.filter(x => x.sub === sub);
+  if (!same.length) {
+    const c = subCat(m, sub);
+    const order = Object.keys((c || {}).subs || {});
+    let pos = A.length;
+    if (order.includes(sub)) {
+      const before = order.slice(0, order.indexOf(sub));
+      const idxs = []; A.forEach((x, k) => { if (before.includes(x.sub)) idxs.push(k); });
+      if (idxs.length) pos = idxs[idxs.length - 1] + 1;
+      else {
+        const catIdxs = []; A.forEach((x, k) => { if (c && String(x.sub || '').startsWith(c.id + '.')) catIdxs.push(k); });
+        pos = catIdxs.length ? catIdxs[0] : A.length;
+      }
+    }
+    A.splice(pos, 0, a);
+    return;
+  }
+  if (index == null || index >= same.length) A.splice(A.indexOf(same[same.length - 1]) + 1, 0, a);
+  else A.splice(A.indexOf(same[Math.max(0, index)]), 0, a);
+}
+const isEmptyAfter = v => v === undefined || v === null || v === '' || v === false || (Array.isArray(v) && !v.length);
+function applyOp(m, op) {
+  const kind = op.op, node = op.node || {}, t = node.t;
+  if (kind === 'set') {
+    const f = op.field;
+    if (!(FIELDS[t] || []).includes(f)) throw new EditError(`${T_NAME[t] || t}의 '${f}' 칸은 바꿀 수 없음`);
+    if (t === 'sub') {
+      const [subs] = locate(m, node);
+      if (op.after == null || op.after === '') throw new EditError('하위 묶음 이름은 비울 수 없음');
+      subs[node.id] = op.after;
+      return;
+    }
+    const [x] = locate(m, node);
+    if (isEmptyAfter(op.after)) delete x[f]; else x[f] = clone(op.after);
+    if (f === 'when') for (const k of LEGACY) delete x[k];
+    return;
+  }
+  if (kind === 'add') {
+    const data = clone(op.data || {}) || {};
+    data.id = node.id;
+    if (!data.id) throw new EditError('새 항목에 id 가 없음');
+    if (t === 'sub') {
+      const c = find(m.qs.categories, node.cat); if (!c) throw new EditError(`취향 묶음 '${node.cat}' 없음`);
+      c.subs = c.subs || {};
+      if (data.id in c.subs) throw new EditError(`하위 묶음 '${data.id}' 이미 있음`);
+      const items = Object.entries(c.subs);
+      items.splice(insPos(items.length, op.index), 0, [data.id, data.name || data.id]);
+      c.subs = Object.fromEntries(items);
+      return;
+    }
+    const lst = listOf(m, node);
+    if (find(lst, data.id)) throw new EditError(`${T_NAME[t] || t} '${data.id}' 이미 있음`);
+    if (t === 'screen') { if (!('dimensions' in data)) data.dimensions = []; ins(lst, data, op.index); }
+    else if (t === 'dim') {
+      const scr = find(m.dims.screens, op.parent); if (!scr) throw new EditError(`목차 '${op.parent}' 없음`);
+      if (!('type' in data)) data.type = 'single';
+      if (data.type !== 'text' && !('values' in data)) data.values = [];
+      lst.push(data);
+      ins(scr.dimensions = scr.dimensions || [], data.id, op.index);
+    } else if (t === 'aspect') {
+      const sub = op.parent || data.sub;
+      if (!subCat(m, sub)) throw new EditError(`하위 묶음 '${sub}' 없음`);
+      if (!String(data.id).startsWith(sub + '.')) throw new EditError(`취향 질문 id 는 하위 묶음 이름으로 시작해야 함(${sub}.…)`);
+      if (!('type' in data)) data.type = 'single';
+      if ((data.type === 'single' || data.type === 'multi') && !('options' in data)) data.options = [];
+      lst.push(data);
+      aspectPlace(m, data.id, sub, op.index);
+    } else if (t === 'cat') { if (!('subs' in data)) data.subs = {}; ins(lst, data, op.index); }
+    else ins(lst, data, op.index);
+    return;
+  }
+  if (kind === 'move') {
+    const idx = op.index;
+    if (t === 'sub') {
+      const [subs, c] = locate(m, node);
+      const items = Object.entries(subs).filter(([k]) => k !== node.id);
+      items.splice(insPos(items.length, idx), 0, [node.id, subs[node.id]]);
+      c.subs = Object.fromEntries(items);
+      return;
+    }
+    const [x, lst] = locate(m, node);
+    if (t === 'dim') {
+      const scrs = m.dims.screens || [];
+      const src = scrs.find(s => (s.dimensions || []).includes(x.id)) || null;
+      const dst = op.parent ? find(scrs, op.parent) : src;
+      if (!dst) throw new EditError(`목차 '${op.parent}' 없음`);
+      if (src) src.dimensions.splice(src.dimensions.indexOf(x.id), 1);
+      ins(dst.dimensions = dst.dimensions || [], x.id, idx);
+      return;
+    }
+    if (t === 'aspect') {
+      const sub = op.parent || x.sub;
+      if (sub !== x.sub) throw new EditError(`취향 질문은 다른 하위 묶음으로 옮길 수 없음(${x.sub} → ${sub}) — 새 질문을 만들고 옛 질문은 빼기`);
+      aspectPlace(m, x.id, sub, idx);
+      return;
+    }
+    lst.splice(lst.indexOf(x), 1);
+    ins(lst, x, idx);
+    return;
+  }
+  throw new EditError(`모르는 편집 '${kind}'`);
+}
+function replay(base, ops) { // → {m, problems:[{k, op, msg}]}
+  const m = {dims: clone(base.dims), qs: clone(base.qs)};
+  const problems = [];
+  (ops || []).forEach((op, k) => { try { applyOp(m, op); } catch (e) { if (!(e instanceof EditError)) throw e; problems.push({k, op, msg: e.message}); } });
+  return {m, problems};
+}
+
+// ---------- 보이는 조건 (GUI-Interview.html · structure.py 와 같은 판정) ----------
+let pv = {}; // 미리보기 답
+function projectValue(key) { const v = pv[key]; if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null; return Array.isArray(v) ? v : [v]; }
+function conditionOk(cond, strict) {
+  for (const [k, vs] of Object.entries(cond || {})) {
+    const p = projectValue(k);
+    if (!p) { if (strict) return false; continue; }
+    if (!vs.some(v => p.includes(v))) return false;
+  }
+  return true;
+}
+const condAny = (c, strict) => !c || (Array.isArray(c) ? (!c.length || c.some(x => conditionOk(x, strict))) : conditionOk(c, strict));
+const whenOk = x => !!x && !x.retired && (!x.ask_when || condAny(x.ask_when, !!x.ask_strict)) && (!x.applies_when || condAny(x.applies_when, false)) && (!x.when || condAny(x.when, true));
+const visOpts = list => (list || []).filter(whenOk);
+const scrOfDim = id => (model.dims.screens || []).find(s => (s.dimensions || []).includes(id)) || null; // 목차의 조건이 안 맞으면 그 안의 질문도 숨는다
+const dimShown = d => whenOk(d) && (!scrOfDim(d.id) || whenOk(scrOfDim(d.id))) && (d.type === 'text' || !(d.values || []).length || visOpts(d.values).length > 0);
+const aspShown = a => whenOk(a) && (a.type === 'text' || a.type === 'scale' || !(a.options || []).length || visOpts(a.options).length > 0);
+const condOf = x => x ? (x.when || x.ask_when || x.applies_when || null) : null;
+function condText(c, m) {
+  if (!c) return '';
+  if (Array.isArray(c)) return c.map(x => condText(x, m)).join(' 또는 ');
+  const dims = (m || model).dims.dimensions || [];
+  return Object.entries(c).map(([k, vs]) => {
+    const d = dims.find(x => x.id === k);
+    const lab = v => { const o = d && (d.values || []).find(x => x.id === v); return o ? o.label : v; };
+    return `「${d ? d.name : k}」에서 ${vs.map(lab).join('·')}`;
+  }).join(' 그리고 ');
+}
+
+// ---------- 상태 ----------
+let ops = [];
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && Array.isArray(s.ops)) ops = s.ops; } catch (e) {}
+let note = '';
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s.note === 'string') note = s.note; } catch (e) {}
+let model, problems = [];
+const ui = {view: 'tree', open: {}, sel: null, q: '', form: null, cond: null, msg: '', dropped: []};
+function save() { try { localStorage.setItem(KEY, JSON.stringify({ops, note})); } catch (e) {} }
+function rebuild() {
+  const r = replay(BASE, PENDING.concat(ops));
+  model = r.m; problems = r.problems;
+}
+rebuild();
+// 대기 편집 + 이번 세션 편집이 다시 적용되지 않으면(데이터가 바뀐 경우) 이번 세션 쪽은 빼 둔다
+if (problems.some(p => p.k >= PENDING.length)) {
+  const bad = new Set(problems.filter(p => p.k >= PENDING.length).map(p => p.k - PENDING.length));
+  ui.dropped = ops.filter((_, k) => bad.has(k)).map(op => describe(op) + ' — ' + (problems.find(p => p.k - PENDING.length === ops.indexOf(op)) || {}).msg);
+  ops = ops.filter((_, k) => !bad.has(k)); save(); rebuild();
+}
+
+// ---------- 노드 ----------
+const keyOf = n => [n.t, n.dim || n.cat || n.aspect || n.pq || '', n.id].join('|');
+function objOf(node, m) { try { const r = locate(m || model, node); return node.t === 'sub' ? {id: node.id, name: r[0][node.id]} : r[0]; } catch (e) { return null; } }
+function labelOf(node, m) {
+  const x = objOf(node, m); if (!x) return node.id;
+  return x.title || x.name || x.label || x.text || node.id;
+}
+const NAME_FIELD = {screen: 'title', dim: 'name', value: 'label', cat: 'name', sub: 'name', aspect: 'text', option: 'label', pq: 'text', pqopt: 'label'};
+function touched(node) { // 이번 세션·대기 편집에서 건드린 항목
+  const k = keyOf(node);
+  return PENDING.concat(ops).some(op => keyOf(op.node || {}) === k);
+}
+function addedHere(node) { const k = keyOf(node); return PENDING.concat(ops).some(op => op.op === 'add' && keyOf(op.node || {}) === k); }
+function dimOrder(m) { return (m.dims.screens || []).flatMap(s => s.dimensions || []); }
+function siblings(node) { // 같은 부모 안의 순서 목록(id 배열)
+  const m = model;
+  if (node.t === 'screen') return (m.dims.screens || []).map(x => x.id);
+  if (node.t === 'dim') { const s = (m.dims.screens || []).find(s => (s.dimensions || []).includes(node.id)); return s ? s.dimensions.slice() : []; }
+  if (node.t === 'value') { const d = find(m.dims.dimensions, node.dim); return d ? (d.values || []).map(x => x.id) : []; }
+  if (node.t === 'cat') return (m.qs.categories || []).map(x => x.id);
+  if (node.t === 'sub') { const c = find(m.qs.categories, node.cat); return c ? Object.keys(c.subs || {}) : []; }
+  if (node.t === 'aspect') { const a = find(m.qs.aspects, node.id); return a ? m.qs.aspects.filter(x => x.sub === a.sub).map(x => x.id) : []; }
+  if (node.t === 'option') { const a = find(m.qs.aspects, node.aspect); return a ? (a.options || []).map(x => x.id) : []; }
+  if (node.t === 'pq') return (m.qs.project_questions || []).map(x => x.id);
+  if (node.t === 'pqopt') { const q = find(m.qs.project_questions, node.pq); return q ? (q.options || []).map(x => x.id) : []; }
+  return [];
+}
+
+// ---------- 편집 동작 (op 를 쌓고 다시 적용) ----------
+function push(op) {
+  op.at = new Date().toISOString();
+  if (!op.label) op.label = labelOf(op.node);
+  if (note && ui.opNote) op.note = ui.opNote;
+  const trial = replay(BASE, PENDING.concat(ops, [op]));
+  const mine = trial.problems.find(p => p.k === PENDING.length + ops.length);
+  if (mine) { ui.msg = '적용할 수 없습니다: ' + mine.msg; render(); return false; }
+  ops.push(op); ui.opNote = ''; save(); rebuild(); ui.msg = '기록함: ' + describe(op); render(); return true;
+}
+function setField(node, field, after) {
+  const x = objOf(node);
+  const before = node.t === 'sub' ? (x ? x.name : null) : (x ? clone(x[field]) : null);
+  if (JSON.stringify(before == null ? null : before) === JSON.stringify(after == null ? null : after) && field !== 'when') { ui.msg = '바뀐 것이 없습니다.'; render(); return false; }
+  return push({op: 'set', node: clone(node), field, before: before === undefined ? null : before, after: after === undefined ? null : clone(after)});
+}
+function setWhen(node, cond) { // cond: null | {…} | [{…},…]
+  let c = cond;
+  if (Array.isArray(c)) { c = c.filter(g => g && Object.keys(g).length); if (!c.length) c = null; else if (c.length === 1) c = c[0]; }
+  else if (c && !Object.keys(c).length) c = null;
+  const x = objOf(node);
+  const before = x ? clone(condOf(x)) : null;
+  return push({op: 'set', node: clone(node), field: 'when', before: before == null ? null : before, after: c});
+}
+function add(node, data, parent, index) {
+  const op = {op: 'add', node: clone(node), data: clone(data)};
+  if (parent != null) op.parent = parent;
+  if (index != null) op.index = index;
+  op.label = data.title || data.name || data.label || data.text || node.id;
+  return push(op);
+}
+function move(node, parent, index) {
+  if (node.t === 'aspect' && parent != null) { // 취향 질문 id 는 하위 묶음 id 로 시작해야 한다(check_store) — 취향 항목이 이 id 를 가리키므로 id 를 바꿀 수 없다
+    const a = find(model.qs.aspects, node.id);
+    if (a && parent !== a.sub) { ui.msg = `취향 질문은 다른 하위 묶음으로 옮길 수 없습니다(id 가 「${a.sub}.」로 시작해야 하고, 취향 항목이 이 id 를 가리킵니다). 옮길 하위 묶음에 질문을 새로 만들고 이 질문은 빼기(숨김) 하세요.`; render(); return false; }
+  }
+  const op = {op: 'move', node: clone(node)};
+  if (parent != null) op.parent = parent;
+  op.index = index == null ? null : index;
+  return push(op);
+}
+function step(node, dir) {
+  const sib = siblings(node); const i = sib.indexOf(node.id); const j = i + dir;
+  if (i < 0 || j < 0 || j >= sib.length) return false;
+  return move(node, null, j);
+}
+function undo(k) { // 이번 세션의 k번째 편집을 빼고 다시 적용 — 다시 안 되는 뒤 편집은 같이 뺀다
+  const removed = ops[k]; if (!removed) return [];
+  let rest = ops.filter((_, i) => i !== k);
+  const gone = [];
+  for (;;) {
+    const r = replay(BASE, PENDING.concat(rest));
+    const bad = r.problems.filter(p => p.k >= PENDING.length);
+    if (!bad.length) break;
+    const b = bad[0].k - PENDING.length;
+    gone.push(rest[b]); rest = rest.filter((_, i) => i !== b);
+  }
+  ops = rest; save(); rebuild();
+  ui.msg = '되돌림: ' + describe(removed) + (gone.length ? ` · 같이 빠짐 ${gone.length}건: ` + gone.map(describe).join(' / ') : '');
+  return gone;
+}
+function describe(op) {
+  const node = op.node || {};
+  const t = T_NAME[node.t] || node.t;
+  const nm = `${t} 「${op.label || node.id}」`;
+  if (op.op === 'set') {
+    if (op.field === 'retired') return op.after ? nm + ' 빼기' : nm + ' 되살리기';
+    if (op.field === 'when') return `${nm} 보이는 조건: ${condText(op.after) || '항상 보임'}`;
+    const show = v => v == null ? '(없음)' : (typeof v === 'string' ? `'${v}'` : JSON.stringify(v));
+    return `${nm} ${F_NAME[op.field] || op.field}: ${show(op.before)} → ${show(op.after)}`;
+  }
+  if (op.op === 'add') { const d = op.data || {}; return `${t} 추가 「${d.label || d.name || d.title || d.text || node.id}」${op.parent ? ` (위치: ${op.parent})` : ''}`; }
+  if (op.op === 'move') return `${nm} 옮기기 → ${op.parent || '같은 곳'} ${op.index == null ? '' : (op.index + 1) + '번째'}`;
+  return `${op.op} ${nm}`;
+}
+function payload() {
+  return {kind: 'structure_edits', spec_id: SPEC.spec_id || null, lecture: SPEC.lecture || null, created: new Date().toISOString(),
+    base: {dims_version: (BASE.dims || {}).version == null ? null : BASE.dims.version, qs_version: (BASE.qs || {}).version == null ? null : BASE.qs.version},
+    note, ops: clone(ops)};
+}
+
+// ---------- 새 id ----------
+let seq = 0;
+const b36 = () => Date.now().toString(36) + (seq++).toString(36);
+function nextNum(prefix, ids) { let n = 0; for (const i of ids) { const mm = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\d+)$').exec(i); if (mm) n = Math.max(n, +mm[1]); } return prefix + (n + 1); }
+function newId(t, parent) {
+  const m = model;
+  if (t === 'screen') return nextNum('S', (m.dims.screens || []).map(x => x.id));
+  if (t === 'dim') return 'd_' + b36();
+  if (t === 'value') return 'v_' + b36();
+  if (t === 'cat') return nextNum('P', (m.qs.categories || []).map(x => x.id));
+  if (t === 'sub') { const c = find(m.qs.categories, parent); return nextNum(parent + '.', Object.keys((c || {}).subs || {})); }
+  if (t === 'aspect') return parent + '.u' + b36();
+  if (t === 'option' || t === 'pqopt') return 'o_' + b36();
+  if (t === 'pq') return 'q_' + b36();
+  return 'n_' + b36();
+}
+const freeIndex = list => { const k = (list || []).findIndex(x => x.free); return k < 0 ? null : k; }; // 「기타」 앞에 넣는다
+
+// ---------- 화면 ----------
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function button(label, fn, cls) { const b = el('button', 'btn' + (cls ? ' ' + cls : '')); b.type = 'button'; b.textContent = label; b.onclick = fn; return b; }
+function badges(node, x) {
+  let h = '';
+  if (!x) return h;
+  if (node.t === 'dim' || node.t === 'aspect' || node.t === 'pq') h += `<span class="badge">${esc(TYPE_NAME[x.type] || x.type || '')}</span>`;
+  const c = condOf(x); if (c) h += `<span class="badge cond" title="${esc(condText(c))}">조건</span>`;
+  if (x.group) h += `<span class="badge">${esc(x.group)}</span>`;
+  if (x.free) h += '<span class="badge">직접 입력</span>';
+  if (x.retired) h += '<span class="badge off">뺌</span>';
+  if (addedHere(node)) h += '<span class="badge chg">새로</span>';
+  else if (touched(node)) h += '<span class="badge chg">바뀜</span>';
+  return h;
+}
+function childrenOf(node) {
+  const m = model;
+  if (node.t === 'screen') { const s = find(m.dims.screens, node.id); return (s && s.dimensions || []).map(id => ({t: 'dim', id})); }
+  if (node.t === 'dim') { const d = find(m.dims.dimensions, node.id); return (d && d.values || []).map(v => ({t: 'value', dim: node.id, id: v.id})); }
+  if (node.t === 'cat') { const c = find(m.qs.categories, node.id); return Object.keys((c && c.subs) || {}).map(id => ({t: 'sub', cat: node.id, id})); }
+  if (node.t === 'sub') return (m.qs.aspects || []).filter(a => a.sub === node.id).map(a => ({t: 'aspect', id: a.id}));
+  if (node.t === 'aspect') { const a = find(m.qs.aspects, node.id); return (a && a.options || []).map(o => ({t: 'option', aspect: node.id, id: o.id})); }
+  if (node.t === 'pq') { const q = find(m.qs.project_questions, node.id); return (q && q.options || []).map(o => ({t: 'pqopt', pq: node.id, id: o.id})); }
+  return [];
+}
+function textOf(node) { const x = objOf(node); return x ? [node.id, x.title, x.name, x.label, x.text, x.desc, x.group].filter(Boolean).join(' ') : node.id; }
+function matches(node) { // 검색: 자신이나 자손이 맞으면 보임
+  if (!ui.q) return true;
+  const q = ui.q.toLowerCase();
+  if (textOf(node).toLowerCase().includes(q)) return true;
+  return childrenOf(node).some(matches);
+}
+function renderNode(node, host) {
+  if (!matches(node)) return;
+  const x = objOf(node);
+  const k = keyOf(node);
+  const kids = childrenOf(node);
+  const wrap = el('div', 'tn' + (x && x.retired ? ' retired' : '')); wrap.dataset.key = k;
+  const row = el('div', 'tr');
+  const tg = el('button', 'tg' + (kids.length ? '' : ' leaf')); tg.type = 'button';
+  const open = !!ui.open[k] || (!!ui.q && kids.some(matches));
+  tg.textContent = open ? '▾' : '▸'; tg.setAttribute('aria-label', open ? '접기' : '펼치기'); tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+  tg.onclick = () => { ui.open[k] = !open; render(); };
+  const nl = el('button', 'nl'); nl.type = 'button';
+  nl.innerHTML = `<span class="kind">${esc(T_NAME[node.t])}</span>${esc(labelOf(node))}${badges(node, x)}`;
+  nl.setAttribute('aria-pressed', ui.sel === k ? 'true' : 'false');
+  nl.onclick = () => { ui.sel = ui.sel === k ? null : k; ui.form = null; ui.cond = null; ui.msg = ''; render(); };
+  row.appendChild(tg); row.appendChild(nl); wrap.appendChild(row);
+  if (ui.sel === k) wrap.appendChild(editPanel(node));
+  if (open && kids.length) { const c = el('div', 'tc'); for (const ch of kids) renderNode(ch, c); wrap.appendChild(c); }
+  host.appendChild(wrap);
+}
+function renderTree(root) {
+  const bar = el('div', 'row');
+  const q = el('input'); q.type = 'text'; q.placeholder = '찾기 (이름·id)'; q.value = ui.q; q.id = 'q';
+  q.oninput = () => { ui.q = q.value.trim(); render(); const nq = $('#q'); if (nq) { nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length); } };
+  bar.appendChild(q);
+  root.appendChild(bar);
+  const ctl = el('div', 'row');
+  ctl.appendChild(button('모두 펼치기', () => { for (const n of allNodes()) ui.open[keyOf(n)] = true; render(); }));
+  ctl.appendChild(button('모두 접기', () => { ui.open = {}; render(); }));
+  root.appendChild(ctl);
+  if (ui.msg) root.appendChild(el('p', 'msg small', esc(ui.msg)));
+  const m = model;
+  const p1 = el('div', 'part', '1부 큰 구분 — 목차 → 질문 → 선택지'); p1.appendChild(button('+ 목차', () => openAdd({t: 'screen'}))); root.appendChild(p1);
+  if (ui.form && ui.form.node.t === 'screen') root.appendChild(addForm());
+  for (const s of m.dims.screens || []) renderNode({t: 'screen', id: s.id}, root);
+  const p2 = el('div', 'part', '2부 취향 — 묶음 → 하위 → 질문 → 선택지'); p2.appendChild(button('+ 취향 묶음', () => openAdd({t: 'cat'}))); root.appendChild(p2);
+  if (ui.form && ui.form.node.t === 'cat') root.appendChild(addForm());
+  for (const c of m.qs.categories || []) renderNode({t: 'cat', id: c.id}, root);
+  const p3 = el('div', 'part', '3부 이번 자료 — 질문 → 선택지'); p3.appendChild(button('+ 3부 질문', () => openAdd({t: 'pq'}))); root.appendChild(p3);
+  if (ui.form && ui.form.node.t === 'pq') root.appendChild(addForm());
+  for (const q2 of m.qs.project_questions || []) renderNode({t: 'pq', id: q2.id}, root);
+}
+function allNodes() {
+  const out = []; const walk = n => { out.push(n); childrenOf(n).forEach(walk); };
+  (model.dims.screens || []).forEach(s => walk({t: 'screen', id: s.id}));
+  (model.qs.categories || []).forEach(c => walk({t: 'cat', id: c.id}));
+  (model.qs.project_questions || []).forEach(q => walk({t: 'pq', id: q.id}));
+  return out;
+}
+const CHILD = {screen: 'dim', dim: 'value', cat: 'sub', sub: 'aspect', aspect: 'option', pq: 'pqopt'};
+function openAdd(node, parentNode) { ui.form = {node, parentNode: parentNode || null}; ui.cond = null; render(); }
+function addForm() {
+  const f = ui.form; const t = f.node.t; const pn = f.parentNode;
+  const box = el('div', 'panel'); box.dataset.form = t;
+  box.appendChild(el('h3', null, esc(T_NAME[t]) + ' 추가' + (pn ? ` — ${esc(labelOf(pn))} 안에` : '')));
+  const parentId = pn ? pn.id : null;
+  const nm = el('input'); nm.type = 'text'; nm.placeholder = '이름'; nm.dataset.f = 'name';
+  const id = el('input'); id.type = 'text'; id.value = newId(t, parentId); id.dataset.f = 'id';
+  const fl = (lab, inp) => { const d = el('div', 'f'); d.appendChild(el('label', null, esc(lab))); d.appendChild(inp); return d; };
+  box.appendChild(fl('이름', nm));
+  let ty = null;
+  if (t === 'dim' || t === 'aspect' || t === 'pq') {
+    ty = el('select'); ty.dataset.f = 'type';
+    for (const v of (t === 'aspect' ? ['single', 'multi', 'text'] : ['single', 'multi', 'text'])) { const o = el('option'); o.value = v; o.textContent = TYPE_NAME[v]; ty.appendChild(o); }
+    box.appendChild(fl('유형', ty));
+  }
+  box.appendChild(fl('id (자동, 바꿔도 됨)', id));
+  const row = el('div', 'row');
+  row.appendChild(button('추가', () => {
+    const name = nm.value.trim(); const nid = id.value.trim();
+    if (!name) { ui.msg = '이름을 적어 주세요.'; render(); return; }
+    if (!nid) { ui.msg = 'id 가 비었습니다.'; render(); return; }
+    const node = {t, id: nid}; if (t === 'value') node.dim = parentId; if (t === 'sub') node.cat = parentId; if (t === 'option') node.aspect = parentId; if (t === 'pqopt') node.pq = parentId;
+    const field = NAME_FIELD[t]; const data = {[field]: name};
+    if (ty) data.type = ty.value;
+    let parent = null, index = null;
+    if (t === 'dim') parent = parentId;
+    if (t === 'aspect') { parent = parentId; if (nid.indexOf(parentId + '.') !== 0) { ui.msg = `취향 질문 id 는 「${parentId}.」로 시작해야 합니다.`; render(); return; } }
+    if (t === 'value') { const d = find(model.dims.dimensions, parentId); index = freeIndex(d && d.values); }
+    if (t === 'option') { const a = find(model.qs.aspects, parentId); index = freeIndex(a && a.options); }
+    if (t === 'pqopt') { const q = find(model.qs.project_questions, parentId); index = freeIndex(q && q.options); }
+    const done = add(node, data, parent, index);
+    if (done) { ui.form = null; if (pn) ui.open[keyOf(pn)] = true; render(); }
+  }, 'pri'));
+  row.appendChild(button('취소', () => { ui.form = null; render(); }));
+  box.appendChild(row);
+  return box;
+}
+function editPanel(node) {
+  const x = objOf(node);
+  const p = el('div', 'panel'); p.dataset.panel = keyOf(node);
+  if (!x) { p.textContent = '이 항목을 찾을 수 없습니다.'; return p; }
+  const fl = (lab, inp, btnLabel, fn) => { const d = el('div', 'f'); d.appendChild(el('label', null, esc(lab))); d.appendChild(inp); if (btnLabel) { const r = el('div', 'row'); r.appendChild(button(btnLabel, fn)); d.appendChild(r); } return d; };
+  p.appendChild(el('p', 'small', `${esc(T_NAME[node.t])} · id <b>${esc(node.id)}</b>`));
+  // 이름
+  const nf = NAME_FIELD[node.t];
+  const nm = el('input'); nm.type = 'text'; nm.value = node.t === 'sub' ? x.name : (x[nf] || ''); nm.dataset.f = 'name';
+  p.appendChild(fl('이름', nm, '이름 바꾸기', () => setField(node, nf, nm.value.trim())));
+  if (node.t === 'dim') {
+    const ds = el('textarea'); ds.value = x.desc || ''; ds.dataset.f = 'desc';
+    p.appendChild(fl('설명', ds, '설명 바꾸기', () => setField(node, 'desc', ds.value.trim())));
+  }
+  if (node.t === 'dim' || node.t === 'pq' || (node.t === 'aspect' && (x.type === 'single' || x.type === 'multi'))) {
+    const ty = el('select'); ty.dataset.f = 'type';
+    const types = node.t === 'aspect' ? ['single', 'multi'] : ['single', 'multi', 'text'];
+    for (const v of types) { const o = el('option'); o.value = v; o.textContent = TYPE_NAME[v]; if (x.type === v) o.selected = true; ty.appendChild(o); }
+    p.appendChild(fl('유형', ty, '유형 바꾸기', () => setField(node, 'type', ty.value)));
+  }
+  if (node.t === 'value' || node.t === 'option' || node.t === 'pqopt') {
+    const gr = el('input'); gr.type = 'text'; gr.value = x.group || ''; gr.placeholder = '예: 영상 (선택지를 묶어 보여 줄 제목)'; gr.dataset.f = 'group';
+    p.appendChild(fl('묶음 제목', gr, '묶음 제목 바꾸기', () => setField(node, 'group', gr.value.trim())));
+  }
+  if (node.t === 'value') {
+    const r = el('div', 'row');
+    r.appendChild(button(x.free ? '직접 입력 칸 끄기' : '직접 입력 칸 켜기', () => setField(node, 'free', !x.free)));
+    p.appendChild(r);
+  }
+  // 보이는 조건
+  if ((FIELDS[node.t] || []).includes('when')) {
+    p.appendChild(el('h3', null, '보이는 조건'));
+    const c = condOf(x);
+    p.appendChild(el('p', null, c ? `<span class="ctext">${esc(condText(c))}</span>을(를) 골랐을 때만 보임` + (!x.when && (x.ask_when || x.applies_when) ? ' <span class="small">(옛 표기 — 저장하면 새 방식: 위 질문에 답하기 전에는 숨음)</span>' : '') : '<span class="small">조건 없음 — 항상 보임</span>'));
+    if (ui.cond && ui.cond.key === keyOf(node)) p.appendChild(condEditor(node));
+    else { const r = el('div', 'row'); r.appendChild(button('조건 바꾸기', () => { ui.cond = {key: keyOf(node), groups: normCond(c)}; render(); })); if (c) r.appendChild(button('조건 없애기 (항상 보임)', () => setWhen(node, null))); p.appendChild(r); }
+  }
+  // 순서·옮기기
+  p.appendChild(el('h3', null, '순서·위치'));
+  const r2 = el('div', 'row');
+  r2.appendChild(button('▲ 위로', () => step(node, -1)));
+  r2.appendChild(button('▼ 아래로', () => step(node, 1)));
+  p.appendChild(r2);
+  if (node.t === 'aspect') p.appendChild(el('p', 'small', '취향 질문은 같은 하위 묶음 안에서만 순서를 바꿀 수 있습니다(id 가 하위 묶음 id 로 시작해야 하고, 취향 항목이 이 id 를 가리킴). 다른 묶음에 두려면 거기에 새로 만들고 이것은 빼기(숨김) 하세요.'));
+  if (node.t === 'dim') {
+    const sel = el('select'); sel.dataset.f = 'moveto';
+    const opts = node.t === 'dim' ? (model.dims.screens || []).map(s => [s.id, s.title]) : (model.qs.categories || []).flatMap(c => Object.entries(c.subs || {}).map(([k, v]) => [k, `${k} ${v}`]));
+    const cur = node.t === 'dim' ? ((model.dims.screens || []).find(s => (s.dimensions || []).includes(node.id)) || {}).id : x.sub;
+    for (const [v, l] of opts) { const o = el('option'); o.value = v; o.textContent = l; if (v === cur) o.selected = true; sel.appendChild(o); }
+    p.appendChild(fl(node.t === 'dim' ? '다른 목차로 옮기기' : '다른 하위 묶음으로 옮기기', sel, '옮기기', () => { if (sel.value !== cur) move(node, sel.value, null); else { ui.msg = '지금 있는 곳입니다.'; render(); } }));
+  }
+  // 이유 메모
+  const nt = el('input'); nt.type = 'text'; nt.placeholder = '다음 편집의 이유 (선택)'; nt.value = ui.opNote || ''; nt.dataset.f = 'opnote'; nt.oninput = () => { ui.opNote = nt.value; };
+  p.appendChild(fl('이유 메모', nt));
+  // 하위 추가 · 빼기
+  const r3 = el('div', 'row');
+  const ct = CHILD[node.t];
+  if (ct && !((node.t === 'dim' || node.t === 'pq' || node.t === 'aspect') && !(x.type === 'single' || x.type === 'multi'))) r3.appendChild(button('+ ' + T_NAME[ct], () => openAdd({t: ct}, node)));
+  if ((FIELDS[node.t] || []).includes('retired')) r3.appendChild(x.retired ? button('되살리기', () => setField(node, 'retired', null)) : button('빼기 (숨김)', () => setField(node, 'retired', true), 'warn'));
+  p.appendChild(r3);
+  if (ui.form && ui.form.parentNode && keyOf(ui.form.parentNode) === keyOf(node)) p.appendChild(addForm());
+  return p;
+}
+function normCond(c) { if (!c) return []; return (Array.isArray(c) ? c : [c]).map(g => Object.entries(g || {}).map(([dim, vals]) => ({dim, vals: vals.slice()}))); }
+function eligibleDims(node) { // 조건에 쓸 수 있는 위 질문: 1부 항목은 자기보다 앞 질문만
+  const m = model; const order = dimOrder(m);
+  const all = order.map(id => find(m.dims.dimensions, id)).filter(d => d && d.type !== 'text' && (d.values || []).length);
+  let limit = null;
+  if (node.t === 'screen') { const s = find(m.dims.screens, node.id); limit = s && (s.dimensions || []).length ? order.indexOf(s.dimensions[0]) : order.length; if (s && !(s.dimensions || []).length) { const si = (m.dims.screens || []).indexOf(s); limit = (m.dims.screens || []).slice(0, si).reduce((n, x) => n + (x.dimensions || []).length, 0); } }
+  if (node.t === 'dim') limit = order.indexOf(node.id);
+  if (node.t === 'value') limit = order.indexOf(node.dim);
+  return limit == null ? all : all.filter(d => order.indexOf(d.id) < limit && d.id !== node.id && d.id !== node.dim);
+}
+function condEditor(node) {
+  const st = ui.cond; const box = el('div', 'cg'); box.dataset.condeditor = '1';
+  const elig = eligibleDims(node);
+  box.appendChild(el('p', 'small', '이 항목은 다음을 골랐을 때만 보임 (위 질문에 답하기 전에는 숨음)'));
+  if (!elig.length) box.appendChild(el('p', 'small wn', '조건에 쓸 수 있는 앞 질문이 없습니다.'));
+  st.groups.forEach((g, gi) => {
+    const gb = el('div', 'cg'); gb.dataset.group = gi;
+    if (gi > 0) gb.appendChild(el('p', 'small', '또는'));
+    g.forEach((row, ri) => {
+      if (ri > 0) gb.appendChild(el('p', 'small', '그리고'));
+      const sel = el('select'); sel.dataset.f = 'cdim';
+      const o0 = el('option'); o0.value = ''; o0.textContent = '질문 고르기'; sel.appendChild(o0);
+      for (const d of elig) { const o = el('option'); o.value = d.id; o.textContent = d.name; if (d.id === row.dim) o.selected = true; sel.appendChild(o); }
+      sel.onchange = () => { row.dim = sel.value; row.vals = []; render(); };
+      gb.appendChild(sel);
+      const d = elig.find(x => x.id === row.dim);
+      if (d) {
+        const cv = el('div', 'cv');
+        for (const v of d.values || []) {
+          const b = el('button', 'opt'); b.type = 'button'; b.textContent = v.label; b.dataset.id = v.id;
+          b.setAttribute('aria-pressed', row.vals.includes(v.id) ? 'true' : 'false');
+          b.onclick = () => { const i = row.vals.indexOf(v.id); if (i >= 0) row.vals.splice(i, 1); else row.vals.push(v.id); render(); };
+          cv.appendChild(b);
+        }
+        gb.appendChild(cv);
+      } else if (row.dim) gb.appendChild(el('p', 'small wn', `질문 '${esc(row.dim)}' 은(는) 여기서 조건으로 쓸 수 없습니다(앞에 있지 않거나 선택지가 없음).`));
+      const rr = el('div', 'row'); rr.appendChild(button('이 줄 빼기', () => { g.splice(ri, 1); if (!g.length) st.groups.splice(gi, 1); render(); })); gb.appendChild(rr);
+    });
+    const ra = el('div', 'row'); ra.appendChild(button('+ 그리고 (다른 질문 조건)', () => { g.push({dim: '', vals: []}); render(); })); gb.appendChild(ra);
+    box.appendChild(gb);
+  });
+  const r = el('div', 'row');
+  r.appendChild(button(st.groups.length ? '+ 또는 (다른 묶음)' : '+ 조건 만들기', () => { st.groups.push([{dim: '', vals: []}]); render(); }));
+  box.appendChild(r);
+  const out = buildCond(st.groups);
+  box.appendChild(el('p', null, out ? '미리 읽기: <span class="ctext">' + esc(condText(out)) + '</span>을(를) 골랐을 때만 보임' : '미리 읽기: 조건 없음 — 항상 보임'));
+  const r2 = el('div', 'row');
+  r2.appendChild(button('조건 저장', () => { const c = buildCond(st.groups); if (setWhen(node, c)) { ui.cond = null; render(); } }, 'pri'));
+  r2.appendChild(button('조건 없음 (항상 보임)', () => { if (setWhen(node, null)) { ui.cond = null; render(); } }));
+  r2.appendChild(button('취소', () => { ui.cond = null; render(); }));
+  box.appendChild(r2);
+  return box;
+}
+function buildCond(groups) {
+  const gs = groups.map(g => { const o = {}; for (const r of g) if (r.dim && r.vals.length) o[r.dim] = (o[r.dim] || []).concat(r.vals.filter(v => !(o[r.dim] || []).includes(v))); return o; }).filter(o => Object.keys(o).length);
+  if (!gs.length) return null;
+  return gs.length === 1 ? gs[0] : gs;
+}
+// 미리보기
+function renderPreview(root) {
+  const m = model;
+  root.appendChild(el('p', 'small', '1부 질문에 답을 눌러 보면, 지금 조건에 따라 무엇이 보이고 숨는지 바로 바뀝니다. (인터뷰 페이지와 같은 판정)'));
+  const r = el('div', 'row'); r.appendChild(button('답 지우기', () => { pv = {}; render(); })); root.appendChild(r);
+  for (const s of m.dims.screens || []) {
+    const sc = el('div', 'card'); sc.dataset.pscreen = s.id;
+    const shown = whenOk(s);
+    sc.appendChild(el('h2', shown ? '' : 'hid', esc(s.title) + (shown ? '' : ' <span class="badge off">숨음</span>') + (condOf(s) ? ` <span class="small">${esc(condText(condOf(s)))}일 때</span>` : '')));
+    for (const did of s.dimensions || []) {
+      const d = find(m.dims.dimensions, did); if (!d) continue;
+      const vis = shown && dimShown(d);
+      const dc = el('div', 'f'); dc.dataset.pdim = did;
+      dc.appendChild(el('p', vis ? '' : 'hid', `<b>${esc(d.name)}</b>` + (vis ? '' : ' <span class="badge off">숨음</span>') + (condOf(d) ? ` <span class="small">↳ ${esc(condText(condOf(d)))}</span>` : '')));
+      if (vis && d.type !== 'text') {
+        const cv = el('div', 'cv'); let grp = null;
+        for (const v of visOpts(d.values)) {
+          if (v.group && v.group !== grp) { grp = v.group; const gh = el('p', 'small', '<b>' + esc(grp) + '</b>'); gh.style.flexBasis = '100%'; gh.style.margin = '4px 0 0'; cv.appendChild(gh); }
+          const b = el('button', 'opt'); b.type = 'button'; b.textContent = v.label; b.dataset.id = v.id;
+          const cur = pv[did]; const on = Array.isArray(cur) ? cur.includes(v.id) : cur === v.id;
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          b.onclick = () => { if (d.type === 'multi') { const a = Array.isArray(pv[did]) ? pv[did].slice() : []; const i = a.indexOf(v.id); if (i >= 0) a.splice(i, 1); else a.push(v.id); pv[did] = a; } else pv[did] = on ? null : v.id; render(); };
+          cv.appendChild(b);
+        }
+        dc.appendChild(cv);
+        const hidden = (d.values || []).filter(v => !whenOk(v) && !v.retired);
+        if (hidden.length) dc.appendChild(el('p', 'small hid', '숨은 선택지: ' + hidden.map(v => esc(v.label) + (condOf(v) ? ` (${esc(condText(condOf(v)))})` : '')).join(', ')));
+      }
+      sc.appendChild(dc);
+    }
+    root.appendChild(sc);
+  }
+  const asp = (m.qs.aspects || []).filter(a => !a.retired);
+  const vis = asp.filter(a => { const c = (m.qs.categories || []).find(c => String(a.sub || '').startsWith(c.id + '.')); return (!c || whenOk(c)) && aspShown(a); });
+  const card = el('div', 'card'); card.dataset.paspects = '1';
+  card.appendChild(el('h2', null, `2부 취향 질문: 보임 ${vis.length} / ${asp.length}`));
+  const hid = asp.filter(a => !vis.includes(a));
+  if (hid.length) card.appendChild(el('p', 'small hid', '숨음: ' + hid.slice(0, 80).map(a => esc(a.text) + (condOf(a) ? ` (${esc(condText(condOf(a)))})` : '')).join(' · ') + (hid.length > 80 ? ' …' : '')));
+  root.appendChild(card);
+  const pqs = (m.qs.project_questions || []).filter(q => !q.retired);
+  const pvis = pqs.filter(whenOk);
+  root.appendChild(el('div', 'card', `<h2>3부 질문: 보임 ${pvis.length} / ${pqs.length}</h2>`));
+}
+// 바뀐 것
+function renderChanges(root) {
+  if (ui.msg) root.appendChild(el('p', 'msg small', esc(ui.msg)));
+  if (ui.dropped.length) root.appendChild(el('div', 'card', '<p class="wn">저장돼 있던 편집 중 지금 데이터에 다시 적용되지 않아 뺀 것:</p><ul>' + ui.dropped.map(s => `<li>${esc(s)}</li>`).join('') + '</ul>'));
+  const pend = problems.filter(p => p.k < PENDING.length);
+  if (pend.length) root.appendChild(el('div', 'card', '<p class="ng">반영 대기 편집 중 적용되지 않는 것:</p><ul>' + pend.map(p => `<li>${esc(describe(p.op))} — ${esc(p.msg)}</li>`).join('') + '</ul>'));
+  const c1 = el('div', 'card'); c1.dataset.pending = '1';
+  c1.appendChild(el('h2', null, `반영 대기 (지난 편집) ${PENDING.length}건`));
+  if (PENDING.length) { const ul = el('ul', 'chg-list pend'); PENDING.forEach(op => ul.appendChild(el('li', null, esc(describe(op)) + (op.note ? ` <span class="small">— ${esc(op.note)}</span>` : '')))); c1.appendChild(ul); }
+  else c1.appendChild(el('p', 'small', '없음'));
+  root.appendChild(c1);
+  const c2 = el('div', 'card'); c2.dataset.session = '1';
+  c2.appendChild(el('h2', null, `이번에 고친 것 ${ops.length}건`));
+  if (!ops.length) c2.appendChild(el('p', 'small', '아직 없습니다. 「구조」에서 항목을 눌러 고치세요.'));
+  const ul = el('ul', 'chg-list');
+  ops.forEach((op, k) => {
+    const li = el('li'); li.dataset.op = k;
+    li.innerHTML = `${esc(describe(op))} <span class="small">${esc((op.at || '').replace('T', ' ').slice(0, 16))}${op.note ? ' — ' + esc(op.note) : ''}</span> `;
+    li.appendChild(button('되돌리기', () => { undo(k); render(); }));
+    ul.appendChild(li);
+  });
+  c2.appendChild(ul);
+  root.appendChild(c2);
+}
+// 내보내기
+async function submit(msg) {
+  const p = payload(); msg.textContent = '저장 중…';
+  if (window.claude && window.claude.use) {
+    try {
+      const db = await window.claude.use('db');
+      if (db) { const ref = await db.collection('structure_edits').add(p); msg.innerHTML = `<span class="ok">저장됨</span> (structure_edits/${esc(ref.id)}). Claude가 읽어 반영 대기에 넣습니다. JSON 내려받기도 됩니다.`; return; }
+      msg.textContent = '이 화면에서는 저장소를 쓸 수 없습니다. 「JSON 내려받기」나 「복사」로 전달하세요.';
+    } catch (e) { msg.innerHTML = `<span class="ng">저장 실패</span>: ${esc(e && (e.code || e.message) || e)}. 「JSON 내려받기」나 「복사」로 전달하세요.`; }
+  } else msg.textContent = '게시 페이지가 아니라 파일로 열었습니다. 「JSON 내려받기」로 저장하거나 「복사」해 대화에 붙여 넣으세요.';
+}
+async function download(msg) {
+  const name = (SPEC.answers_filename || 'structure_edits') + '.json'; const text = JSON.stringify(payload(), null, 1);
+  if (window.claude && window.claude.use) {
+    try { const d = await window.claude.use('downloads'); if (d) { await d.save({filename: name, data: text}); msg.textContent = '내려받기 완료: ' + name; return; } }
+    catch (e) { msg.textContent = '내려받기 거절 또는 실패: ' + (e && (e.code || e.message) || e); return; }
+    msg.textContent = '이 화면에서는 내려받기를 할 수 없습니다. 「복사」를 쓰세요.'; return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type: 'application/json'})); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  msg.textContent = '내려받기: ' + name;
+}
+async function copyJson(msg) {
+  const text = JSON.stringify(payload(), null, 1);
+  try { await navigator.clipboard.writeText(text); msg.textContent = '복사됨. 대화에 붙여 넣으세요.'; }
+  catch (e) { const pre = $('#json'); const r = document.createRange(); r.selectNodeContents(pre); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); msg.textContent = '자동 복사가 막혀 있습니다. 아래 글을 길게 눌러 복사하세요.'; }
+}
+function renderExport(root) {
+  const c = el('div', 'card');
+  c.appendChild(el('h2', null, `내보낼 편집 ${ops.length}건`));
+  c.appendChild(el('p', 'small', '여기서 고친 것은 기록으로 쌓였다가, 프로젝트 마무리(마지막 업데이트) 때 반영됩니다. 반영 대기 편집은 이미 쌓여 있으므로 다시 내보내지 않습니다.'));
+  const nt = el('textarea'); nt.placeholder = '이번 편집 묶음 메모 (선택)'; nt.value = note; nt.id = 'note'; nt.oninput = () => { note = nt.value; save(); };
+  c.appendChild(nt);
+  const msg = el('p', 'msg small'); msg.id = 'xmsg';
+  const r = el('div', 'row');
+  r.appendChild(button('저장 (게시 페이지)', () => submit(msg), 'pri'));
+  r.appendChild(button('JSON 내려받기', () => download(msg)));
+  r.appendChild(button('복사', () => copyJson(msg)));
+  c.appendChild(r); c.appendChild(msg);
+  const pre = el('pre'); pre.id = 'json'; pre.textContent = JSON.stringify(payload(), null, 1); c.appendChild(pre);
+  root.appendChild(c);
+}
+function render() {
+  $('#title').textContent = SPEC.title || '구조 편집';
+  document.title = SPEC.title || '구조 편집';
+  for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-current', b.dataset.view === ui.view ? 'true' : 'false');
+  $('#tab-changes').textContent = `바뀐 것 (${ops.length}${PENDING.length ? ' + 대기 ' + PENDING.length : ''})`;
+  const root = $('#main'); root.innerHTML = '';
+  if (problems.length) root.appendChild(el('p', 'small ng', `적용되지 않는 편집 ${problems.length}건 — 「바뀐 것」에서 확인하세요.`));
+  ({tree: renderTree, preview: renderPreview, changes: renderChanges, export: renderExport}[ui.view] || renderTree)(root);
+}
+for (const b of document.querySelectorAll('.tab')) b.onclick = () => { ui.view = b.dataset.view; ui.msg = ''; render(); };
+render();
+
+// 테스트용 훅
+window.PE_EDIT = {get ops() { return ops; }, get pending() { return PENDING; }, get problems() { return problems; }, get ui() { return ui; },
+  model: () => clone(model), base: () => clone(BASE), replay: (o) => { const r = replay(BASE, o); return {m: r.m, problems: r.problems.map(p => ({k: p.k, msg: p.msg}))}; },
+  setField, setWhen, add, move, step, undo, payload, describe, condText: c => condText(c), newId, render,
+  view(v) { ui.view = v; render(); }, select(node) { ui.sel = keyOf(node); render(); }, preview(did, v) { pv[did] = v; render(); }, previewAnswers: () => clone(pv),
+  shown: { dim: id => dimShown(find(model.dims.dimensions, id)), value: (dim, id) => whenOk(find((find(model.dims.dimensions, dim) || {}).values, id)), aspect: id => aspShown(find(model.qs.aspects, id)) }};
+})();
+</script>

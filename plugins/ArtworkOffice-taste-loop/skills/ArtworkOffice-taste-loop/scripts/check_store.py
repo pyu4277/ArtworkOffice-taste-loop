@@ -44,7 +44,20 @@ def load_all():
             data[name] = json.loads(path.read_text(encoding='utf-8'))
         except Exception as e:  # noqa: BLE001
             errors.append(f'{path.name}: JSON을 읽을 수 없음 — {e}')
+    if 'dimensions' in data:
+        import upgrade_store as UP
+        data['dimensions'], old = UP.migrate_dims(data['dimensions'])
+        if old:
+            UPGRADE_NOTE.append('dimensions.json 이 옛 구조(파일형식 차원 없음)입니다 — upgrade_store.py 로 올리세요(검증은 새 구조로 했습니다)')
+    if 'questions' in data:
+        import upgrade_store as UP
+        data['questions'], oldq = UP.migrate_qs(data['questions'])
+        if oldq:
+            UPGRADE_NOTE.append('questions.json 이 옛 구조입니다 — upgrade_store.py 로 올리세요(검증은 새 구조로 했습니다)')
     return data, errors
+
+
+UPGRADE_NOTE = []
 
 
 def check_dimensions(dims, errors):
@@ -63,14 +76,7 @@ def check_dimensions(dims, errors):
                 errors.append(f'dimensions[{did}]: 값 id 중복 {v.get("id")!r}')
             vids.add(v.get('id'))
         values[did] = vids
-    for d in dims.get('dimensions', []):
-        for k, vs in (d.get('ask_when') or {}).items():
-            if k not in values:
-                errors.append(f'dimensions[{d["id"]}].ask_when: 차원 {k!r} 없음')
-            else:
-                for v in vs:
-                    if v not in values[k]:
-                        errors.append(f'dimensions[{d["id"]}].ask_when: {k}에 값 {v!r} 없음')
+    # 보이는 조건(when·ask_when·applies_when)은 structure.check_conditions 가 검사한다(main)
     for s in dims.get('screens', []):
         for did in s.get('dimensions', []):
             if did not in ids:
@@ -102,13 +108,6 @@ def check_questions(qs, dim_values, errors):
             oids.add(o.get('id'))
         if a.get('type') in ('single', 'multi') and not oids:
             errors.append(f'questions[{aid}]: single/multi인데 선택지가 없음')
-        for k, vs in (a.get('applies_when') or {}).items():
-            if k not in dim_values:
-                errors.append(f'questions[{aid}].applies_when: 차원 {k!r} 없음')
-            else:
-                for v in vs:
-                    if v not in dim_values[k]:
-                        errors.append(f'questions[{aid}].applies_when: {k}에 값 {v!r} 없음')
         aspects[aid] = a
     for r in qs.get('review_reasons', []):
         if r.get('aspect') and r['aspect'] not in aspects:
@@ -336,12 +335,26 @@ def main(argv):
         dim_values = check_dimensions(data['dimensions'], errors)
         extra = set(data['dimensions'].get('extra_scope_keys', []))
         subs, aspects = check_questions(data['questions'], dim_values, errors)
+        import structure as SX
+        ce, cw = SX.check_conditions(data['dimensions'], data['questions'])
+        errors += ce
+        warnings += cw
+        led = ST.path('knowledge') / 'structure_edits.json'
+        if led.exists():
+            try:
+                bs = json.loads(led.read_text(encoding='utf-8')).get('batches', [])
+                pend = [b for b in bs if b.get('status') == 'pending']
+                if pend:
+                    info.append(f"반영 대기 구조 편집 {len(pend)}묶음 · {sum(len(b.get('ops', [])) for b in pend)}건 (마무리 때 structure_edits.py apply)")
+            except Exception as e:  # noqa: BLE001
+                errors.append(f'knowledge/structure_edits.json 읽기 실패: {e}')
         entries, info = check_preferences(data['preferences'], dim_values, extra, subs, aspects, errors, warnings)
         choices = check_choices(aspects, errors)
         if not errors and '--no-summary' not in argv and ST.STORE_WRITABLE:
             changed = write_summary(data, subs, entries, info, choices)
             info.append(f'00_취향_요약.md {"갱신함" if changed else "변경 없음"}')
     info.insert(0, f'데이터: {ST.STORE} ({ST.STORE_HOW})')
+    warnings.extend(UPGRADE_NOTE)
     if as_json:
         print(json.dumps({'errors': errors, 'warnings': warnings, 'info': info, 'entries': len(entries), 'choices': len(choices) if not errors else None}, ensure_ascii=False, indent=1))
     else:

@@ -45,6 +45,8 @@ python3 <스킬 폴더>/scripts/init_store.py
 - `--personal`: `~/.claude/ArtworkOffice-taste-loop-data/` (여러 프로젝트에서 같은 취향)
 - 이미 있는 파일은 덮어쓰지 않습니다. 스킬 폴더(특히 플러그인 설치 폴더)에는 데이터를 쓰지 않습니다. 업데이트해도 내 데이터는 그대로입니다.
 - 지금 어느 데이터를 쓰는지: `python3 <스킬 폴더>/scripts/store.py`
+- **스킬을 업데이트한 뒤**: `python3 <스킬 폴더>/scripts/upgrade_store.py` — 내 데이터 폴더를 새 구조로 올린다(기록은 지우지 않음). 그다음 인터뷰 페이지를 다시 만든다.
+- **인터뷰 구조를 직접 고치기**(목차 → 질문 → 선택지, 「이걸 골랐을 때만 보임」 조건까지): `python3 <스킬 폴더>/scripts/build_interview.py --lecture <작업폴더> --mode edit --out <편집.html>` → 브라우저에서 고치고 JSON 내보내기 → `python3 <스킬 폴더>/scripts/structure_edits.py add <JSON>`(반영 대기로 쌓임, `list`로 기록 보기) → 프로젝트 마무리 때 `structure_edits.py preview` 확인 뒤 `apply --yes`.
 - Windows: `python3`가 없거나 마이크로소프트 스토어 바로가기(실행하면 파이썬 대신 오류로 끝남)면 위 명령의 `python3`를 `python`으로 바꿉니다. 세션 시작 훅은 실제로 실행되는 파이썬을 스스로 골라 UTF-8 모드로 돌립니다(1.0.1부터).
 - 프로젝트마다 다른 절차(규칙 파일, 파일 이름 규칙, 공유본 만드는 명령, 쓰는 도구, 커밋 형식)는 데이터 폴더에 `PROJECT.md`로 적으면 스킬이 시작할 때 읽고 따릅니다.
 
