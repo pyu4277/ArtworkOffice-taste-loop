@@ -1,0 +1,34 @@
+<style>
+.vmsn-box{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;scroll-behavior:smooth;scrollbar-width:none}
+.vmsn-box::-webkit-scrollbar{display:none}
+.vmsn-p{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:4px;padding:0 40px;border-bottom:1px dashed var(--line)}
+.vmsn-p:nth-child(odd){background:var(--soft)}
+.vmsn-p:nth-child(even){background:var(--bar)}
+.vmsn-n{font-size:11px;font-weight:700;color:var(--acc);border:1.5px solid var(--acc);border-radius:999px;padding:0 8px}
+.vmsn-p h3{margin:0;font-size:18px}
+.vmsn-p p{margin:0;color:var(--muted);font-size:11px}
+.vmsn-dots{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
+.vmsn-dots button{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:var(--line)}
+.vmsn-dots button.vmsn-cur{background:var(--acc);height:18px;border-radius:4px}
+.vmsn-next{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:1px 10px;font-size:11px}
+</style>
+<div class="vmsn-box" id="vmsn-box">
+  <section class="vmsn-p"><span class="vmsn-n">1 / 4</span><h3>1장 원리</h3><p>한 화면에 한 가지씩</p></section>
+  <section class="vmsn-p"><span class="vmsn-n">2 / 4</span><h3>2장 실습</h3><p>스크롤하면 딱 다음 화면에 멈춥니다</p></section>
+  <section class="vmsn-p"><span class="vmsn-n">3 / 4</span><h3>3장 응용</h3><p>중간에 걸쳐 멈추지 않습니다</p></section>
+  <section class="vmsn-p"><span class="vmsn-n">4 / 4</span><h3>정리</h3><p>마지막 화면입니다</p></section>
+</div>
+<div class="vmsn-dots" id="vmsn-dots"></div>
+<button class="vmsn-next" id="vmsn-next">↓ 다음 화면</button>
+<span class="hint-chip" style="top:8px;bottom:auto">스크롤·단추 눌러 보세요</span>
+<script>
+(function(){
+  var b=document.getElementById('vmsn-box'),ps=b.querySelectorAll('.vmsn-p'),dw=document.getElementById('vmsn-dots'),nx=document.getElementById('vmsn-next'),ds=[],cur=0;
+  function to(k){var y=k*b.clientHeight;if(b.scrollTo)b.scrollTo({top:y,behavior:'smooth'});else b.scrollTop=y;mark(k)}
+  function mark(k){cur=k;ds.forEach(function(d,j){d.classList.toggle('vmsn-cur',j===k)});nx.textContent=k===ps.length-1?'↑ 처음으로':'↓ 다음 화면'}
+  for(var k=0;k<ps.length;k++){(function(k){var d=document.createElement('button');d.setAttribute('aria-label',(k+1)+'번째 화면');d.onclick=function(){to(k)};dw.appendChild(d);ds.push(d)})(k)}
+  b.addEventListener('scroll',function(){var h=b.clientHeight;if(h)mark(Math.round(b.scrollTop/h))});
+  nx.onclick=function(){to(cur===ps.length-1?0:cur+1)};
+  mark(0);
+})();
+</script>

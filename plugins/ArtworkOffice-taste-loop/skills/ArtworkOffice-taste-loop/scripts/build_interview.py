@@ -35,6 +35,7 @@ import sys
 sys.dont_write_bytecode = True  # 설치 폴더(플러그인 캐시)에 __pycache__ 를 만들지 않는다
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import store as ST  # noqa: E402  엔진과 데이터 분리
+import demos as DM  # noqa: E402
 SKILL = ST.ENGINE
 REPO = ST.project_root()
 TEMPLATE = SKILL / 'GUI-Interview.html'
@@ -225,6 +226,7 @@ def main(argv):
         'dimensions': {'screens': dims['screens'], 'dimensions': dims['dimensions']},
         'defaults': {'dimensions': {}},
         'store': store,
+        'demos': DM.for_spec(),  # 선택지 예시(움직이는 HTML) — 내 예시가 엔진 기본을 이긴다
     }
     if a['mode'] == 'interview':
         like = a.get('like') or a['lecture']

@@ -1,0 +1,32 @@
+<style>
+.mta-root{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:.32em;padding:4% 5%;font-size:min(3.5vw,5.6vh)}
+.mta-h{font-weight:700;font-size:.9em;margin-bottom:.15em}
+.mta-row{display:flex;align-items:center;gap:.6em;padding:.22em .5em;border-radius:.3em;border-left:.18em solid transparent;opacity:0;transform:translateY(.4em);transition:opacity .45s,transform .45s,background .45s,border-color .45s}
+.mta-n{flex:0 0 38%;font-size:.7em;color:var(--muted);line-height:1.3}
+.mta-n b{color:var(--acc);margin-right:.3em}
+.mta-f{font-family:"Cambria Math","Times New Roman",serif;font-size:1.18em;line-height:1.1;white-space:nowrap;display:flex;align-items:center;gap:.2em}
+.mta-f i{font-style:italic}
+.mta-v{font-weight:700;font-style:italic}
+.mta-frac{display:inline-flex;flex-direction:column;align-items:center;font-size:.8em;vertical-align:middle}
+.mta-frac>span:first-child{border-bottom:.07em solid currentColor;padding:0 .2em .05em}
+.mta-frac>span:last-child{padding:.05em .2em 0}
+.mta-k1 .mta-r1,.mta-k2 .mta-r2,.mta-k3 .mta-r3,.mta-k4 .mta-r4{opacity:1;transform:none;background:var(--soft);border-color:var(--acc)}
+.mta-k2 .mta-r1,.mta-k3 .mta-r2,.mta-k4 .mta-r3{opacity:.55;background:transparent;border-color:transparent}
+.mta-k3 .mta-r1,.mta-k4 .mta-r1,.mta-k4 .mta-r2{opacity:.55;background:transparent;border-color:transparent}
+.mta-out .mta-row{opacity:0}
+.mta-rs *{transition:none!important}
+</style>
+<div class="mta-root">
+  <div class="mta-h">곧은 전선 둘레의 자기장 구하기</div>
+  <div class="mta-row mta-r1"><div class="mta-n"><b>1</b>둘레를 따라 한 바퀴 모으면</div><div class="mta-f">∮ <span class="mta-v">B</span>·d<span class="mta-v">l</span> = μ<sub>0</sub><i>I</i></div></div>
+  <div class="mta-row mta-r2"><div class="mta-n"><b>2</b>원 둘레 길이는 2π<i>r</i></div><div class="mta-f"><i>B</i> · 2π<i>r</i> = μ<sub>0</sub><i>I</i></div></div>
+  <div class="mta-row mta-r3"><div class="mta-n"><b>3</b><i>B</i>만 남기면</div><div class="mta-f"><i>B</i> = <span class="mta-frac"><span>μ<sub>0</sub><i>I</i></span><span>2π<i>r</i></span></span></div></div>
+  <div class="mta-row mta-r4"><div class="mta-n"><b>4</b>10 A, 1 cm를 넣으면</div><div class="mta-f"><i>B</i> = 2 × 10<sup>−4</sup> T</div></div>
+</div>
+<script>
+(function(P,N,T){var R=document.querySelector('.'+P+'root');if(!R)return;var C=R.classList,i=0;
+function all(f){for(var j=1;j<=N;j++)C[f](P+'k'+j)}
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){all('add');return}
+function step(){setTimeout(function(){if(i<N){i++;C.add(P+'k'+i);step()}else{C.add(P+'out');setTimeout(function(){C.add(P+'rs');all('remove');C.remove(P+'out');void R.offsetWidth;C.remove(P+'rs');i=0;step()},550)}},T[i])}
+step()})('mta-',4,[400,1500,1500,1500,2600]);
+</script>

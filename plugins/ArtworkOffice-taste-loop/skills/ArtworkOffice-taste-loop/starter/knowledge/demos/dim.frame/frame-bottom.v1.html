@@ -1,0 +1,40 @@
+<style>
+.frb-wrap{display:flex;flex-direction:column;height:100%}
+.frb-body{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
+.frb-body h3{margin:0 0 4px;font-size:15px}
+.frb-body p{margin:0 0 4px;color:var(--muted);font-size:11px}
+.frb-bar{flex:none;display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bar);border-top:1px solid var(--line)}
+.frb-bar button{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:2px 9px;font-size:11px;white-space:nowrap}
+.frb-bar button:disabled{opacity:.35;cursor:default}
+.frb-next{background:var(--acc)!important;color:var(--bg)!important;border-color:var(--acc)!important;font-weight:700}
+.frb-prog{flex:1;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.frb-prog i{display:block;height:100%;background:var(--acc);transition:width .3s}
+.frb-num{font-size:11px;font-weight:700;white-space:nowrap}
+</style>
+<div class="frb-wrap">
+  <main class="frb-body" id="frb-body"></main>
+  <div class="frb-bar">
+    <button id="frb-prev">◀ 이전</button>
+    <div class="frb-prog"><i id="frb-fill"></i></div>
+    <span class="frb-num" id="frb-num">1 / 5</span>
+    <button class="frb-next" id="frb-next">다음 ▶</button>
+  </div>
+</div>
+<span class="hint-chip" style="top:8px;bottom:auto">아래 막대를 눌러 보세요</span>
+<script>
+(function(){
+  var P=[['들어가며','오늘 볼 내용',[86,60]],['1장 원리','기본이 되는 생각',[92,80,66]],['2장 실습','직접 해 보기',[78,90,54]],['3장 응용','다른 곳에 써 보기',[84,70]],['정리','핵심 다시 보기',[64,50]]];
+  var i=0,g=function(id){return document.getElementById(id)},body=g('frb-body'),pv=g('frb-prev'),nx=g('frb-next');
+  function go(k){
+    i=Math.max(0,Math.min(P.length-1,k));
+    var h='<div class="fade"><h3>'+P[i][0]+'</h3><p>'+P[i][1]+'</p>';
+    P[i][2].forEach(function(x){h+='<div class="ln" style="width:'+x+'%"></div>'});
+    body.innerHTML=h+'</div>';
+    g('frb-num').textContent=(i+1)+' / '+P.length;g('frb-fill').style.width=((i+1)/P.length*100)+'%';
+    pv.disabled=i===0;nx.disabled=i===P.length-1;
+  }
+  pv.onclick=function(){go(i-1)};nx.onclick=function(){go(i+1)};
+  document.addEventListener('keydown',function(e){if(e.key==='ArrowRight')go(i+1);else if(e.key==='ArrowLeft')go(i-1)});
+  go(0);
+})();
+</script>

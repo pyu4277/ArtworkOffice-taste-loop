@@ -1,0 +1,41 @@
+<style>
+.f7-w{position:absolute;inset:0;padding:7px 10px 26px;display:flex;flex-direction:column;gap:4px}
+.f7-cap{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.f7-cap b{color:var(--acc);font-variant-numeric:tabular-nums}
+.f7-cap button{margin-left:auto;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:0 8px;font-size:11px}
+.f7-st{flex:1;position:relative;min-height:0;background:repeating-linear-gradient(90deg,transparent 0 9px,var(--bar) 9px 10px)}
+.f7-win{position:absolute;left:0;top:0;bottom:0;width:96%;border:1.5px solid var(--fg);border-radius:8px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+.f7-auto .f7-win{animation:f7-sz 7s ease-in-out infinite}
+@keyframes f7-sz{0%,15%{width:96%}50%,65%{width:48%}100%{width:96%}}
+.f7-top{flex:none;height:14px;background:var(--bar);display:flex;align-items:center;gap:3px;padding:0 6px;border-bottom:1px solid var(--line)}
+.f7-top i{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.6}
+.f7-top s{flex:1;height:6px;border-radius:3px;background:var(--line);margin-left:6px;max-width:60%}
+.f7-c{flex:1;padding:5px 18px 5px 8px;overflow:hidden}
+.f7-hero{height:26%;min-height:16px;border-radius:5px;background:var(--soft);margin-bottom:4px}
+.f7-c p{margin:0;font-size:11px;line-height:1.45}
+.f7-cards{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.f7-cards i{flex:1 1 50px;height:14px;border-radius:4px;background:var(--bar);border:1px solid var(--line)}
+.f7-hd{position:absolute;right:2px;top:50%;width:10px;height:34px;margin-top:-17px;border-radius:5px;background:var(--acc);cursor:ew-resize;touch-action:none;display:grid;place-items:center;color:var(--bg);font-size:8px}
+</style>
+<div class="f7-w f7-auto" id="f7-w">
+<div class="f7-cap">창 너비 <b id="f7-n">—</b><span>· 내용이 창에 맞춰 늘고 줄어듦</span><button type="button" id="f7-a">자동</button></div>
+<div class="f7-st" id="f7-st"><div class="f7-win" id="f7-win">
+<div class="f7-top"><i></i><i></i><i></i><s></s></div>
+<div class="f7-c"><div class="f7-hero"></div><p>같은 글이 창 너비에 맞춰 줄을 바꾸며 빈틈없이 채워집니다. 정해진 쪽 크기가 없습니다.</p><div class="f7-cards"><i></i><i></i><i></i><i></i></div></div>
+<div class="f7-hd" id="f7-hd">⋮</div>
+</div></div>
+</div>
+<span class="hint-chip">손잡이를 끌어 보세요</span>
+<script>
+(function(){
+var w=document.getElementById('f7-w'),st=document.getElementById('f7-st'),win=document.getElementById('f7-win'),hd=document.getElementById('f7-hd'),n=document.getElementById('f7-n'),drag=false;
+function lab(){var sw=st.offsetWidth;n.textContent=sw?Math.round(win.offsetWidth/sw*100)+'%':'—';}
+function tick(){lab();setTimeout(tick,120);}
+hd.addEventListener('pointerdown',function(e){drag=true;w.classList.remove('f7-auto');if(hd.setPointerCapture&&e.pointerId!=null){try{hd.setPointerCapture(e.pointerId);}catch(x){}}e.preventDefault();});
+hd.addEventListener('pointermove',function(e){if(!drag)return;var r=st.getBoundingClientRect();if(!r.width)return;var p=(e.clientX-r.left)/r.width*100;win.style.width=Math.max(30,Math.min(100,p))+'%';lab();});
+function up(){drag=false;}
+hd.addEventListener('pointerup',up);hd.addEventListener('pointercancel',up);
+document.getElementById('f7-a').addEventListener('click',function(){win.style.width='';w.classList.add('f7-auto');});
+tick();
+})();
+</script>

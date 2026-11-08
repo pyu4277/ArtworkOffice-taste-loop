@@ -1,0 +1,54 @@
+<style>
+.dnd-root{position:absolute;inset:0;display:flex;flex-direction:column;gap:2.5%;padding:3% 3.5% 2.5%;font-size:min(3.5vw,5.6vh)}
+.dnd-h{display:flex;align-items:baseline;gap:.6em}
+.dnd-h b{font-size:.92em;letter-spacing:-.02em}
+.dnd-h span{font-size:.56em;color:var(--muted)}
+.dnd-g{flex:1;display:grid;grid-template-columns:30% 27% 1fr;gap:2.5%;min-height:0}
+.dnd-col{display:flex;flex-direction:column;gap:5%;min-height:0}
+.dnd-box{flex:1;border:1px solid var(--line);border-radius:.3em;background:var(--bar);padding:2% 3%;position:relative;min-height:0}
+.dnd-box svg{width:100%;height:100%}
+.dnd-box text{font-family:var(--font);font-size:9px;fill:var(--muted)}
+.dnd-tb{width:100%;border-collapse:collapse;font-size:.52em;line-height:1.25}
+.dnd-tb th,.dnd-tb td{border-bottom:1px solid var(--line);padding:.2em .3em;text-align:right}
+.dnd-tb th{color:var(--muted);font-weight:600}
+.dnd-tb td:first-child,.dnd-tb th:first-child{text-align:left}
+.dnd-ul{margin:0;padding:0 0 0 1em;font-size:.54em;line-height:1.4;display:flex;flex-direction:column;gap:.15em}
+.dnd-ul b{color:var(--acc)}
+.dnd-ft{font-size:.46em;color:var(--muted);border-top:1px solid var(--line);padding-top:.3em}
+.dnd-i{opacity:0;transform:translateY(.3em);transition:opacity .35s,transform .35s}
+.dnd-k1 .dnd-i{opacity:1;transform:none}
+.dnd-i:nth-child(2){transition-delay:.12s}.dnd-i:nth-child(3){transition-delay:.24s}.dnd-i:nth-child(4){transition-delay:.36s}.dnd-i:nth-child(5){transition-delay:.48s}.dnd-i:nth-child(6){transition-delay:.6s}
+.dnd-out .dnd-g{opacity:0}
+.dnd-g{transition:opacity .45s}
+.dnd-rs *{transition:none!important}
+</style>
+<div class="dnd-root">
+  <div class="dnd-h"><b>곧은 전선 둘레의 자기장 정리</b><span>세기 · 방향 · 측정값 · 주의점</span></div>
+  <div class="dnd-g">
+    <div class="dnd-col">
+      <div class="dnd-box dnd-i"><svg viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true"><path d="M8 4V52H98" fill="none" stroke="var(--muted)" stroke-width="1"/><path d="M14 6Q20 34 36 40T96 48" fill="none" stroke="var(--acc)" stroke-width="2"/><text x="10" y="12">세기</text></svg></div>
+      <div class="dnd-box dnd-i"><svg viewBox="0 0 100 60" aria-hidden="true"><circle cx="50" cy="30" r="10" fill="none" stroke="var(--acc)" stroke-width="2"/><circle cx="50" cy="30" r="20" fill="none" stroke="var(--acc)" stroke-width="1.3" opacity=".6"/><circle cx="50" cy="30" r="28" fill="none" stroke="var(--acc)" stroke-width=".8" opacity=".35"/><circle cx="50" cy="30" r="3.5" fill="#c8743a"/><text x="4" y="10">방향</text></svg></div>
+    </div>
+    <div class="dnd-box dnd-i" style="background:transparent">
+      <table class="dnd-tb"><tr><th>거리</th><th>세기</th></tr><tr><td>1 cm</td><td>200 μT</td></tr><tr><td>2 cm</td><td>100 μT</td></tr><tr><td>3 cm</td><td>66.7 μT</td></tr><tr><td>4 cm</td><td>50 μT</td></tr><tr><td>5 cm</td><td>40 μT</td></tr></table>
+    </div>
+    <div class="dnd-col">
+      <ul class="dnd-ul dnd-i">
+        <li>전류가 흐르면 둘레에 <b>둥근 자기장</b></li>
+        <li>멀어질수록 약해짐 (거리에 반비례)</li>
+        <li>전류가 2배면 세기도 2배</li>
+        <li>방향은 오른손으로 감아쥐어 정함</li>
+        <li>나침반 바늘이 고리를 따라 놓임</li>
+        <li>지구 자기장(수십 μT)과 겹쳐 보임</li>
+      </ul>
+      <div class="dnd-ft dnd-i">표의 값: 곧은 전선, 전류 10 A일 때 계산값</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(P,N,T){var R=document.querySelector('.'+P+'root');if(!R)return;var C=R.classList,i=0;
+function all(f){for(var j=1;j<=N;j++)C[f](P+'k'+j)}
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){all('add');return}
+function step(){setTimeout(function(){if(i<N){i++;C.add(P+'k'+i);step()}else{C.add(P+'out');setTimeout(function(){C.add(P+'rs');all('remove');C.remove(P+'out');void R.offsetWidth;C.remove(P+'rs');i=0;step()},550)}},T[i])}
+step()})('dnd-',1,[400,4600]);
+</script>

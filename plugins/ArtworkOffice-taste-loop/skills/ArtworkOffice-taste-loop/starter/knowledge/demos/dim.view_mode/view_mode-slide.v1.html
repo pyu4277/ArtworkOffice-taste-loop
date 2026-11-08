@@ -1,0 +1,50 @@
+<style>
+.vmsl-wrap{display:flex;flex-direction:column;height:100%;padding:8px 8px 6px;gap:5px;background:var(--bar)}
+.vmsl-view{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:6px;border:1px solid var(--line);background:var(--bg);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.vmsl-track{display:flex;width:400%;height:100%;transition:transform .4s ease}
+.vmsl-s{width:25%;height:100%;padding:10px 34px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.vmsl-s h3{margin:0;font-size:15px}
+.vmsl-s p{margin:0;color:var(--muted);font-size:11px}
+.vmsl-cover{align-items:center;text-align:center;background:var(--soft)}
+.vmsl-cover h3{font-size:20px;color:var(--acc)}
+.vmsl-s ul{margin:0;padding-left:16px;font-size:11px}
+.vmsl-s svg{width:70%;max-height:55%;align-self:center}
+.vmsl-nav{position:absolute;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:15px;line-height:1;padding:0;z-index:2}
+.vmsl-nav:disabled{opacity:.3;cursor:default}
+.vmsl-prev{left:5px}.vmsl-next{right:5px}
+.vmsl-foot{display:flex;align-items:center;gap:5px;flex:none;font-size:11px;color:var(--muted)}
+.vmsl-dot{width:7px;height:7px;border-radius:50%;background:var(--line);border:0;padding:0}
+.vmsl-dot.vmsl-cur{background:var(--acc);width:16px;border-radius:4px}
+.vmsl-num{margin-left:auto;font-weight:700;color:var(--fg)}
+</style>
+<div class="vmsl-wrap">
+  <div class="vmsl-view">
+    <div class="vmsl-track" id="vmsl-track">
+      <section class="vmsl-s vmsl-cover"><h3>1장 원리</h3><p>한 장씩 넘기며 봅니다</p></section>
+      <section class="vmsl-s"><h3>핵심 하나</h3>
+        <svg viewBox="0 0 200 60"><rect x="6" y="14" width="56" height="32" rx="6" fill="var(--soft)" stroke="var(--acc)"/><rect x="138" y="14" width="56" height="32" rx="6" fill="var(--soft)" stroke="var(--acc)"/><path d="M66 30 H130" stroke="var(--acc)" stroke-width="3"/><path d="M126 24 L136 30 L126 36 z" fill="var(--acc)"/><text x="34" y="34" text-anchor="middle" font-size="11" fill="currentColor">원인</text><text x="166" y="34" text-anchor="middle" font-size="11" fill="currentColor">결과</text></svg>
+      </section>
+      <section class="vmsl-s"><h3>2장 실습</h3><ul><li>준비물 확인하기</li><li>순서대로 따라 하기</li><li>결과 적어 두기</li></ul></section>
+      <section class="vmsl-s"><h3>정리</h3><div class="ln" style="width:80%"></div><div class="ln" style="width:62%"></div><div class="ln" style="width:70%"></div></section>
+    </div>
+    <button class="vmsl-nav vmsl-prev" id="vmsl-prev" aria-label="이전 장">‹</button>
+    <button class="vmsl-nav vmsl-next" id="vmsl-next" aria-label="다음 장">›</button>
+  </div>
+  <div class="vmsl-foot" id="vmsl-foot"><span class="vmsl-num" id="vmsl-num">1 / 4</span></div>
+</div>
+<span class="hint-chip" style="top:12px;bottom:auto;right:12px">‹ › 눌러 넘기기</span>
+<script>
+(function(){
+  var n=4,i=0,g=function(id){return document.getElementById(id)};
+  var tr=g('vmsl-track'),num=g('vmsl-num'),foot=g('vmsl-foot'),pv=g('vmsl-prev'),nx=g('vmsl-next'),dots=[];
+  for(var k=0;k<n;k++){(function(k){var d=document.createElement('button');d.className='vmsl-dot';d.setAttribute('aria-label',(k+1)+'번째 장');d.onclick=function(){go(k)};foot.insertBefore(d,num);dots.push(d)})(k)}
+  function go(k){
+    i=Math.max(0,Math.min(n-1,k));tr.style.transform='translateX('+(-i*25)+'%)';
+    num.textContent=(i+1)+' / '+n;pv.disabled=i===0;nx.disabled=i===n-1;
+    dots.forEach(function(d,j){d.classList.toggle('vmsl-cur',j===i)});
+  }
+  pv.onclick=function(){go(i-1)};nx.onclick=function(){go(i+1)};
+  document.addEventListener('keydown',function(e){if(e.key==='ArrowRight')go(i+1);else if(e.key==='ArrowLeft')go(i-1)});
+  go(0);
+})();
+</script>

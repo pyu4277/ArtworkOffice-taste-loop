@@ -133,6 +133,19 @@ def main(argv):
     today = datetime.date.today().isoformat()
     # 숨은 질문·선택지의 답은 뺀다(인터뷰 페이지의 cleanAnswers 와 같은 규칙)
     dv, ans['aspects'], ans['project'] = SX.clean_answers(dims, qs, dict(ans, dimensions=UP.migrate_answers_dims(ans.get('dimensions') or {})))
+    # 질문별 기타 의견('dim:<id>'·'pq:<id>') — 숨은 질문의 의견은 뺀다
+    _dby = {d['id']: d for d in dims.get('dimensions', [])}
+    _pqby = {q['id']: q for q in qs.get('project_questions', [])}
+    opinions = {}
+    for k, v in (ans.get('opinions') or {}).items():
+        kind, _, i = k.partition(':')
+        if not str(v or '').strip():
+            continue
+        if kind == 'dim' and i in _dby and not SX.dim_shown(_dby[i], dv, dims.get('screens', [])):
+            continue
+        if kind == 'pq' and i in _pqby and not SX.when_ok(_pqby[i], dv):
+            continue
+        opinions[k] = ' '.join(str(v).split())
 
     # 적용 취향 계산
     project = {k: (v if isinstance(v, list) else [v]) for k, v in dv.items() if not k.endswith('_other') and not k.endswith('_primary') and v not in (None, '', [])}
@@ -149,17 +162,19 @@ def main(argv):
         L += ['## 기본 양식 (사용자가 인터뷰에서 끌어다 놓은 지난 프로젝트)', '',
               f'- **{bp.get("title", bp.get("id"))}** (`{src}`) — 차원 {bp.get("dims_set", "?")}개 · 취향 {bp.get("aspects_set", "?")}개를 이 기록대로 맞춤 ({str(bp.get("applied_at", ""))[:10]})',
               '- 뜻: 사용자는 이 프로젝트의 설정을 **기본 셋팅**으로 원한다. 그 기록의 차원 값·적용 항목·결정·결과를 출발점으로 삼고, 아래 표에서 달라진 답만 차이로 다룬다. 추측으로 바꾸지 않는다.', '']
-    L += ['## 사양 (차원 값 — 인터뷰 1부)', '', '| 차원 | 값 | 참고 |', '|---|---|---|']
+    L += ['## 사양 (차원 값 — 인터뷰 1부)', '', '| 차원 | 값 | 참고·기타 의견 |', '|---|---|---|']
     for d in dims['dimensions']:
         v = dv.get(d['id'])
-        if v in (None, '', []):
+        if v in (None, '', []) and not opinions.get('dim:' + d['id']):
             continue
-        txt = label_dim(dims, d['id'], v)
+        txt = label_dim(dims, d['id'], v) if v not in (None, '', []) else '(답 없음)'
         if dv.get(d['id'] + '_other'):
             txt += f' (기타: {dv[d["id"] + "_other"]})'
         if dv.get(d['id'] + '_primary'):
             txt += f' — 주 대상: {label_dim(dims, d["id"], dv[d["id"] + "_primary"])}'
-        L.append(f'| {d["name"]} | {txt} | {ref_text(refs.get("dim:" + d["id"]))} |')
+        op = opinions.get('dim:' + d['id'])
+        cell = ' · '.join(x for x in (ref_text(refs.get('dim:' + d['id'])), ('의견: ' + op.replace('|', '¦')) if op else '') if x)
+        L.append(f'| {d["name"]} | {txt} | {cell} |')
     L += ['', '## 실행 모드 (스킬 2절)', '', f'- {label_dim(dims, "exec_mode", dv.get("exec_mode", "cloud"))}'
           + (f' · 함께 쓸 에이전트: {label_dim(dims, "other_agents", dv.get("other_agents"))}' if dv.get('other_agents') else '')]
     # 환경 점검
@@ -238,7 +253,7 @@ def main(argv):
         if q.get('options'):
             lab = {o['id']: o['label'] for o in q['options']}
             v = ', '.join(lab.get(x, x) for x in v) if isinstance(v, list) else lab.get(v, v)
-        L.append(f'- {q["text"]}: {v}')
+        L.append(f'- {q["text"]}: {v}' + (f' (기타 의견: {opinions["pq:" + qid]})' if opinions.get('pq:' + qid) else ''))
     rp = pr.get('review_plan') or ['structure', 'first', 'mid', 'final']
     lab = {o['id']: o['label'] for o in pq.get('review_plan', {}).get('options', [])}
     L += ['', '## 검토 일정 (스킬 4절)', ''] + [f'- [ ] {lab.get(x, x)} — 검토 페이지: materials/인터뷰/03_검토_v?.html' for x in rp]

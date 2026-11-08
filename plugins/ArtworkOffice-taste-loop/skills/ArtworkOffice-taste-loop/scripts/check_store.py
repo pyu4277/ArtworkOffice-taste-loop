@@ -339,16 +339,29 @@ def main(argv):
         ce, cw = SX.check_conditions(data['dimensions'], data['questions'])
         errors += ce
         warnings += cw
+        pre_info = []  # check_preferences 가 info 를 새로 만들므로 따로 모았다가 붙인다
+        try:  # 선택지 예시(움직이는 HTML): 내 예시의 파일이 있는지
+            import demos as DM
+            m = DM.merged()
+            mine = [k for k, it in m.items() if it['_origin'] == 'user']
+            for k in mine:
+                it = m[k]
+                if not (pathlib.Path(it['_dir']) / it['file']).exists():
+                    errors.append(f"knowledge/demos: {k} 의 파일 없음 {it['file']}")
+            pre_info.append(f'선택지 예시 {len(m)}개 (내 프로젝트에서 올린 것 {len(mine)}개)')
+        except Exception as e:  # noqa: BLE001
+            warnings.append(f'선택지 예시를 읽지 못함: {e}')
         led = ST.path('knowledge') / 'structure_edits.json'
         if led.exists():
             try:
                 bs = json.loads(led.read_text(encoding='utf-8')).get('batches', [])
                 pend = [b for b in bs if b.get('status') == 'pending']
                 if pend:
-                    info.append(f"반영 대기 구조 편집 {len(pend)}묶음 · {sum(len(b.get('ops', [])) for b in pend)}건 (마무리 때 structure_edits.py apply)")
+                    pre_info.append(f"반영 대기 구조 편집 {len(pend)}묶음 · {sum(len(b.get('ops', [])) for b in pend)}건 (마무리 때 structure_edits.py apply)")
             except Exception as e:  # noqa: BLE001
                 errors.append(f'knowledge/structure_edits.json 읽기 실패: {e}')
         entries, info = check_preferences(data['preferences'], dim_values, extra, subs, aspects, errors, warnings)
+        info += pre_info
         choices = check_choices(aspects, errors)
         if not errors and '--no-summary' not in argv and ST.STORE_WRITABLE:
             changed = write_summary(data, subs, entries, info, choices)

@@ -1,0 +1,35 @@
+<style>
+.nvl-wrap{display:flex;flex-direction:column;height:100%;padding:6px 12px}
+.nvl-h{flex:none;font-weight:700;font-size:12px;padding:0 2px 4px;border-bottom:2px solid var(--fg)}
+.nvl-list{list-style:none;margin:0;padding:0;flex:1;min-height:0}
+.nvl-list button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:2px 4px;font-size:11.5px}
+.nvl-list button:hover{background:var(--bar)}
+.nvl-n{flex:none;width:20px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.nvl-t{flex:1}
+.nvl-s{flex:none;font-size:10px;color:var(--muted)}
+.nvl-list button.nvl-done .nvl-s{color:var(--good)}
+.nvl-list button.nvl-on{background:var(--soft)}
+.nvl-list button.nvl-on .nvl-n,.nvl-list button.nvl-on .nvl-t{color:var(--acc);font-weight:700}
+</style>
+<div class="nvl-wrap">
+  <div class="nvl-h">차례</div>
+  <ul class="nvl-list" id="nvl-list"></ul>
+</div>
+<span class="hint-chip">줄을 눌러 보세요</span>
+<script>
+(function(){
+  var T=['들어가며','1장 원리','2장 실습','3장 응용','확인 문제','정리'],ul=document.getElementById('nvl-list'),bs=[];
+  T.forEach(function(t,k){
+    var li=document.createElement('li'),b=document.createElement('button');
+    b.innerHTML='<span class="nvl-n">'+(k<9?'0':'')+(k+1)+'</span><span class="nvl-t">'+t+'</span><span class="nvl-s"></span>';
+    b.onclick=function(){go(k)};li.appendChild(b);ul.appendChild(li);bs.push(b);
+  });
+  function go(k){
+    bs.forEach(function(b,j){
+      b.classList.toggle('nvl-on',j===k);b.classList.toggle('nvl-done',j<k);
+      b.querySelector('.nvl-s').textContent=j<k?'✓ 봄':j===k?'지금':'';
+    });
+  }
+  go(1);
+})();
+</script>

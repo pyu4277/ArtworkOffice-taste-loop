@@ -1,0 +1,48 @@
+<style>
+.pn-w{position:absolute;inset:0;display:flex;flex-direction:column;padding:10px 12px 8px;gap:7px}
+.pn-s{flex:1;border:1px solid var(--line);border-radius:10px;background:var(--bar);position:relative;padding:12px 14px;overflow:hidden}
+.pn-s h3{margin:0 0 8px;font-size:15px;padding-right:70px}
+.pn-no{position:absolute;right:10px;top:9px;font-size:13px;font-weight:700;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-variant-numeric:tabular-nums}
+.pn-no b{color:var(--acc)}
+.pn-c{display:flex;align-items:center;gap:6px;padding-right:84px}
+.pn-c button{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:2px 10px;font-size:12px}
+.pn-c button:hover{border-color:var(--acc)}
+.pn-dots{display:flex;gap:3px;flex:1;justify-content:center;flex-wrap:wrap}
+.pn-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.pn-dots i.pn-on{background:var(--acc)}
+.pn-bump{animation:pn-b .35s ease}
+@keyframes pn-b{from{transform:scale(1.3)}to{transform:none}}
+.pn-pic{position:absolute;right:14px;bottom:12px;width:32%;height:42%;border-radius:8px;background:var(--soft)}
+</style>
+<div class="pn-w">
+<div class="pn-s">
+<div class="pn-no" id="pn-no"><b id="pn-cur">3</b> / <span id="pn-all">12</span></div>
+<h3 id="pn-tt" class="fade">생활 속 예</h3>
+<div id="pn-lines"></div>
+<div class="pn-pic"></div>
+</div>
+<div class="pn-c">
+<button type="button" id="pn-prev">◀ 이전</button>
+<button type="button" id="pn-next">다음 ▶</button>
+<div class="pn-dots" id="pn-dots"></div>
+</div>
+</div>
+<span class="hint-chip">눌러 보세요</span>
+<script>
+(function(){
+var T=['시작하며','오늘의 질문','생활 속 예','첫 번째 생각','그림으로 보기','한 걸음 더','직접 해 보기','자주 하는 오해','다시 보기','정리','확인 문제','마무리'];
+var i=2,cur=document.getElementById('pn-cur'),tt=document.getElementById('pn-tt'),ls=document.getElementById('pn-lines'),ds=document.getElementById('pn-dots');
+document.getElementById('pn-all').textContent=T.length;
+for(var k=0;k<T.length;k++){ds.appendChild(document.createElement('i'));}
+function show(){
+cur.textContent=i+1;cur.classList.remove('pn-bump');void cur.offsetWidth;cur.classList.add('pn-bump');
+tt.textContent=T[i];tt.classList.remove('fade');void tt.offsetWidth;tt.classList.add('fade');
+var h='';for(var j=0;j<3;j++){h+='<div class="ln" style="width:'+(30+((i*17+j*23)%30))+'%"></div>';}
+ls.innerHTML=h;
+var d=ds.children;for(var m=0;m<d.length;m++){d[m].className=m===i?'pn-on':'';}
+}
+document.getElementById('pn-prev').addEventListener('click',function(){i=(i+T.length-1)%T.length;show();});
+document.getElementById('pn-next').addEventListener('click',function(){i=(i+1)%T.length;show();});
+show();
+})();
+</script>

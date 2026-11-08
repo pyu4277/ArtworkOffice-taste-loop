@@ -79,6 +79,14 @@ const mouse = (w, type, x, y) => new w.MouseEvent(type, {bubbles: true, cancelab
   ok(r.status === 0 && /문제 없음 · 항목 5개 · 선택 기록 1개/.test(r.stdout), '가짜 저장소 검증 통과 (항목 5 · 선택 기록 1)');
 }
 // 1) 빌드·문법
+// 선택지 예시: 데이터 폴더는 엔진 기본 예시를 복사하지 않는다(init_store 와 같게). 「내 예시」로 왼쪽 사이드바 v2 를 올려 본다
+fs.rmSync(path.join(store, 'knowledge', 'demos'), {recursive: true, force: true});
+const demoV2 = path.join(tmp, 'left_v2.html');
+fs.writeFileSync(demoV2, '<style>.v2x{padding:8px}</style><div class="v2x">왼쪽 목차 v2 — 데모 프로젝트에서 만든 모습</div>');
+{
+  const r = spawnSync(PY, [...PYARGS, path.join(HERE, 'demos.py'), 'add', 'dim.frame|left', demoV2, '--from', 'demo_project', '--what', '접기 단추 추가'], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  ok(r.status === 0 && /v2/.test(r.stdout), '내 예시 올리기(demos.py add): 왼쪽 사이드바 → v2' + (r.status ? ': ' + r.stdout + r.stderr : ''));
+}
 const fileA = path.join(tmp, 'out', '01_제작인터뷰.html');
 console.log(build(['--lecture', 'demo', '--mode', 'interview', '--out', fileA]));
 const src = fs.readFileSync(fileA, 'utf8');
@@ -156,6 +164,52 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   ok(!('frame' in pl.dimensions) && !('nav' in pl.dimensions) && PE.state.dimensions.nav === 'tree', '숨은 질문의 답은 제출에서 빠짐(화면에는 남아 다시 고르면 살아남)');
   PE.setDim('file_format', ['pptx']);
   ok(!('view_mode' in PE.payload().dimensions), 'HTML을 빼면 그 목차 안의 답도 제출에서 빠짐');
+  // 기타 의견: 선택지 바로 아래 칸, 참고 끌어다 넣기는 그 아래(카드 맨 끝). 카드와 트리가 같은 값
+  PE.setDim('file_format', ['html']); PE.go(PE.screens.findIndex(s => s.id === 'S1'));
+  const ffCard = cardOf('file_format'), kids = Array.from(ffCard.children);
+  const iOp = kids.findIndex(e => e.matches('textarea.opinion')), iDrop = kids.findIndex(e => e.classList.contains('drop')), iOpts = kids.findIndex(e => e.classList.contains('opts'));
+  ok(iOpts >= 0 && iOp > iOpts && iDrop > iOp && iDrop === kids.length - 1, `질문 카드 순서: 선택지 → 기타 의견 → 참고 칸(맨 끝) (${iOpts},${iOp},${iDrop}/${kids.length})`);
+  const op = ffCard.querySelector('textarea.opinion'); op.value = 'HTML은 발표용, PPT는 배포용'; op.dispatchEvent(new w.Event('input', {bubbles: true}));
+  ok(PE.state.opinions['dim:file_format'] === 'HTML은 발표용, PPT는 배포용' && PE.payload().opinions['dim:file_format'] === 'HTML은 발표용, PPT는 배포용', '기타 의견 → 답·제출 JSON(opinions)');
+  PE.tree.open('part1'); PE.tree.open('scr:S1'); PE.tree.detail('dim:file_format');
+  const tOp = d.querySelector('#tree [data-detail="file_format"] textarea.opinion');
+  ok(tOp && tOp.value === 'HTML은 발표용, PPT는 배포용', '사이드 트리 질문에도 같은 기타 의견 칸·같은 값');
+  tOp.value = '트리에서 고침'; tOp.dispatchEvent(new w.Event('input', {bubbles: true}));
+  ok(PE.state.opinions['dim:file_format'] === '트리에서 고침' && ffCard.querySelector('textarea.opinion').value === '트리에서 고침', '트리에서 고치면 본문 카드 칸도 같이 바뀜');
+  PE.setDim('view_mode', 'scroll'); PE.state.opinions['dim:frame'] = '왼쪽 목차가 좋음'; PE.setDim('file_format', ['pptx']);
+  ok(!('dim:frame' in PE.payload().opinions) && PE.payload().opinions['dim:file_format'] === '트리에서 고침', '숨은 질문(HTML 화면 틀)의 의견은 제출에서 빠짐');
+  // 선택지 예시(움직이는 카드): 예시가 있는 질문만 카드로, 없는 질문(파일 형식)은 글 단추
+  PE.setDim('file_format', ['html']); PE.setDim('view_mode', 'scroll'); PE.go(iSH);
+  const frameCard = cardOf('frame'), dcards = frameCard.querySelectorAll('.dcard');
+  ok(dcards.length === 6 && frameCard.querySelectorAll('iframe.demo').length === 6 && !!frameCard.querySelector('.drest .opt[data-id="other"]'), `화면 틀: 예시 카드 ${dcards.length}개(움직이는 예시) + 기타는 글 단추`);
+  const ifr0 = frameCard.querySelector('.dcard[data-id="top"] iframe');
+  ok(/demo-fade/.test(ifr0.getAttribute('srcdoc') || '') && ifr0.getAttribute('sandbox') === 'allow-scripts', '예시는 공통 바탕 CSS를 붙여 따로 떨어진 작은 화면(sandbox)에서 돈다');
+  const leftCard = frameCard.querySelector('.dcard[data-id="left"]');
+  ok(/방법 v2/.test(leftCard.textContent) && /내 프로젝트에서/.test(leftCard.textContent) && /접기 단추 추가/.test(leftCard.textContent), '내 예시 v2 가 엔진 기본(v1)을 이기고, 판 기록에 무엇이 달라졌는지 보임');
+  const oldBtn = leftCard.querySelector('[data-oldv="1"]');
+  oldBtn.click();
+  ok(/지난 판 v1/.test(leftCard.textContent) && !/왼쪽 목차 v2/.test(leftCard.querySelector('iframe').getAttribute('srcdoc')), '「이 판 보기」 → 지난 판(v1) 예시로 바뀜');
+  PE.go(PE.screens.findIndex(s => s.id === 'S1'));
+  ok(!cardOf('file_format').querySelector('iframe') && !!cardOf('file_format').querySelector('.opt[data-id="html"]'), '파일 형식처럼 그림이 필요 없는 질문은 글 단추 그대로');
+  PE.setDim('html_features', []); PE.go(iSH);
+  const featCard = cardOf('html_features'), fIfr = featCard.querySelector('.dcard[data-id="search"] iframe');
+  featCard.querySelector('.dcard[data-id="search"] .dpick').click();
+  ok(PE.state.dimensions.html_features.includes('search') && featCard.querySelector('.dcard[data-id="search"]').getAttribute('aria-pressed') === 'true' && featCard.querySelector('.dcard[data-id="search"] iframe') === fIfr, '「이걸로 고르기」 → 답·표시 갱신, 예시 화면은 다시 불러오지 않음');
+  // 사이드 트리: 지금 보는 자리 강조 + 「다음」을 누르면 따라감
+  PE.go(iSH);
+  const hereRow = () => d.querySelector('#tree .tr.here');
+  ok(hereRow() && hereRow().parentElement.dataset.id === 'scr:SH' && /지금/.test(hereRow().textContent), '사이드 트리: 지금 보는 목차(HTML 화면 구성)가 빛나고 「지금」 표시');
+  d.querySelector('#next').click();
+  ok(hereRow() && hereRow().parentElement.dataset.id === 'scr:' + PE.screens[PE.index()].id && PE.screens[PE.index()].id !== 'SH', '「다음」 → 트리의 강조가 다음 목차로 옮겨감 (' + PE.screens[PE.index()].id + ')');
+  // 취향 질문에도 예시 카드: 바탕색(P2.4.theme)
+  PE.setDim('material_type', ['slides']); PE.go(PE.screens.findIndex(s => s.id === 'P2'));
+  const thCard = d.querySelector('#screen [data-drop="aspect:P2.4.theme"]');
+  ok(thCard && thCard.querySelectorAll('.dsec .dcard').length === 3, '취향 질문(바탕색)도 선택지마다 움직이는 예시 3개');
+  thCard.querySelector('.dcard[data-id="light"] .dpick').click();
+  ok(PE.state.aspects['P2.4.theme'] && PE.state.aspects['P2.4.theme'].value === 'light' && thCard.querySelector('.dcard[data-id="light"]').getAttribute('aria-pressed') === 'true', '예시 카드에서 고르면 취향 답이 됨');
+  // 기타(직접 입력)는 여러 줄 칸
+  PE.go(PE.screens.findIndex(s => s.id === 'S1')); PE.setDim('file_format', ['html', 'other']); PE.go(PE.screens.findIndex(s => s.id === 'S1'));
+  ok(cardOf('file_format').querySelector('textarea.free') && !cardOf('file_format').querySelector('input[type="text"]'), '기타(직접 입력)는 여러 줄 칸(긴 말이 잘리지 않음)');
   ok(errors.length === 0, '오류 없음' + (errors.length ? ': ' + errors.join(' | ') : ''));
 }
 // 3) 앱 셸·트리·예시·진화 기록·크게 보기

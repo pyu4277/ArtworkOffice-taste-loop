@@ -1,0 +1,55 @@
+<style>
+.thv-root{--t-bg:#f8fafc;--t-bg2:#e8eef5;--t-fg:#0f172a;--t-mu:#475569;--t-ac:#0f766e;--t-hi:#b45309;
+  position:absolute;inset:0;display:flex;flex-direction:column;font-size:min(3.5vw,5.6vh);background:var(--bar)}
+.thv-root.thv-dark{--t-bg:#0a1220;--t-bg2:#14304a;--t-fg:#e8eef7;--t-mu:#9fb3c8;--t-ac:#38bdf8;--t-hi:#fbbf24}
+.thv-sw{display:flex;gap:.35em;padding:2.5% 3% 2%}
+.thv-sw button{flex:1;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:.4em;padding:.3em .3em;font-size:.68em;line-height:1.25;transition:background .3s,color .3s,border-color .3s}
+.thv-sw button[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.thv-root.thv-dark .thv-sw button[aria-pressed="true"]{background:#111827;border-color:#111827;color:#fff}
+.thv-scene{position:relative;flex:1;margin:0 3% 3%;border-radius:.35em;overflow:hidden;color:var(--t-fg);
+  background:radial-gradient(ellipse at 25% 45%,var(--t-bg2),var(--t-bg) 72%);transition:background .6s,color .6s;box-shadow:0 .2em .7em rgba(0,0,0,.18)}
+.thv-fig{position:absolute;left:4%;top:8%;width:38%;height:84%}
+.thv-fig svg{width:100%;height:100%}
+.thv-fig circle{transition:stroke .6s}
+.thv-ring{fill:none;stroke:var(--t-ac)}
+.thv-flow{fill:none;stroke:var(--t-ac);stroke-width:1.6;stroke-dasharray:5 9;stroke-linecap:round;animation:thv-flow 2.4s linear infinite}
+@keyframes thv-flow{to{stroke-dashoffset:28}}
+.thv-txt{position:absolute;left:46%;right:4%;top:18%}
+.thv-txt h3{margin:0 0 .35em;font-size:1.02em;line-height:1.3;letter-spacing:-.02em}
+.thv-txt p{margin:0;font-size:.72em;color:var(--t-mu);line-height:1.45;transition:color .6s}
+.thv-txt b{color:var(--t-hi);transition:color .6s}
+.thv-why{position:absolute;left:46%;right:4%;bottom:9%;font-size:.6em;color:var(--t-mu);transition:color .6s}
+</style>
+<div class="thv-root">
+  <div class="thv-sw" role="group" aria-label="보는 환경 고르기">
+    <button type="button" class="thv-b" data-v="room" aria-pressed="true">강의실 프로젝터 → 밝게</button>
+    <button type="button" class="thv-b" data-v="expo" aria-pressed="false">전시장 → 어둡게</button>
+  </div>
+  <div class="thv-scene">
+    <div class="thv-fig" role="img" aria-label="전선 단면 둘레를 도는 자기장 고리">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs><radialGradient id="thv-cu" cx=".38" cy=".35" r=".7"><stop offset="0" stop-color="#ffd8a8"/><stop offset=".55" stop-color="#d07a3c"/><stop offset="1" stop-color="#6b3212"/></radialGradient></defs>
+        <circle class="thv-ring" cx="50" cy="50" r="16" stroke-width="2.4" opacity=".9"/>
+        <circle class="thv-ring" cx="50" cy="50" r="28" stroke-width="1.6" opacity=".55"/>
+        <circle class="thv-ring" cx="50" cy="50" r="40" stroke-width="1" opacity=".3"/>
+        <circle class="thv-flow" cx="50" cy="50" r="22"/>
+        <circle cx="50" cy="50" r="7" fill="url(#thv-cu)"/>
+      </svg>
+    </div>
+    <div class="thv-txt"><h3>전류가 흐르면<br>자기장이 생긴다</h3><p>전선 둘레를 따라<br><b>둥근 고리</b> 모양으로</p></div>
+    <div class="thv-why">불 켜진 방에서도 글씨가 또렷하게</div>
+  </div>
+  <span class="hint-chip">눌러 보세요</span>
+</div>
+<script>
+(function(){var R=document.querySelector('.thv-root');if(!R)return;
+var B=R.querySelectorAll('.thv-b'),W=R.querySelector('.thv-why'),auto=true,cur='room';
+var why={room:'불 켜진 방에서도 글씨가 또렷하게',expo:'어두운 곳에서 눈부시지 않고 화면이 돋보이게'};
+function set(v){cur=v;R.classList.toggle('thv-dark',v==='expo');
+for(var i=0;i<B.length;i++)B[i].setAttribute('aria-pressed',B[i].getAttribute('data-v')===v?'true':'false');
+W.textContent=why[v]}
+for(var i=0;i<B.length;i++)B[i].addEventListener('click',function(e){auto=false;set(e.currentTarget.getAttribute('data-v'))});
+var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!rm)setInterval(function(){if(auto)set(cur==='room'?'expo':'room')},3200);
+set('room')})();
+</script>

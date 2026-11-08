@@ -1,0 +1,45 @@
+<style>
+.frrt-wrap{display:flex;height:100%}
+.frrt-body{flex:1;min-width:0;padding:8px 10px;overflow:hidden}
+.frrt-body h3{margin:0 0 4px;font-size:14px}
+.frrt-par{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:6px;padding:3px 6px;margin-bottom:3px;font-size:11px}
+.frrt-par:hover{background:var(--bar)}
+.frrt-par.frrt-on{border-color:var(--acc);background:var(--soft)}
+.frrt-par .ln{margin:4px 0 0}
+.frrt-side{flex:none;width:38%;display:flex;flex-direction:column;background:var(--bar);border-left:1px solid var(--line);transition:width .3s ease;overflow:hidden}
+.frrt-head{display:flex;align-items:center;gap:4px;padding:5px 6px;font-weight:700;font-size:11px;white-space:nowrap}
+.frrt-head span{flex:1}
+.frrt-tog{border:1px solid var(--line);background:var(--bg);border-radius:5px;width:22px;height:20px;padding:0;font-size:11px;flex:none}
+.frrt-in{padding:0 8px;font-size:10.5px;white-space:nowrap}
+.frrt-in b{display:block;color:var(--acc);font-size:10px;margin-top:4px}
+.frrt-in ul{margin:2px 0 0;padding-left:13px;white-space:normal}
+.frrt-wrap.frrt-shut .frrt-side{width:34px}
+.frrt-wrap.frrt-shut .frrt-head span,.frrt-wrap.frrt-shut .frrt-in{display:none}
+</style>
+<div class="frrt-wrap" id="frrt-wrap">
+  <main class="frrt-body">
+    <h3>1장 원리</h3>
+    <button class="frrt-par frrt-on">첫째 문단: 기본 생각<div class="ln" style="width:90%"></div></button>
+    <button class="frrt-par">둘째 문단: 예시<div class="ln" style="width:76%"></div></button>
+    <button class="frrt-par">셋째 문단: 주의할 점<div class="ln" style="width:84%"></div></button>
+  </main>
+  <aside class="frrt-side">
+    <div class="frrt-head"><button class="frrt-tog" id="frrt-tog" aria-label="옆 칸 접기">»</button><span>이 쪽 요약·참고</span></div>
+    <div class="frrt-in" id="frrt-in"></div>
+  </aside>
+</div>
+<span class="hint-chip" style="top:8px;bottom:auto;right:auto;left:8px">문단을 눌러 보세요</span>
+<script>
+(function(){
+  var S=[[['핵심이 되는 생각','왜 그런지 한 줄로'],['그림 1','용어 풀이']],[['생활 속 예시','앞 문단과 연결'],['그림 2','더 읽을거리']],[['자주 하는 실수','확인 방법'],['확인 문제 1']]];
+  var ps=document.querySelectorAll('.frrt-par'),box=document.getElementById('frrt-in'),w=document.getElementById('frrt-wrap'),t=document.getElementById('frrt-tog');
+  function li(a){return '<ul>'+a.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>'}
+  function go(k){
+    for(var j=0;j<ps.length;j++)ps[j].classList.toggle('frrt-on',j===k);
+    box.innerHTML='<div class="fade"><b>요약</b>'+li(S[k][0])+'<b>참고</b>'+li(S[k][1])+'</div>';
+  }
+  for(var j=0;j<ps.length;j++)(function(j){ps[j].onclick=function(){go(j)}})(j);
+  t.onclick=function(){var s=w.classList.toggle('frrt-shut');t.textContent=s?'«':'»';t.setAttribute('aria-label',s?'옆 칸 펴기':'옆 칸 접기')};
+  go(0);
+})();
+</script>

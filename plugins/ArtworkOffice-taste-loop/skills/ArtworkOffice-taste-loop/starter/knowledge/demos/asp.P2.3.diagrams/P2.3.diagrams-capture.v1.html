@@ -1,0 +1,51 @@
+<style>
+.dgp-root{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:4% 5%;font-size:min(3.5vw,5.6vh);background:var(--bar)}
+.dgp-fig{margin:0;width:100%;height:100%;display:flex;flex-direction:column;background:#fbfaf7;color:#1f2933;padding:2.2% 2.2% 0;border-radius:3px;
+  box-shadow:0 .5em 1.4em rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.06);transform:rotate(-1.2deg);animation:dgp-in 9s ease-in-out infinite}
+@keyframes dgp-in{0%{opacity:0;transform:rotate(-3deg) translateY(6%) scale(.96)}8%,92%{opacity:1;transform:rotate(-1.2deg)}100%{opacity:0;transform:rotate(-1.2deg) translateY(-3%)}}
+.dgp-photo{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:1px;background:
+  repeating-linear-gradient(93deg,rgba(0,0,0,.08) 0 2px,transparent 2px 9px),
+  repeating-linear-gradient(88deg,rgba(255,220,180,.05) 0 1px,transparent 1px 23px),
+  linear-gradient(172deg,#7a5536,#4a311d 70%,#3a2615)}
+.dgp-zoom{position:absolute;inset:0;animation:dgp-kb 9s ease-in-out infinite}
+@keyframes dgp-kb{0%,10%{transform:scale(1)}70%,100%{transform:scale(1.22) translate(0,-6%)}}
+.dgp-card{position:absolute;left:12%;right:12%;top:30%;height:62%;border-radius:2px;transform:perspective(22em) rotateX(52deg);
+  box-shadow:0 1.2em 1.2em -0.6em rgba(0,0,0,.55);background:
+  radial-gradient(circle at 50% 50%,transparent 14%,#ebe5d8 62%),
+  repeating-conic-gradient(from 3deg at 50% 50%,#ebe5d8 0 2.3deg,transparent 2.3deg 4.1deg),
+  repeating-conic-gradient(from 1deg at 50% 50%,transparent 0 1.4deg,#ebe5d8 1.4deg 1.8deg,transparent 1.8deg 3.3deg),
+  repeating-radial-gradient(circle at 50% 50%,rgba(35,32,30,.9) 0 .9px,transparent 1.5px 5.5px),#ebe5d8}
+.dgp-wire{position:absolute;left:50%;top:-8%;width:3.4%;height:69%;transform:translateX(-50%);border-radius:.15em .15em 0 0;
+  background:linear-gradient(90deg,#5a2a10,#b5652e 25%,#f0b07a 45%,#c06d33 65%,#4d230c);box-shadow:.35em .2em .5em rgba(0,0,0,.45)}
+.dgp-wire::after{content:"";position:absolute;left:-30%;right:-30%;bottom:-.25em;height:.5em;border-radius:50%;background:radial-gradient(#1a120c,rgba(26,18,12,0) 70%)}
+.dgp-cmp{position:absolute;width:9.5%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#d6d9dc 55%,#8b9096);
+  box-shadow:0 .15em .3em rgba(0,0,0,.5),inset 0 0 0 .12em #6d7278;transform:scaleY(.62)}
+.dgp-cmp i{position:absolute;left:46%;top:12%;width:8%;height:76%;border-radius:1em;background:linear-gradient(#d63b2f 50%,#e8e8e8 50%)}
+.dgp-c1{left:20%;top:58%}.dgp-c1 i{transform:rotate(0deg)}
+.dgp-c2{left:70%;top:57%}.dgp-c2 i{transform:rotate(180deg)}
+.dgp-c3{left:45.5%;top:79%}.dgp-c3 i{transform:rotate(-90deg)}
+.dgp-vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 50%,rgba(0,0,0,.5));pointer-events:none}
+.dgp-light{position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,240,215,.22),transparent 45%,rgba(0,0,0,.18));pointer-events:none}
+.dgp-mark{position:absolute;left:50%;top:62%;width:44%;aspect-ratio:2.2;border:.14em dashed #ffb020;border-radius:50%;transform:translate(-50%,-50%);opacity:0;animation:dgp-mark 9s ease-in-out infinite}
+@keyframes dgp-mark{0%,62%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}72%,90%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0}}
+.dgp-fig figcaption{padding:2.2% .2em 2.4%;font-size:.74em;line-height:1.35}
+.dgp-fig figcaption span{display:block;color:#5b6573;font-size:.9em}
+@media (prefers-reduced-motion:reduce){.dgp-fig,.dgp-zoom{animation:none!important}.dgp-mark{animation:none!important;opacity:1}}
+</style>
+<div class="dgp-root">
+  <figure class="dgp-fig">
+    <div class="dgp-photo" role="img" aria-label="전선이 꽂힌 판 위에 쇳가루가 둥글게 늘어선 실험 사진(예시)">
+      <div class="dgp-zoom">
+        <div class="dgp-card"></div>
+        <div class="dgp-wire"></div>
+        <div class="dgp-cmp dgp-c1"><i></i></div>
+        <div class="dgp-cmp dgp-c2"><i></i></div>
+        <div class="dgp-cmp dgp-c3"><i></i></div>
+        <div class="dgp-mark"></div>
+      </div>
+      <div class="dgp-light"></div>
+      <div class="dgp-vig"></div>
+    </div>
+    <figcaption>전선 둘레에 쇳가루가 둥글게 늘어선 실험 장면<span>출처: 원본 주소 · 촬영자 (예시)</span></figcaption>
+  </figure>
+</div>

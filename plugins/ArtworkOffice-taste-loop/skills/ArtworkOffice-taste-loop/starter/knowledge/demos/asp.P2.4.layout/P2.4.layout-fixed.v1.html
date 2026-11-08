@@ -1,0 +1,34 @@
+<style>
+.lyf-root{position:absolute;inset:0;display:flex;flex-direction:column;font-size:min(3.5vw,5.6vh)}
+.lyf-top{flex:0 0 33.3%;position:relative;display:flex;align-items:center;gap:.7em;padding:0 5% 0 4%;background:var(--acc);background:linear-gradient(100deg,var(--acc),color-mix(in srgb,var(--acc) 70%,#0b1220));color:#fff}
+.lyf-top h3{margin:0;font-size:1.05em;letter-spacing:-.02em;line-height:1.25}
+.lyf-top p{margin:.1em 0 0;font-size:.62em;opacity:.85}
+.lyf-mini{flex:none;width:2.4em;height:2.4em;border-radius:50%;background:radial-gradient(circle,#f0b07a 0 14%,#7a3a14 17%,transparent 21%),repeating-radial-gradient(circle,rgba(255,255,255,.85) 0 .06em,transparent .1em .32em);box-shadow:0 0 0 .1em rgba(255,255,255,.35)}
+.lyf-lock{position:absolute;right:2.5%;top:8%;font-size:.56em;padding:.05em .55em;border-radius:1em;background:rgba(0,0,0,.28)}
+.lyf-bot{position:relative;flex:1}
+.lyf-p{position:absolute;inset:0;display:flex;align-items:center;gap:5%;padding:3% 5%;opacity:0}
+.lyf-p1{opacity:1}
+.lyf-anim .lyf-p{animation:lyf-cyc 9s ease-in-out infinite}
+.lyf-anim .lyf-p2{animation-delay:-6s}.lyf-anim .lyf-p3{animation-delay:-3s}
+@keyframes lyf-cyc{0%,30%{opacity:1;transform:none}34%{opacity:0;transform:translateX(-6%)}96%{opacity:0;transform:translateX(6%)}100%{opacity:1;transform:none}}
+.lyf-pic{flex:0 0 40%;height:86%;border-radius:.35em;overflow:hidden;box-shadow:0 .2em .6em rgba(0,0,0,.2)}
+.lyf-fil{background:radial-gradient(circle,#e9a066 0 6%,#8a4518 8%,transparent 10%),radial-gradient(circle,transparent 25%,#ddd6c7 72%),repeating-conic-gradient(#ddd6c7 0 2.2deg,transparent 2.2deg 4.3deg),repeating-radial-gradient(circle,rgba(30,28,26,.9) 0 .9px,transparent 1.5px 5px),#ddd6c7}
+.lyf-gr{background:var(--bar);display:flex}
+.lyf-gr svg{width:100%;height:100%}
+.lyf-t{flex:1;font-size:.82em;line-height:1.45}
+.lyf-t b{display:block;font-size:1.1em;margin-bottom:.15em}
+.lyf-t span{color:var(--muted)}
+.lyf-big{font-size:2.3em;font-weight:800;color:var(--acc);letter-spacing:-.03em;line-height:1}
+.lyf-big small{font-size:.35em;color:var(--muted);font-weight:600;margin-left:.25em}
+.lyf-side{position:absolute;right:1.2%;bottom:5%;font-size:.54em;color:var(--muted);writing-mode:vertical-rl;letter-spacing:.1em}
+@media (prefers-reduced-motion:reduce){.lyf-anim .lyf-p{animation:none!important}}
+</style>
+<div class="lyf-root lyf-anim">
+  <div class="lyf-top"><div class="lyf-mini" aria-hidden="true"></div><div><h3>전류가 흐르면 자기장이 생긴다</h3><p>곧은 전선 둘레의 자기장</p></div><span class="lyf-lock">위 1/3 고정</span></div>
+  <div class="lyf-bot">
+    <div class="lyf-p lyf-p1"><div class="lyf-pic lyf-fil" role="img" aria-label="쇳가루 사진 느낌"></div><div class="lyf-t"><b>장면 1</b><span>쇳가루가 전선 둘레에 고리 모양으로 늘어섭니다</span></div></div>
+    <div class="lyf-p lyf-p2"><div class="lyf-pic lyf-gr"><svg viewBox="0 0 100 70" aria-hidden="true"><path d="M12 8V60H94" fill="none" stroke="var(--muted)" stroke-width="1.5"/><path d="M22 10Q30 40 48 47T92 55" fill="none" stroke="var(--acc)" stroke-width="3" stroke-linecap="round"/></svg></div><div class="lyf-t"><b>장면 2</b><span>전선에서 멀어질수록 자기장은 약해집니다</span></div></div>
+    <div class="lyf-p lyf-p3"><div class="lyf-big">200<small>μT</small></div><div class="lyf-t"><b>장면 3</b><span>10 A 전류, 1 cm 떨어진 곳의 세기</span></div></div>
+    <span class="lyf-side">아래 2/3 바뀜</span>
+  </div>
+</div>

@@ -1,0 +1,41 @@
+<style>
+.or-w{position:absolute;inset:0;display:flex;flex-direction:column;padding:7px 10px 8px;gap:5px}
+.or-ctl{display:flex;gap:4px;align-items:center;font-size:11px;color:var(--muted)}
+.or-ctl button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:0 8px;font-size:11px}
+.or-ctl button.or-on{border-color:var(--acc);color:var(--acc);font-weight:700}
+.or-st{flex:1;min-height:0;position:relative}
+.or-fr{position:absolute;left:0;top:0;bottom:0;width:96%;border:2px solid var(--fg);border-radius:8px;overflow:hidden;container-type:inline-size;background:var(--bg);transition:width .5s ease}
+.or-auto .or-fr{animation:or-sz 6s ease-in-out infinite}
+@keyframes or-sz{0%,18%{width:96%}45%,72%{width:min(40%,150px)}100%{width:96%}}
+.or-nar .or-fr{width:min(40%,150px)}
+.or-bar{display:flex;align-items:center;justify-content:space-between;padding:3px 7px;background:var(--bar);border-bottom:1px solid var(--line);font-size:10px;color:var(--muted);white-space:nowrap}
+.or-lb::after{content:"넓은 화면 → 2단";color:var(--acc);font-weight:700}
+.or-g{display:grid;grid-template-columns:1.1fr 1fr;gap:6px;padding:6px}
+.or-g>div{background:var(--bar);border-radius:6px;padding:5px 6px}
+.or-pic{background:var(--soft)!important;min-height:58px;position:relative}
+.or-pic::after{content:"";position:absolute;left:12%;right:12%;bottom:10px;height:40%;background:var(--acc);opacity:.35;clip-path:polygon(0 100%,35% 20%,55% 60%,70% 35%,100% 100%)}
+.or-g b{display:block;font-size:11px;margin-bottom:2px}
+.or-g .ln{margin:5px 0}
+@container (max-width:200px){
+.or-g{grid-template-columns:1fr}
+.or-lb::after{content:"좁은 화면 → 1단"}
+.or-pic{min-height:40px}
+}
+</style>
+<div class="or-w or-auto" id="or-w">
+<div class="or-ctl">보기 <button type="button" class="or-on" data-m="or-auto">자동</button><button type="button" data-m="">넓게</button><button type="button" data-m="or-nar">좁게</button></div>
+<div class="or-st"><div class="or-fr">
+<div class="or-bar"><span>화면 크기에 맞춤</span><span class="or-lb"></span></div>
+<div class="or-g"><div class="or-pic"></div><div><b>설명</b><div class="ln" style="width:92%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div></div></div>
+</div></div>
+</div>
+<span class="hint-chip">넓게·좁게를 눌러 보세요</span>
+<script>
+(function(){
+var w=document.getElementById('or-w'),bs=document.querySelectorAll('.or-ctl button');
+bs.forEach(function(b){b.addEventListener('click',function(){
+w.classList.remove('or-auto','or-nar');var m=b.getAttribute('data-m');if(m)w.classList.add(m);
+bs.forEach(function(x){x.classList.toggle('or-on',x===b);});
+});});
+})();
+</script>

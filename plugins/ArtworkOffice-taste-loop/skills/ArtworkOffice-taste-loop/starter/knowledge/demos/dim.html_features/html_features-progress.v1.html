@@ -1,0 +1,37 @@
+<style>
+.pg-w{position:absolute;inset:0;display:flex;flex-direction:column}
+.pg-t{height:6px;background:var(--bar);flex:none}
+.pg-f{height:100%;width:0;background:var(--acc);transition:width .15s}
+.pg-h{flex:none;display:flex;align-items:center;justify-content:space-between;padding:5px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.pg-h b{color:var(--acc);font-variant-numeric:tabular-nums}
+.pg-b{flex:1;overflow-y:auto;padding:2px 14px 40px;scroll-behavior:smooth}
+.pg-b h4{margin:12px 0 2px;font-size:13px}
+.pg-b p{margin:0 0 2px;font-size:12px;color:var(--muted)}
+.pg-btn{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:1px 9px;font-size:11px}
+.pg-btn:hover{border-color:var(--acc)}
+</style>
+<div class="pg-w">
+<div class="pg-t"><div class="pg-f" id="pg-f"></div></div>
+<div class="pg-h"><span>읽은 만큼 <b id="pg-n">0%</b></span><button class="pg-btn" id="pg-d" type="button">한 칸 내리기 ↓</button></div>
+<div class="pg-b" id="pg-b">
+<h4>1. 들어가며</h4><p>오늘 다룰 내용을 짧게 살펴봅니다.</p><div class="ln" style="width:92%"></div><div class="ln" style="width:70%"></div>
+<h4>2. 생활 속 예</h4><p>주변에서 볼 수 있는 장면으로 시작합니다.</p><div class="ln" style="width:85%"></div><div class="ln" style="width:94%"></div><div class="ln" style="width:60%"></div>
+<h4>3. 그림으로 보기</h4><p>그림을 보며 차례대로 따라갑니다.</p><div class="ln" style="width:78%"></div><div class="ln" style="width:88%"></div>
+<h4>4. 직접 해 보기</h4><p>짧은 활동으로 확인해 봅니다.</p><div class="ln" style="width:90%"></div><div class="ln" style="width:66%"></div><div class="ln" style="width:80%"></div>
+<h4>5. 정리</h4><p>오늘 배운 것을 한 줄로 모읍니다.</p><div class="ln" style="width:72%"></div><div class="ln" style="width:50%"></div>
+</div>
+</div>
+<span class="hint-chip">내려 보세요</span>
+<script>
+(function(){
+var b=document.getElementById('pg-b'),f=document.getElementById('pg-f'),n=document.getElementById('pg-n');
+function up(){var m=b.scrollHeight-b.clientHeight;var p=m>0?Math.min(100,Math.round(b.scrollTop/m*100)):0;f.style.width=p+'%';n.textContent=p+'%';}
+b.addEventListener('scroll',up);
+document.getElementById('pg-d').addEventListener('click',function(){
+var m=b.scrollHeight-b.clientHeight;
+if(b.scrollTop>=m-2){b.scrollTop=0;}else{b.scrollTop=b.scrollTop+Math.max(40,b.clientHeight*0.6);}
+up();
+});
+up();
+})();
+</script>

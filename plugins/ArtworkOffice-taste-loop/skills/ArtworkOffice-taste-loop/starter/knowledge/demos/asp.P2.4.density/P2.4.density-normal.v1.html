@@ -1,0 +1,37 @@
+<style>
+.dnn-root{position:absolute;inset:0;display:flex;flex-direction:column;gap:4%;padding:5% 5% 4%;font-size:min(3.5vw,5.6vh)}
+.dnn-h{margin:0;font-size:1.08em;letter-spacing:-.02em}
+.dnn-body{flex:1;display:flex;gap:5%;min-height:0}
+.dnn-fig{flex:0 0 48%;border-radius:.4em;background:var(--bar);padding:3%}
+.dnn-fig svg{width:100%;height:100%}
+.dnn-fig text{font-family:var(--font);font-size:7px;fill:var(--muted)}
+.dnn-curve{fill:none;stroke:var(--acc);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.2s ease}
+.dnn-list{flex:1;margin:0;padding:0;list-style:none;display:flex;flex-direction:column;justify-content:center;gap:.55em;font-size:.8em;line-height:1.35}
+.dnn-list li{position:relative;padding-left:1em;opacity:0;transform:translateX(.5em);transition:opacity .45s,transform .45s}
+.dnn-list li::before{content:"";position:absolute;left:0;top:.45em;width:.42em;height:.42em;border-radius:50%;background:var(--acc)}
+.dnn-list li:nth-child(2){transition-delay:.25s}.dnn-list li:nth-child(3){transition-delay:.5s}
+.dnn-list b{color:var(--acc)}
+.dnn-k1 .dnn-curve{stroke-dashoffset:0}
+.dnn-k1 .dnn-list li{opacity:1;transform:none}
+.dnn-out .dnn-body{opacity:0}
+.dnn-body{transition:opacity .45s}
+.dnn-rs *{transition:none!important}
+</style>
+<div class="dnn-root">
+  <h3 class="dnn-h">멀어질수록 자기장은 약해진다</h3>
+  <div class="dnn-body">
+    <div class="dnn-fig"><svg viewBox="0 0 100 70" role="img" aria-label="거리에 따라 줄어드는 자기장 그래프"><path d="M12 6V58H96" fill="none" stroke="var(--muted)" stroke-width="1.2"/><path class="dnn-curve" pathLength="1" d="M22 8Q28 38 44 46T94 54"/><text x="14" y="5">세기</text><text x="96" y="66" text-anchor="end">거리</text></svg></div>
+    <ul class="dnn-list">
+      <li>전선 둘레에 <b>둥근 자기장</b></li>
+      <li>멀어질수록 약해짐</li>
+      <li>거리 2배 → 세기 절반</li>
+    </ul>
+  </div>
+</div>
+<script>
+(function(P,N,T){var R=document.querySelector('.'+P+'root');if(!R)return;var C=R.classList,i=0;
+function all(f){for(var j=1;j<=N;j++)C[f](P+'k'+j)}
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){all('add');return}
+function step(){setTimeout(function(){if(i<N){i++;C.add(P+'k'+i);step()}else{C.add(P+'out');setTimeout(function(){C.add(P+'rs');all('remove');C.remove(P+'out');void R.offsetWidth;C.remove(P+'rs');i=0;step()},550)}},T[i])}
+step()})('dnn-',1,[500,4200]);
+</script>

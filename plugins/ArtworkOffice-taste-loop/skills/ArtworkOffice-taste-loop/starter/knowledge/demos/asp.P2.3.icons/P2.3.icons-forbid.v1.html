@@ -1,0 +1,35 @@
+<style>
+.icf-root{position:absolute;inset:0;display:flex;gap:4%;padding:4.5%;font-size:min(3.5vw,5.6vh)}
+.icf-photo{position:relative;flex:0 0 54%;border-radius:.4em;overflow:hidden;box-shadow:0 .3em .9em rgba(0,0,0,.22)}
+.icf-plate{position:absolute;inset:-6%;background:
+  radial-gradient(circle at 50% 50%,#e9a066 0 3.5%,#8a4518 4.8%,rgba(40,20,8,.6) 5.6%,transparent 7.5%),
+  radial-gradient(circle at 50% 50%,transparent 26%,#ddd6c7 72%),
+  repeating-conic-gradient(from 5deg at 50% 50%,#ddd6c7 0 2.2deg,transparent 2.2deg 4.3deg),
+  repeating-conic-gradient(from 1deg at 50% 50%,transparent 0 1.2deg,#ddd6c7 1.2deg 1.7deg,transparent 1.7deg 2.9deg),
+  repeating-radial-gradient(circle at 50% 50%,rgba(30,28,26,.92) 0 .9px,transparent 1.5px 5.2px),#ddd6c7;
+  animation:icf-kb 10s ease-in-out infinite alternate}
+@keyframes icf-kb{from{transform:scale(1)}to{transform:scale(1.12) rotate(2deg)}}
+.icf-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(130deg,rgba(255,250,235,.25),transparent 45%,rgba(0,0,0,.28)),radial-gradient(ellipse,transparent 55%,rgba(0,0,0,.35))}
+.icf-photo small{position:absolute;left:5%;bottom:4%;z-index:1;font-size:.6em;color:#fff;background:rgba(0,0,0,.45);padding:.1em .5em;border-radius:.3em}
+.icf-txt{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.45em}
+.icf-txt h3{margin:0;font-size:1.15em;line-height:1.25;letter-spacing:-.02em}
+.icf-txt p{margin:0;font-size:.8em;color:var(--muted);line-height:1.45}
+.icf-num{font-size:1.5em;font-weight:800;color:var(--acc);letter-spacing:-.02em;line-height:1}
+.icf-num span{font-size:.45em;font-weight:600;color:var(--muted);margin-left:.3em}
+.icf-tag{margin-top:.3em;align-self:flex-start;font-size:.62em;padding:.15em .6em;border-radius:1em;border:1px solid var(--line);color:var(--muted)}
+.icf-txt>*{animation:icf-up 10s ease infinite both}
+.icf-txt>:nth-child(2){animation-delay:.15s}.icf-txt>:nth-child(3){animation-delay:.3s}.icf-txt>:nth-child(4){animation-delay:.45s}
+@keyframes icf-up{0%{opacity:0;transform:translateY(.4em)}6%,94%{opacity:1;transform:none}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.icf-txt>*,.icf-plate{animation:none!important}}
+</style>
+<div class="icf-root">
+  <div class="icf-photo" role="img" aria-label="전선 둘레로 쇳가루가 둥글게 늘어선 사진 느낌의 장면">
+    <div class="icf-plate"></div><small>실험 사진</small>
+  </div>
+  <div class="icf-txt">
+    <h3>전류 둘레에<br>둥근 자기장</h3>
+    <p>쇳가루가 전선을 감싸며<br>고리 모양으로 늘어섭니다</p>
+    <div class="icf-num">200<span>μT · 1 cm, 10 A</span></div>
+    <div class="icf-tag">장식 아이콘 없음 · 실제 자료와 글만</div>
+  </div>
+</div>

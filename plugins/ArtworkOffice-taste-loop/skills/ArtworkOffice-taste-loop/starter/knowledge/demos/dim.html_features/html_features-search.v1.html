@@ -1,0 +1,36 @@
+<style>
+.sr-w{position:absolute;inset:0;display:flex;flex-direction:column;padding:10px 14px;gap:6px}
+.sr-bar{display:flex;align-items:center;gap:6px;border:1.5px solid var(--acc);border-radius:8px;padding:3px 8px;background:var(--bg)}
+.sr-bar svg{flex:none;color:var(--muted)}
+.sr-bar input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13px}
+.sr-n{font-size:11px;color:var(--muted);white-space:nowrap}
+.sr-q{font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center}
+.sr-q button{border:1px solid var(--line);background:var(--bar);border-radius:999px;padding:0 8px;font-size:11px}
+.sr-t{flex:1;overflow:auto;font-size:12.5px;line-height:1.7;padding-bottom:20px}
+.sr-t mark{background:#fde68a;color:#1b2430;border-radius:3px;padding:0 1px;animation:sr-pop .3s ease}
+@keyframes sr-pop{from{background:#f59e0b}to{background:#fde68a}}
+</style>
+<div class="sr-w">
+<label class="sr-bar"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg><input id="sr-in" type="text" placeholder="찾을 낱말 (예: 바람)" autocomplete="off"><span class="sr-n" id="sr-n"></span></label>
+<div class="sr-q">바로 넣기 <button type="button" data-w="바람">바람</button><button type="button" data-w="공기">공기</button><button type="button" data-w="">지우기</button></div>
+<div class="sr-t" id="sr-t"></div>
+</div>
+<span class="hint-chip">낱말을 쳐 보세요</span>
+<script>
+(function(){
+var TXT='바람은 공기가 움직이는 것입니다. 햇볕에 데워진 공기는 가벼워져 위로 올라가고, 그 빈자리로 둘레의 찬 공기가 밀려 들어오면서 바람이 생깁니다. 바닷가에서는 낮과 밤에 땅과 바다가 데워지는 정도가 달라서 바람의 방향이 바뀝니다.';
+var inp=document.getElementById('sr-in'),out=document.getElementById('sr-t'),cnt=document.getElementById('sr-n');
+function esc(s){return s.replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function run(){
+var q=inp.value.trim();
+if(!q){out.innerHTML=esc(TXT);cnt.textContent='';return;}
+var re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
+var n=0,h='',last=0,m;
+while((m=re.exec(TXT))){h+=esc(TXT.slice(last,m.index))+'<mark>'+esc(m[0])+'</mark>';last=m.index+m[0].length;n++;if(!m[0].length)re.lastIndex++;}
+h+=esc(TXT.slice(last));out.innerHTML=h;cnt.textContent=n?n+'곳':'없음';
+}
+inp.addEventListener('input',run);
+document.querySelectorAll('.sr-q button').forEach(function(b){b.addEventListener('click',function(){inp.value=b.getAttribute('data-w');inp.dispatchEvent(new Event('input'));});});
+run();
+})();
+</script>

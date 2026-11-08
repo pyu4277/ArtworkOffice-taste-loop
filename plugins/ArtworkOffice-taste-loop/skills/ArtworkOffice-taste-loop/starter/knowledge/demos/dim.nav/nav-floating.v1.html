@@ -1,0 +1,38 @@
+<style>
+.nvf-page{height:100%;padding:12px 18px}
+.nvf-page small{color:var(--muted);font-size:10px}
+.nvf-page h3{margin:0 0 4px;font-size:15px}
+.nvf-fab{position:absolute;right:12px;bottom:12px;z-index:3;display:flex;align-items:center;gap:4px;border:0;border-radius:999px;padding:6px 12px;background:var(--acc);color:var(--bg);font-weight:700;font-size:11.5px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.nvf-fab svg{width:13px;height:13px;stroke:currentColor;stroke-width:2.4;fill:none}
+.nvf-pop{position:absolute;right:12px;bottom:46px;z-index:3;width:52%;min-width:130px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:5px;box-shadow:0 8px 24px rgba(0,0,0,.25);transform-origin:bottom right;transform:scale(.6);opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease}
+.nvf-pop.nvf-open{transform:none;opacity:1;pointer-events:auto}
+.nvf-pop b{display:block;font-size:10px;color:var(--muted);padding:0 6px 2px}
+.nvf-pop button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:6px;padding:2px 8px;font-size:11.5px}
+.nvf-pop button:hover{background:var(--bar)}
+.nvf-pop button.nvf-on{background:var(--soft);color:var(--acc);font-weight:700}
+.nvf-dim{position:absolute;inset:0;z-index:2;background:rgba(0,0,0,.12);opacity:0;pointer-events:none;transition:opacity .2s}
+.nvf-dim.nvf-open{opacity:1;pointer-events:auto}
+</style>
+<div class="nvf-page" id="nvf-page"></div>
+<div class="nvf-dim" id="nvf-dim"></div>
+<div class="nvf-pop" id="nvf-pop"><b>목차</b></div>
+<button class="nvf-fab" id="nvf-fab" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>목차</button>
+<span class="hint-chip" style="right:auto;left:8px">떠 있는 단추를 눌러 보세요</span>
+<script>
+(function(){
+  var T=[['1장 원리',[94,82,70,56]],['2장 실습',[88,92,64]],['3장 응용',[80,70,86]],['정리',[66,50]]];
+  var pg=document.getElementById('nvf-page'),pop=document.getElementById('nvf-pop'),dim=document.getElementById('nvf-dim'),fab=document.getElementById('nvf-fab'),bs=[];
+  function open(o){pop.classList.toggle('nvf-open',o);dim.classList.toggle('nvf-open',o);fab.setAttribute('aria-expanded',o?'true':'false')}
+  function go(k){
+    bs.forEach(function(b,j){b.classList.toggle('nvf-on',j===k)});
+    var h='<div class="fade"><small>'+(k+1)+' / '+T.length+'</small><h3>'+T[k][0]+'</h3>';
+    T[k][1].forEach(function(x){h+='<div class="ln" style="width:'+x+'%"></div>'});
+    pg.innerHTML=h+'</div>';open(false);
+  }
+  T.forEach(function(t,k){var b=document.createElement('button');b.textContent=t[0];b.onclick=function(){go(k)};pop.appendChild(b);bs.push(b)});
+  fab.onclick=function(){open(!pop.classList.contains('nvf-open'))};
+  dim.onclick=function(){open(false)};
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')open(false)});
+  go(0);
+})();
+</script>

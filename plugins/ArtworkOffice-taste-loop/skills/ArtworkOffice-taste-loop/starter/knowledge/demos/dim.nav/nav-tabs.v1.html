@@ -1,0 +1,33 @@
+<style>
+.nvtb-wrap{display:flex;flex-direction:column;height:100%}
+.nvtb-row{position:relative;flex:none;display:flex;padding:6px 8px 0;border-bottom:1px solid var(--line)}
+.nvtb-row button{flex:1;border:0;background:none;padding:5px 2px 6px;font-size:12px;color:var(--muted);white-space:nowrap}
+.nvtb-row button.nvtb-on{color:var(--acc);font-weight:700}
+.nvtb-ind{position:absolute;bottom:-1px;height:3px;border-radius:2px;background:var(--acc);transition:left .3s ease,width .3s ease}
+.nvtb-body{flex:1;min-height:0;padding:10px 14px}
+.nvtb-body h3{margin:0 0 4px;font-size:14px}
+.nvtb-body p{margin:0 0 4px;color:var(--muted);font-size:11px}
+</style>
+<div class="nvtb-wrap">
+  <div class="nvtb-row" id="nvtb-row">
+    <button class="nvtb-on">원리</button><button>예시</button><button>실습</button><button>정리</button>
+    <span class="nvtb-ind" id="nvtb-ind"></span>
+  </div>
+  <div class="nvtb-body" id="nvtb-body"></div>
+</div>
+<span class="hint-chip">탭을 눌러 보세요</span>
+<script>
+(function(){
+  var P=[['1장 원리','기본이 되는 생각',[92,78,64]],['예시','생활 속에서 찾아보기',[84,70]],['2장 실습','직접 해 보기',[90,86,72,50]],['정리','핵심 다시 보기',[66,54]]];
+  var bs=document.querySelectorAll('#nvtb-row button'),ind=document.getElementById('nvtb-ind'),body=document.getElementById('nvtb-body');
+  function go(k){
+    for(var j=0;j<bs.length;j++)bs[j].classList.toggle('nvtb-on',j===k);
+    ind.style.left='calc(8px + (100% - 16px) * '+(k/bs.length)+')';ind.style.width='calc((100% - 16px) / '+bs.length+')';
+    var h='<div class="fade"><h3>'+P[k][0]+'</h3><p>'+P[k][1]+'</p>';
+    P[k][2].forEach(function(x){h+='<div class="ln" style="width:'+x+'%"></div>'});
+    body.innerHTML=h+'</div>';
+  }
+  for(var j=0;j<bs.length;j++)(function(j){bs[j].onclick=function(){go(j)}})(j);
+  go(0);
+})();
+</script>

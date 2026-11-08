@@ -29,6 +29,8 @@ def main(argv):
         if src.is_dir() or src.name == '.gitkeep':
             continue
         rel = src.relative_to(S.STARTER)
+        if rel.parts[:2] == ('knowledge', 'demos'):
+            continue  # 엔진 기본 예시는 복사하지 않는다(엔진을 업데이트하면 새 예시가 바로 보이게). 내 예시만 demos.py add 로 데이터 폴더에 쌓인다
         out = dest / rel
         if out.exists():
             kept.append(str(rel)); continue

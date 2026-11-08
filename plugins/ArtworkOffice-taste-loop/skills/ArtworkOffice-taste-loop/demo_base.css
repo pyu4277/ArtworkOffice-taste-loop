@@ -1,0 +1,15 @@
+/* 선택지 예시(knowledge/demos)의 공통 바탕 — 인터뷰 페이지가 예시마다 앞에 붙인다(예시 파일에는 넣지 않는다).
+   예시 화면 크기: 대략 가로 340px × 세로 212px(16:10). 칸이 넓어지면 같이 커진다 — %·vw·vh 로 맞춘다. */
+:root{--bg:#ffffff;--fg:#1b2430;--muted:#64748b;--line:#e2e8f0;--acc:#0f766e;--soft:#e3f3ef;--bar:#f1f5f9;--warn:#b26a00;--good:#2e7d32;--bad:#c62828;
+  --font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#111827;--fg:#e5e7eb;--muted:#94a3b8;--line:#334155;--acc:#2dd4bf;--soft:#12302d;--bar:#1f2937;--warn:#fbbf24;--good:#4ade80;--bad:#f87171}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font:13px/1.5 var(--font);overflow:hidden}
+button{font:inherit;cursor:pointer;color:inherit}
+.sec{padding:10px 14px}.sec h3{margin:0 0 4px;font-size:14px}.sec p{margin:0;color:var(--muted)}
+.ln{height:7px;border-radius:3px;background:var(--line);margin:6px 0}
+.fade{animation:demo-fade .5s ease both}
+@keyframes demo-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.hint-chip{position:fixed;right:8px;bottom:8px;font-size:11px;color:var(--muted);background:var(--bar);padding:2px 8px;border-radius:999px;pointer-events:none}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

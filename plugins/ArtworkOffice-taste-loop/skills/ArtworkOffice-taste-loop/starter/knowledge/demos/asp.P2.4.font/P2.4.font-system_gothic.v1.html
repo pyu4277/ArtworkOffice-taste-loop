@@ -1,0 +1,29 @@
+<style>
+.fns-root{position:absolute;inset:0;display:flex;flex-direction:column;gap:3.5%;padding:4.5% 4.5% 3.5%;font-size:min(3.5vw,5.6vh)}
+.fns-top{display:flex;align-items:baseline;justify-content:space-between;gap:.5em}
+.fns-top b{font-size:.95em}
+.fns-top span{font-size:.62em;color:var(--muted);white-space:nowrap}
+.fns-row{flex:1;display:flex;gap:3%;min-height:0}
+.fns-dev{flex:1;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:.45em;overflow:hidden;background:var(--bg);animation:fns-hi 6s ease-in-out infinite}
+.fns-d2{animation-delay:-4s}.fns-d3{animation-delay:-2s}
+@keyframes fns-hi{0%,28%{border-color:var(--acc);box-shadow:0 0 0 .12em var(--soft)}36%,100%{border-color:var(--line);box-shadow:none}}
+.fns-bar{font-size:.58em;color:var(--muted);background:var(--bar);padding:.25em .6em;border-bottom:1px solid var(--line)}
+.fns-s{flex:1;display:flex;align-items:center;padding:.3em .55em;font-size:.95em;line-height:1.3;word-break:keep-all}
+.fns-d1 .fns-s{font-family:"Malgun Gothic",sans-serif;letter-spacing:-.04em;font-weight:700}
+.fns-d2 .fns-s{font-family:"Apple SD Gothic Neo",sans-serif;letter-spacing:.01em;font-weight:600}
+.fns-d3 .fns-s{font-family:"Noto Sans CJK KR","Noto Sans KR",sans-serif;letter-spacing:.05em;font-weight:500}
+.fns-foot{display:flex;flex-wrap:wrap;gap:.3em .5em;align-items:center;font-size:.66em}
+.fns-pill{padding:.12em .6em;border-radius:1em;background:var(--soft);color:var(--acc);font-weight:700}
+.fns-pill.fns-w{background:transparent;border:1px solid var(--warn);color:var(--warn)}
+.fns-note{color:var(--muted);font-size:.92em;margin-left:auto}
+@media (prefers-reduced-motion:reduce){.fns-dev{animation:none!important}}
+</style>
+<div class="fns-root">
+  <div class="fns-top"><b>시스템 한글 고딕</b><span>보는 기기에 깔린 고딕으로 표시</span></div>
+  <div class="fns-row">
+    <div class="fns-dev fns-d1"><div class="fns-bar">윈도 PC</div><div class="fns-s">전류가 흐르면 자기장이 생긴다</div></div>
+    <div class="fns-dev fns-d2"><div class="fns-bar">맥</div><div class="fns-s">전류가 흐르면 자기장이 생긴다</div></div>
+    <div class="fns-dev fns-d3"><div class="fns-bar">휴대폰</div><div class="fns-s">전류가 흐르면 자기장이 생긴다</div></div>
+  </div>
+  <div class="fns-foot"><span class="fns-pill fns-w">PC마다 조금 달라 보임</span><span class="fns-pill">파일 크기 그대로</span><span class="fns-note">(글꼴 모양은 예시)</span></div>
+</div>

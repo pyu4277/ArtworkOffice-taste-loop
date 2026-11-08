@@ -1,0 +1,50 @@
+<style>
+.pe-w{position:absolute;inset:0;display:flex;flex-direction:column}
+.pe-s{flex:1;position:relative;margin:8px 10px 0;border:1px solid var(--line);border-radius:10px;background:var(--bar);overflow:hidden}
+.pe-c{position:absolute;inset:0;padding:12px 16px}
+.pe-c h3{margin:0 0 10px;font-size:14px}
+.pe-ws{display:flex;gap:10%;font-size:16px;font-weight:700}
+.pe-ws span{padding:2px 4px}
+.pe-c .ln{background:var(--line)}
+.pe-sv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.pe-sv path{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.pe-mk{position:relative}
+.pe-ring{position:absolute;left:-10px;top:-7px;width:calc(100% + 20px);height:calc(100% + 14px);overflow:visible;pointer-events:none}
+.pe-ring ellipse{fill:none;stroke:#e11d48;stroke-width:3;stroke-dasharray:100;stroke-dashoffset:100;animation:pe-draw 1.2s .3s ease forwards}
+@keyframes pe-draw{to{stroke-dashoffset:0}}
+.pe-tb{flex:none;display:flex;align-items:center;gap:6px;padding:5px 10px 7px;font-size:11px;color:var(--muted)}
+.pe-col{width:18px;height:18px;border-radius:50%;border:2px solid var(--bg);box-shadow:0 0 0 1px var(--line);padding:0}
+.pe-col.pe-on{box-shadow:0 0 0 2px var(--fg)}
+.pe-clr{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:1px 9px;font-size:12px}
+</style>
+<div class="pe-w">
+<div class="pe-s" id="pe-s">
+<div class="pe-c"><h3>오늘의 핵심 낱말</h3><div class="pe-ws"><span>관찰</span><span class="pe-mk">기록<svg class="pe-ring" viewBox="0 0 100 40" preserveAspectRatio="none"><ellipse cx="50" cy="20" rx="46" ry="17" pathLength="100"/></svg></span><span>비교</span></div><div class="ln" style="width:80%;margin-top:14px"></div><div class="ln" style="width:62%"></div></div>
+<svg class="pe-sv" id="pe-sv"></svg>
+</div>
+<div class="pe-tb">펜 색
+<button type="button" class="pe-col pe-on" data-c="#e11d48" style="background:#e11d48" aria-label="빨강"></button>
+<button type="button" class="pe-col" data-c="#2563eb" style="background:#2563eb" aria-label="파랑"></button>
+<button type="button" class="pe-col" data-c="#16a34a" style="background:#16a34a" aria-label="초록"></button>
+<button type="button" class="pe-clr" id="pe-clr">지우기</button>
+</div>
+</div>
+<span class="hint-chip">화면에 그어 보세요</span>
+<script>
+(function(){
+var sv=document.getElementById('pe-sv'),col='#e11d48',path=null,d='';
+function pt(e){var r=sv.getBoundingClientRect();return Math.round(e.clientX-r.left)+' '+Math.round(e.clientY-r.top);}
+sv.addEventListener('pointerdown',function(e){
+path=document.createElementNS('http'+'://www.w3.org/2000/svg','path');
+path.setAttribute('stroke',col);d='M'+pt(e);path.setAttribute('d',d);sv.appendChild(path);
+if(sv.setPointerCapture&&e.pointerId!=null){try{sv.setPointerCapture(e.pointerId);}catch(x){}}
+e.preventDefault();
+});
+sv.addEventListener('pointermove',function(e){if(!path)return;d+=' L'+pt(e);path.setAttribute('d',d);});
+function end(){path=null;}
+sv.addEventListener('pointerup',end);sv.addEventListener('pointercancel',end);sv.addEventListener('pointerleave',end);
+document.querySelectorAll('.pe-col').forEach(function(b){b.addEventListener('click',function(){
+col=b.getAttribute('data-c');document.querySelectorAll('.pe-col').forEach(function(x){x.classList.toggle('pe-on',x===b);});});});
+document.getElementById('pe-clr').addEventListener('click',function(){while(sv.firstChild)sv.removeChild(sv.firstChild);var r=document.querySelector('.pe-ring');if(r)r.style.display='none';});
+})();
+</script>

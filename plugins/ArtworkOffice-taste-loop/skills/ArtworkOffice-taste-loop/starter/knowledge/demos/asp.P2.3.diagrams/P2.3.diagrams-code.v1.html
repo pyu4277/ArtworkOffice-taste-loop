@@ -1,0 +1,50 @@
+<style>
+.dgc-root{position:absolute;inset:0;display:flex;flex-direction:column;padding:3.5% 4% 2%;font-size:min(3.5vw,5.6vh)}
+.dgc-head{display:flex;align-items:baseline;justify-content:space-between;gap:.6em}
+.dgc-head b{font-size:1.02em;letter-spacing:-.01em}
+.dgc-head span{color:var(--muted);font-size:.76em;white-space:nowrap}
+.dgc-svg{flex:1;min-height:0;width:100%;margin-top:1.5%;transition:opacity .45s}
+.dgc-svg text{font-family:var(--font);fill:var(--muted);font-size:7.5px}
+.dgc-svg .dgc-ax{fill:var(--fg);font-weight:600}
+.dgc-grid line{stroke:var(--line);stroke-width:.6}
+.dgc-axis{stroke:var(--fg);stroke-width:1.1;fill:none}
+.dgc-curve{fill:none;stroke:var(--acc);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1)}
+.dgc-dot{opacity:0;transform:scale(.3);transform-box:fill-box;transform-origin:center;transition:opacity .35s,transform .35s}
+.dgc-dot circle{fill:var(--bg);stroke:var(--acc);stroke-width:1.8}
+.dgc-svg .dgc-dot text{fill:var(--fg);font-weight:700;font-size:8px}
+.dgc-d2{transition-delay:.25s}.dgc-d3{transition-delay:.5s}
+.dgc-guide{opacity:0;transition:opacity .5s}
+.dgc-guide path{fill:none;stroke:var(--warn);stroke-width:1.2;stroke-dasharray:3 2}
+.dgc-svg .dgc-guide text{fill:var(--warn);font-weight:700;font-size:8px}
+.dgc-k1 .dgc-curve{stroke-dashoffset:0}
+.dgc-k2 .dgc-dot{opacity:1;transform:none}
+.dgc-k3 .dgc-guide{opacity:1}
+.dgc-out .dgc-svg{opacity:0}
+.dgc-rs *{transition:none!important}
+</style>
+<div class="dgc-root">
+  <div class="dgc-head"><b>멀어질수록 자기장은 약해진다</b><span>곧은 전선 · 전류 10 A</span></div>
+  <svg class="dgc-svg" viewBox="0 0 300 146" role="img" aria-label="전선에서 떨어진 거리에 따른 자기장 세기 그래프">
+    <g class="dgc-grid">
+      <line x1="40" y1="20" x2="284" y2="20"/><line x1="40" y1="47.5" x2="284" y2="47.5"/><line x1="40" y1="75" x2="284" y2="75"/><line x1="40" y1="102.5" x2="284" y2="102.5"/>
+    </g>
+    <path class="dgc-axis" d="M40 14V130H288"/>
+    <path class="dgc-axis" d="M88 130v3M136 130v3M184 130v3M232 130v3M280 130v3M37 20h3M37 47.5h3M37 75h3M37 102.5h3"/>
+    <text x="34" y="22.5" text-anchor="end">200</text><text x="34" y="50" text-anchor="end">150</text><text x="34" y="77.5" text-anchor="end">100</text><text x="34" y="105" text-anchor="end">50</text><text x="34" y="132.5" text-anchor="end">0</text>
+    <text x="40" y="141" text-anchor="middle">0</text><text x="88" y="141" text-anchor="middle">1</text><text x="136" y="141" text-anchor="middle">2</text><text x="184" y="141" text-anchor="middle">3</text><text x="232" y="141" text-anchor="middle">4</text><text x="280" y="141" text-anchor="middle">5</text>
+    <text class="dgc-ax" x="44" y="10">자기장 세기 B (μT)</text>
+    <text class="dgc-ax" x="286" y="124" text-anchor="end">거리 r (cm)</text>
+    <path class="dgc-curve" pathLength="1" d="M88 20L92.8 30L97.6 38.3L102.4 45.4L107.2 51.4L112 56.7L116.8 61.3L121.6 65.3L126.4 68.9L131.2 72.1L136 75L140.8 77.6L145.6 80L150.4 82.2L155.2 84.2L160 86L164.8 87.7L169.6 89.3L174.4 90.7L179.2 92.1L184 93.3L193.6 95.6L203.2 97.6L212.8 99.4L222.4 101.1L232 102.5L241.6 103.8L251.2 105L260.8 106.1L270.4 107.1L280 108"/>
+    <g class="dgc-dot"><circle cx="88" cy="20" r="3"/><text x="82" y="23" text-anchor="end">200</text></g>
+    <g class="dgc-dot dgc-d2"><circle cx="136" cy="75" r="3"/><text x="141" y="70">100</text></g>
+    <g class="dgc-dot dgc-d3"><circle cx="232" cy="102.5" r="3"/><text x="232" y="95" text-anchor="middle">50</text></g>
+    <g class="dgc-guide"><path d="M94 16Q138 12 137 66"/><path d="M133.5 60.5L137 67L140.5 60.5" style="stroke-dasharray:none"/><text x="146" y="34">거리 2배 → 세기 절반</text></g>
+  </svg>
+</div>
+<script>
+(function(P,N,T){var R=document.querySelector('.'+P+'root');if(!R)return;var C=R.classList,i=0;
+function all(f){for(var j=1;j<=N;j++)C[f](P+'k'+j)}
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){all('add');return}
+function step(){setTimeout(function(){if(i<N){i++;C.add(P+'k'+i);step()}else{C.add(P+'out');setTimeout(function(){C.add(P+'rs');all('remove');C.remove(P+'out');void R.offsetWidth;C.remove(P+'rs');i=0;step()},500)}},T[i])}
+step()})('dgc-',3,[500,1800,900,3000]);
+</script>

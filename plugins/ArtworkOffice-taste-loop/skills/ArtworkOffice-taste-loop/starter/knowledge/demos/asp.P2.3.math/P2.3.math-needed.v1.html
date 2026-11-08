@@ -1,0 +1,37 @@
+<style>
+.mtn-root{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5em;padding:5%;font-size:min(3.5vw,5.6vh)}
+.mtn-lead{font-size:.86em;color:var(--muted);text-align:center}
+.mtn-lead b{color:var(--fg)}
+.mtn-eq{display:flex;align-items:center;gap:.28em;font-family:"Cambria Math","Times New Roman",serif;font-size:2.1em;line-height:1;margin:.55em 0 .7em;padding:.25em .6em;border-radius:.2em;background:var(--soft);opacity:0;transform:scale(.92);transition:opacity .5s,transform .5s}
+.mtn-eq i{font-style:italic}
+.mtn-frac{display:inline-flex;flex-direction:column;align-items:center;font-size:.86em}
+.mtn-frac>span{padding:0 .2em}
+.mtn-frac>span:first-child{border-bottom:.06em solid currentColor;padding-bottom:.08em}
+.mtn-frac>span:last-child{padding-top:.08em}
+.mtn-s{position:relative}
+.mtn-s::after{content:attr(data-l);position:absolute;left:50%;transform:translate(-50%,.3em);font:700 .4em/1.2 var(--font);color:var(--acc);white-space:nowrap;padding:.15em .5em;border-radius:1em;background:var(--bg);border:1px solid var(--acc);opacity:0;transition:opacity .4s,transform .4s}
+.mtn-dn::after{top:100%}
+.mtn-up::after{bottom:100%;transform:translate(-50%,-.3em)}
+.mtn-k1 .mtn-eq{opacity:1;transform:none}
+.mtn-k2 .mtn-b::after,.mtn-k3 .mtn-i::after,.mtn-k4 .mtn-r::after{opacity:1}
+.mtn-k2 .mtn-dn.mtn-b::after,.mtn-k4 .mtn-dn.mtn-r::after{transform:translate(-50%,.45em)}
+.mtn-k3 .mtn-up.mtn-i::after{transform:translate(-50%,-.45em)}
+.mtn-note{font-size:.66em;color:var(--muted)}
+.mtn-out .mtn-eq{opacity:0}
+.mtn-rs *,.mtn-rs *::after{transition:none!important}
+</style>
+<div class="mtn-root">
+  <div class="mtn-lead">핵심 관계는 <b>식 하나</b>로 정리합니다</div>
+  <div class="mtn-eq" role="math" aria-label="B 는 뮤 영 곱하기 I 를 2 파이 r 로 나눈 값">
+    <span class="mtn-s mtn-dn mtn-b" data-l="자기장 세기"><i>B</i></span><span>=</span>
+    <span class="mtn-frac"><span>μ<sub>0</sub><span class="mtn-s mtn-up mtn-i" data-l="전류"><i>I</i></span></span><span>2π<span class="mtn-s mtn-dn mtn-r" data-l="거리"><i>r</i></span></span></span>
+  </div>
+  <div class="mtn-note">곧은 전선 둘레의 자기장</div>
+</div>
+<script>
+(function(P,N,T){var R=document.querySelector('.'+P+'root');if(!R)return;var C=R.classList,i=0;
+function all(f){for(var j=1;j<=N;j++)C[f](P+'k'+j)}
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){all('add');return}
+function step(){setTimeout(function(){if(i<N){i++;C.add(P+'k'+i);step()}else{C.add(P+'out');setTimeout(function(){C.add(P+'rs');all('remove');C.remove(P+'out');void R.offsetWidth;C.remove(P+'rs');i=0;step()},550)}},T[i])}
+step()})('mtn-',4,[400,900,800,800,2800]);
+</script>

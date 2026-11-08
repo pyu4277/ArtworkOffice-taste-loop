@@ -1,0 +1,33 @@
+<style>
+.frt-wrap{display:flex;flex-direction:column;height:100%}
+.frt-bar{flex:none;display:flex;align-items:center;gap:2px;padding:0 8px;height:32px;background:var(--bar);border-bottom:1px solid var(--line)}
+.frt-logo{display:flex;align-items:center;gap:5px;font-weight:800;font-size:12px;margin-right:auto;white-space:nowrap}
+.frt-logo i{width:14px;height:14px;border-radius:4px;background:var(--acc)}
+.frt-bar button{border:0;background:none;padding:0 7px;height:100%;font-size:11.5px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.frt-bar button.frt-on{color:var(--fg);font-weight:700;border-bottom-color:var(--acc)}
+.frt-body{flex:1;min-height:0;padding:12px 16px}
+.frt-body h3{margin:0 0 2px;font-size:15px}
+.frt-body p{margin:0 0 4px;color:var(--muted);font-size:11px}
+</style>
+<div class="frt-wrap">
+  <nav class="frt-bar" id="frt-bar">
+    <span class="frt-logo"><i></i>강의 자료</span>
+    <button class="frt-on">처음</button><button>1장 원리</button><button>2장 실습</button><button>정리</button>
+  </nav>
+  <main class="frt-body" id="frt-body"></main>
+</div>
+<span class="hint-chip">위쪽 메뉴를 눌러 보세요</span>
+<script>
+(function(){
+  var P=[['처음','오늘 배울 내용을 둘러봅니다',[90,70]],['1장 원리','기본이 되는 생각을 살펴봅니다',[94,86,60]],['2장 실습','직접 해 보며 익힙니다',[80,92,74,50]],['정리','핵심만 다시 짚어 봅니다',[70,56]]];
+  var bs=document.querySelectorAll('#frt-bar button'),body=document.getElementById('frt-body');
+  function go(k){
+    for(var j=0;j<bs.length;j++)bs[j].classList.toggle('frt-on',j===k);
+    var h='<div class="fade"><h3>'+P[k][0]+'</h3><p>'+P[k][1]+'</p>';
+    P[k][2].forEach(function(w){h+='<div class="ln" style="width:'+w+'%"></div>'});
+    body.innerHTML=h+'</div>';
+  }
+  for(var j=0;j<bs.length;j++)(function(j){bs[j].onclick=function(){go(j)}})(j);
+  go(0);
+})();
+</script>

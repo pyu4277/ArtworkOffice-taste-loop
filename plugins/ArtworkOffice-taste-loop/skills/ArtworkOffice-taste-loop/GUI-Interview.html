@@ -128,6 +128,31 @@ a{color:var(--accent)}
 .q{font-weight:600;margin:0 0 8px}
 .hint{color:var(--muted);font-size:.9rem;margin:-4px 0 8px}
 .card.sub{margin-left:18px;border-left:4px solid var(--accent)}
+textarea.opinion{width:100%;box-sizing:border-box;margin-top:8px;min-height:44px}
+/* 선택지 예시 카드 */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+.dgrid .ogrp.dg{grid-column:1/-1;margin:4px 0 -4px}
+.dcard{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--bg);min-width:0}
+.dcard[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.dcard.prim{box-shadow:0 0 0 2px var(--accent),0 0 0 5px var(--accent-soft)}
+.dname{font-weight:700}
+iframe.demo{width:100%;aspect-ratio:16/10;border:1px solid var(--line);border-radius:10px;background:var(--panel);display:block}
+.dver{font-size:.8rem;color:var(--muted)}.dver b{color:var(--fg)}
+.dafter{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.82rem}
+.dafter div{background:var(--panel);border-radius:8px;padding:6px 8px}.dafter b{display:block;font-size:.75rem;color:var(--muted)}
+.dhist{font-size:.8rem}.dhist summary{cursor:pointer;color:var(--accent)}.dhist ul{margin:4px 0;padding-left:18px;color:var(--muted)}
+.dpick{align-self:stretch;text-align:center;font-weight:700}
+.drest{margin-top:10px}
+.dsec{margin:8px 0}
+textarea.free{width:100%;box-sizing:border-box;resize:vertical;min-height:40px;overflow:hidden;margin-top:6px}
+/* 사이드 트리: 지금 보는 자리 */
+.tr.here{background:var(--accent-soft);border-radius:8px;box-shadow:0 0 0 1px var(--accent),0 0 12px var(--accent);animation:herepulse 2.4s ease-in-out infinite}
+.tr.here .lb{color:var(--accent);font-weight:800}
+.tr.here-in>.lb{color:var(--accent)}
+.herechip{font-size:.7rem;font-weight:800;color:var(--bg);background:var(--accent);border-radius:999px;padding:0 7px;margin-left:6px;flex:none}
+@keyframes herepulse{50%{box-shadow:0 0 0 1px var(--accent),0 0 22px var(--accent)}}
+@media (prefers-reduced-motion:reduce){.tr.here{animation:none}}
+@media (max-width:639px){.dafter{grid-template-columns:1fr}}
 .ogrp{flex-basis:100%;font-size:.8rem;font-weight:700;color:var(--muted);margin:6px 0 -2px}
 .hint.cond{color:var(--accent);font-weight:600}
 @media (max-width:639px){.card.sub{margin-left:8px}}
@@ -250,17 +275,22 @@ const pastAnswers = store.past_answers || [];
 const lessons = store.lessons || [], mistakes = store.mistakes || [], designRefs = store.design_refs || [], templates = store.templates || [], changes = store.changes || [], checklist = store.checklist || [];
 const choices = store.choices || {};
 const choiceOf = (aid, oid) => choices[aid + '|' + oid] || null;
+// 선택지 예시(움직이는 HTML) — 키: dim.<질문>|<선택지> · asp.<취향 질문>|<선택지>. 판(version)은 프로젝트를 마칠 때 실제로 만든 모습으로 오른다(demos.py)
+const DEMOS = (SPEC.demos && SPEC.demos.items) || {};
+const DEMO_BASE = (SPEC.demos && SPEC.demos.base_css) || '';
+const demoOf = (kind, qid, oid) => DEMOS[kind + '.' + qid + '|' + oid] || null;
 const KIND_NAME = {project: '프로젝트', past_all: '지난 답변', past: '지난 답', entry: '취향', decision: '결정', lesson: '교훈', mistake: '실수', design_ref: '레퍼런스', template: '템플릿', new_ref: '새 메모'};
 const CHOICE_NAME = {keep: '그대로', change: '이번엔 다르게', new: '처음 정함', skip: '나중에·해당 없음'};
 const isNarrow = () => !!(window.matchMedia && window.matchMedia('(max-width: 639px)').matches);
 const lectureName = f => { const m = /^\d{4}(?:\d{2})?_[^_/]+_(.+)$/.exec(f || ''); return m ? m[1] : (f || ''); };
 
 // ---------- 상태 (답) ----------
-const blank = () => ({dimensions: {}, aspects: {}, project: {}, items: {}, overall: '', notes: '', refs: {}, base_project: null, new_refs: []});
+const blank = () => ({dimensions: {}, aspects: {}, project: {}, items: {}, overall: '', notes: '', refs: {}, base_project: null, new_refs: [], opinions: {}});
 let state = blank();
 try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.dimensions) state = Object.assign(blank(), saved); } catch (e) {}
 if (!state.refs || typeof state.refs !== 'object') state.refs = {};
 if (!Array.isArray(state.new_refs)) state.new_refs = [];
+if (!state.opinions || typeof state.opinions !== 'object') state.opinions = {}; // 질문별 기타 의견: 'dim:<id>' · 'pq:<id>' (취향 질문은 aspects[id].note)
 if (SPEC.defaults && SPEC.defaults.dimensions) {
   for (const [k, v] of Object.entries(SPEC.defaults.dimensions)) if (state.dimensions[k] == null) state.dimensions[k] = clone(v);
 }
@@ -855,7 +885,7 @@ function aspectDetail(aid) {
   const al = document.createElement('label'); al.className = 'small'; al.style.display = 'inline-flex'; al.style.alignItems = 'center'; al.style.gap = '4px';
   al.innerHTML = `<input type="checkbox" ${st.always ? 'checked' : ''}> 앞으로도 항상`; $('input', al).onchange = ev => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {always: ev.target.checked}); save(); renderSide(); }; acts.appendChild(al);
   d.appendChild(acts);
-  const note = document.createElement('textarea'); note.placeholder = '메모(선택)'; note.value = st.note || ''; note.style.minHeight = '44px'; note.oninput = () => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {note: note.value}); save(); }; d.appendChild(note);
+  const note = document.createElement('textarea'); note.placeholder = '기타 의견 (선택)'; note.className = 'opinion'; note.dataset.opinion = 'aspect:' + aid; note.value = st.note || ''; note.style.minHeight = '44px'; note.oninput = () => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {note: note.value}); save(); syncOpinion('aspect:' + aid, note); }; d.appendChild(note);
   const pa = pastAnswers.filter(p => p.aspects && p.aspects[aid] && p.aspects[aid].choice);
   const es = entries.filter(e => e.aspect === aid).sort((x, y) => (applies(y) && isActive(y)) - (applies(x) && isActive(x)));
   if (pa.length || es.length) {
@@ -898,6 +928,7 @@ function dimDetail(did) {
     paint();
     if ((dm.values || []).some(o => o.free)) { const t = document.createElement('input'); t.type = 'text'; t.placeholder = '기타 내용'; t.value = state.dimensions[did + '_other'] || ''; t.style.marginTop = '6px'; t.oninput = () => { state.dimensions[did + '_other'] = t.value; save(); }; d.appendChild(t); }
   }
+  if (dm.type !== 'text') { const op = opinionBox('dim:' + did); op.style.marginTop = '6px'; d.appendChild(op); }
   const acts = document.createElement('div'); acts.className = 'acts';
   const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = '화면으로'; b.dataset.act = 'goto'; b.onclick = () => goToLeaf({kind: 'dim', did}); acts.appendChild(b);
   d.appendChild(acts);
@@ -907,11 +938,37 @@ function simpleDetail(n) {
   const d = document.createElement('div'); d.className = 'td';
   const v = n.kind === 'pq' ? state.project[n.qid] : (state.items[n.item.id] || {}).choice;
   d.innerHTML = `<p class="small">${v ? '답: ' + esc(Array.isArray(v) ? v.join(', ') : String(v)) : '아직 답이 없습니다.'}</p>`;
+  if (n.kind === 'pq') { const q = projectQs.find(x => x.id === n.qid); if (q && q.type !== 'text') d.appendChild(opinionBox('pq:' + n.qid)); }
   const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = '화면으로'; b.dataset.act = 'goto'; b.onclick = () => goToLeaf(n); d.appendChild(b);
   return d;
 }
+// 지금 보는 화면의 자리: 그 화면 묶음은 빛나게(here), 그 위 묶음은 글자색만(here-in)
+function hereIds() {
+  const sc = screens[idx]; const s = {here: new Set(), within: new Set()};
+  if (!sc || ui.view !== 'flow') return s;
+  if (sc.kind === 'dims') { s.here.add('scr:' + sc.id); s.within.add('part1'); for (const did of sc.dimensions || []) s.within.add('dim:' + did); }
+  else if (sc.kind === 'taste') { s.here.add('cat:' + sc.cat.id); s.within.add('part2'); }
+  else if (sc.kind === 'project') s.here.add('part3');
+  else if (sc.kind === 'structure' || sc.kind === 'review' || sc.kind === 'approve') s.here.add('items');
+  return s;
+}
+let followed = null; // 마지막으로 트리를 맞춘 화면
+function followTree() { // 「다음/이전」으로 화면을 옮기면 트리도 그 자리를 펼쳐 보여 주고 거기로 스크롤한다
+  const side = $('#side'); if (!side || !$('#tree')) return;
+  const key = ui.view + ':' + idx; if (key === followed) return; followed = key;
+  const H = hereIds(); if (!H.here.size) return;
+  if (ui.autoOpened) for (const id of ui.autoOpened) if (!H.here.has(id) && !H.within.has(id)) ui.open[id] = false; // 지난번에 저절로 펼친 곳은 다시 접는다
+  ui.autoOpened = [];
+  const want = [...H.here, ...[...H.within].filter(x => !x.startsWith('dim:'))];
+  for (const id of want) if (ui.open[id] === false) { ui.open[id] = true; ui.autoOpened.push(id); } // 접어 둔 곳만 잠깐 펼침(기본은 지금 화면 묶음이 열림)
+  renderTreeOnly();
+  const row = $('#tree .tr.here'); if (!row) return;
+  const sr = side.getBoundingClientRect(), rr = row.getBoundingClientRect();
+  if (rr.top < sr.top + 60 || rr.bottom > sr.bottom - 40) side.scrollTop += rr.top - sr.top - Math.max(60, side.clientHeight * 0.25);
+}
 function renderNodes(container, nodes, q, top) {
   const F = ui.filter;
+  const H = hereIds();
   for (const n of nodes) {
     const kids = n.children || [];
     const leaf = isLeaf(n);
@@ -927,11 +984,13 @@ function renderNodes(container, nodes, q, top) {
     }
     const open = q ? true : isOpen(n);
     const el = document.createElement('div'); el.className = 'tn'; el.dataset.id = n.id;
-    const row = document.createElement('div'); row.className = 'tr' + (leaf ? '' : ' grp') + (ui.detail[n.id] ? ' cur' : '');
+    const row = document.createElement('div'); row.className = 'tr' + (leaf ? '' : ' grp') + (ui.detail[n.id] ? ' cur' : '') + (H.here.has(n.id) ? ' here' : '') + (H.within.has(n.id) ? ' here-in' : '');
+    if (H.here.has(n.id)) row.setAttribute('aria-current', 'location');
     const tg = document.createElement('button'); tg.type = 'button'; tg.className = 'tg'; tg.setAttribute('aria-label', (leaf ? (ui.detail[n.id] ? '상세 접기' : '상세 펼치기') : (open ? '접기' : '펼치기')) + ': ' + n.label);
     tg.textContent = leaf ? (ui.detail[n.id] ? '▾' : '▸') : (open ? '▾' : '▸');
     const lb = document.createElement('span'); lb.className = 'lb'; lb.textContent = n.label; lb.title = n.label;
     row.appendChild(tg); row.appendChild(lb);
+    if (H.here.has(n.id)) { const hm = document.createElement('span'); hm.className = 'herechip'; hm.textContent = '지금'; row.appendChild(hm); }
     if (leaf) { const s = leafStatus(n); if (s.t) { const st = document.createElement('span'); st.className = 'st' + (s.on ? ' on' : ''); st.textContent = s.t; row.appendChild(st); } }
     else { const cnt = document.createElement('span'); cnt.className = 'n'; cnt.textContent = n.count != null ? n.count : kids.length; row.appendChild(cnt); }
     const toggle = () => { if (leaf) ui.detail[n.id] = !ui.detail[n.id]; else ui.open[n.id] = !open; saveUi(); renderSide(); };
@@ -1059,9 +1118,17 @@ function render() {
   ({intro: renderIntro, dims: renderDims, taste: renderTaste, project: renderProject, structure: renderItems, review: renderItems, approve: renderItems, summary: renderSummary}[sc.kind])(root, sc);
   try { sessionStorage.setItem(KEY + ':idx', String(idx)); } catch (e) {}
   renderRibbon();
-  if ($('#tree')) renderTreeOnly();
+  if ($('#tree')) { renderTreeOnly(); followTree(); }
   placeScroll('flow:' + idx, y0);
 }
+function opinionBox(key) { // 기타 의견 칸 — 본문 카드와 사이드 트리가 같은 값을 쓴다
+  const t = document.createElement('textarea'); t.className = 'opinion'; t.dataset.opinion = key; t.rows = 2;
+  t.placeholder = '기타 의견 (선택) — 이 질문에 더 하고 싶은 말';
+  t.value = state.opinions[key] || '';
+  t.oninput = () => { if (t.value.trim()) state.opinions[key] = t.value; else delete state.opinions[key]; save(); syncOpinion(key, t); };
+  return t;
+}
+function syncOpinion(key, self) { for (const o of $$('textarea.opinion')) if (o !== self && o.dataset.opinion === key) o.value = self.value; } // 카드와 트리에 같은 칸이 함께 열려 있을 때
 function dropStrip(target) {
   const d = document.createElement('div'); d.className = 'drop'; d.dataset.for = target;
   const list = state.refs[target] || [];
@@ -1102,6 +1169,67 @@ function renderIntro(root) {
   card.appendChild(row); root.appendChild(card);
   if (mode === 'interview') root.appendChild(baseZone());
 }
+function demoDoc(html) { return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>' + DEMO_BASE + '</style></head><body>' + html + '</body></html>'; }
+let demoObs = null; // 화면에 들어온 예시만 띄운다(한 화면에 예시가 많아도 가볍게)
+function lazyDemo(ifr, html) {
+  ifr.dataset.pending = '1'; ifr._html = html;
+  const load = () => { if (ifr.dataset.pending) { delete ifr.dataset.pending; ifr.srcdoc = demoDoc(ifr._html); } };
+  if (typeof IntersectionObserver === 'function') {
+    if (!demoObs) demoObs = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { demoObs.unobserve(e.target); e.target._load(); } }, {rootMargin: '200px'});
+    ifr._load = load; demoObs.observe(ifr);
+  } else load();
+}
+// 예시가 있는 선택지는 움직이는 카드로, 없는 선택지는 글 단추로. 반환 상자에 sync(선택, 주 대상)가 있어 다시 그리지 않고 표시만 바꾼다
+function choiceBox(kind, qid, opts, selected, multi, onPick, primary, marks) {
+  const withDemo = opts.filter(o => demoOf(kind, qid, o.id));
+  if (!withDemo.length) return optButtons(opts, selected, multi, onPick, primary);
+  const wrap = document.createElement('div'); wrap.className = 'dchoices';
+  const grid = document.createElement('div'); grid.className = 'dgrid'; wrap.appendChild(grid);
+  const cards = [];
+  let grp = null;
+  for (const o of withDemo) {
+    const dm = demoOf(kind, qid, o.id);
+    if (o.group && o.group !== grp) { const h = document.createElement('div'); h.className = 'ogrp dg'; h.textContent = o.group; grid.appendChild(h); }
+    grp = o.group || grp;
+    const c = document.createElement('div'); c.className = 'dcard'; c.dataset.id = o.id;
+    const mk = (marks && marks[o.id]) || '';
+    c.innerHTML = `<div class="dname">${esc(o.label)}${mk}</div>`;
+    const ifr = document.createElement('iframe'); ifr.className = 'demo'; ifr.setAttribute('sandbox', 'allow-scripts'); ifr.title = o.label + ' 예시'; ifr.loading = 'lazy';
+    c.appendChild(ifr); lazyDemo(ifr, dm.html);
+    const ver = document.createElement('div'); ver.className = 'dver';
+    ver.innerHTML = `예시: <b>방법 v${esc(dm.version)}</b> · ${esc(dm.source || '')}${dm.origin === 'user' ? ' <span class="badge">내 프로젝트에서</span>' : ''}`;
+    c.appendChild(ver);
+    const after = document.createElement('div'); after.className = 'dafter';
+    after.innerHTML = `<div><b>누른 순간</b>${esc(dm.now)}</div><div><b>나중에</b>${esc(dm.later)}</div>`;
+    c.appendChild(after);
+    const hist = dm.history || [];
+    if (hist.length) {
+      const det = document.createElement('details'); det.className = 'dhist';
+      det.innerHTML = `<summary>판 기록 ${hist.length}개${Object.keys(dm.old || {}).length ? ' · 지난 판 보기' : ''}</summary><ul>${hist.slice().reverse().map(h => `<li>v${esc(h.v)} ${esc(h.date || '')} · ${esc(h.from || '')} — ${esc(h.what || '')}${(dm.old || {})[String(h.v)] ? ` <button type="button" class="tbtn" data-oldv="${esc(h.v)}">이 판 보기</button>` : ''}</li>`).join('')}</ul>`;
+      if (Object.keys(dm.old || {}).length) {
+        const back = document.createElement('button'); back.type = 'button'; back.className = 'tbtn'; back.textContent = '지금 판으로'; back.hidden = true;
+        det.appendChild(back);
+        det.onclick = ev => { const b = ev.target.closest('[data-oldv]'); if (!b) return; ifr.srcdoc = demoDoc(dm.old[b.dataset.oldv]); ver.innerHTML = `예시: <b>지난 판 v${esc(b.dataset.oldv)}</b> (지금 판은 v${esc(dm.version)})`; back.hidden = false; };
+        back.onclick = () => { ifr.srcdoc = demoDoc(dm.html); ver.innerHTML = `예시: <b>방법 v${esc(dm.version)}</b> · ${esc(dm.source || '')}`; back.hidden = true; };
+      }
+      c.appendChild(det);
+    }
+    const pk = document.createElement('button'); pk.type = 'button'; pk.className = 'opt dpick'; pk.dataset.id = o.id;
+    pk.onclick = () => onPick(o.id);
+    c.appendChild(pk);
+    grid.appendChild(c); cards.push(c);
+  }
+  const rest = opts.filter(o => !demoOf(kind, qid, o.id));
+  let restBox = null;
+  if (rest.length) { restBox = optButtons(rest, selected, multi, onPick, primary); restBox.classList.add('drest'); wrap.appendChild(restBox); }
+  wrap.sync = (sel, prim) => {
+    const s = sel == null ? [] : (Array.isArray(sel) ? sel : [sel]);
+    for (const c of cards) { const on = s.includes(c.dataset.id); c.setAttribute('aria-pressed', on ? 'true' : 'false'); const b = c.querySelector('.dpick'); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? (multi ? '✓ 고름 (다시 누르면 뺌)' : '✓ 고름') : '이걸로 고르기'; c.classList.toggle('prim', !!prim && prim === c.dataset.id); }
+    if (restBox) { const nb = optButtons(rest, sel, multi, onPick, prim); nb.classList.add('drest'); wrap.replaceChild(nb, restBox); restBox = nb; }
+  };
+  wrap.sync(selected, primary);
+  return wrap;
+}
 function optButtons(opts, selected, multi, onPick, primary) {
   const sel = selected == null ? [] : (Array.isArray(selected) ? selected : [selected]);
   const wrap = document.createElement('div'); wrap.className = 'opts';
@@ -1116,7 +1244,10 @@ function optButtons(opts, selected, multi, onPick, primary) {
   }
   return wrap;
 }
-function freeInput(value, onChange, placeholder) { const t = document.createElement('input'); t.type = 'text'; t.value = value || ''; t.placeholder = placeholder || '직접 입력'; t.oninput = () => onChange(t.value); return t; }
+function freeInput(value, onChange, placeholder) { // 기타(직접 입력): 여러 줄, 쓰는 만큼 늘어남(긴 말이 잘리지 않게)
+  const t = document.createElement('textarea'); t.className = 'free'; t.rows = 1; t.value = value || ''; t.placeholder = placeholder || '직접 입력';
+  const fit = () => { t.style.height = 'auto'; if (t.scrollHeight) t.style.height = t.scrollHeight + 'px'; };
+  t.oninput = () => { onChange(t.value); fit(); }; setTimeout(fit, 0); return t; }
 function renderDims(root, sc) {
   if (sc === screens[1] && mode === 'interview') root.appendChild(baseZone());
   for (const did of sc.dimensions) {
@@ -1132,9 +1263,9 @@ function renderDims(root, sc) {
       const opts = visOpts(d.values);
       let box = null;
       const freeBox = document.createElement('div'); freeBox.className = 'row';
-      const rerender = () => { const nb = optButtons(opts, state.dimensions[did], d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null); card.replaceChild(nb, box); box = nb; freeBox.hidden = !(d.type === 'multi' ? asArr(state.dimensions[did]).includes('other') : state.dimensions[did] === 'other'); if ($('#tree')) renderTreeOnly(); };
+      const rerender = () => { if (box.sync) box.sync(state.dimensions[did], d.primary ? state.dimensions[did + '_primary'] : null); else { const nb = optButtons(opts, state.dimensions[did], d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null); card.replaceChild(nb, box); box = nb; } freeBox.hidden = !(d.type === 'multi' ? asArr(state.dimensions[did]).includes('other') : state.dimensions[did] === 'other'); if ($('#tree')) renderTreeOnly(); };
       const pick = id => { pickDim(did, id); if (DEP_KEYS.has(did)) { render(); return; } rerender(); };
-      box = optButtons(opts, cur, d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null);
+      box = choiceBox('dim', did, opts, cur, d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null);
       card.appendChild(box);
       freeBox.appendChild(freeInput(state.dimensions[did + '_other'], v => { state.dimensions[did + '_other'] = v; save(); }, '기타 내용'));
       freeBox.hidden = !(d.type === 'multi' ? asArr(cur).includes('other') : cur === 'other');
@@ -1145,6 +1276,7 @@ function renderDims(root, sc) {
         pr.appendChild(b); card.appendChild(pr);
       }
     }
+    if (d.type !== 'text') card.appendChild(opinionBox('dim:' + did));
     card.appendChild(dropStrip('dim:' + did));
     root.appendChild(card);
   }
@@ -1172,10 +1304,11 @@ function tasteCard(a) {
   const mk = (label, c, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.dataset.c = c; b.textContent = label; b.onclick = on; return b; };
   const optsBox = document.createElement('div'); optsBox.style.marginTop = '8px';
   const always = document.createElement('label'); always.className = 'row small'; always.innerHTML = '<input type="checkbox" id="al-' + esc(a.id) + '"> 앞으로도 항상 이렇게 (취향 갱신 제안)';
-  const note = document.createElement('textarea'); note.placeholder = '메모(선택) — 새 레퍼런스가 필요하면 여기나 트리 「새 메모」에'; note.value = st.note || ''; note.oninput = () => { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {note: note.value}); save(); };
+  const note = document.createElement('textarea'); note.placeholder = '기타 의견 (선택) — 이 질문에 더 하고 싶은 말. 새 레퍼런스는 트리 「새 메모」에'; note.className = 'opinion'; note.dataset.opinion = 'aspect:' + a.id; note.value = st.note || ''; note.oninput = () => { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {note: note.value}); save(); syncOpinion('aspect:' + a.id, note); };
   function setChoice(choice, value) { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {choice, value, winner: m ? m.winner.id : null, always: !!(st.always)}); save(); paint(); if ($('#tree')) renderTreeOnly(); }
   function paint() {
     const cur = state.aspects[a.id] || {};
+    if (dgrid) dgrid.sync(cur.choice === 'skip' ? null : (cur.value != null ? cur.value : (cur.choice === 'keep' && m ? m.winner.value : null)));
     for (const b of row.querySelectorAll('.btn')) b.setAttribute('aria-pressed', b.dataset.c === cur.choice ? 'true' : 'false');
     const showOpts = cur.choice === 'change' || cur.choice === 'new' || (m && m.conflict && cur.choice !== 'skip') || (m && m.inferred && cur.choice !== 'skip');
     optsBox.innerHTML = '';
@@ -1206,7 +1339,26 @@ function tasteCard(a) {
   else row.appendChild(mk('지금 정한다', 'new', () => setChoice('new', st.value)));
   row.appendChild(mk('나중에·해당 없음', 'skip', () => setChoice('skip', null)));
   const ex = document.createElement('button'); ex.type = 'button'; ex.className = 'btn'; ex.textContent = '예시 보기'; ex.dataset.c = 'gallery'; ex.onclick = () => openGallery([a.id]); row.appendChild(ex);
-  card.appendChild(row); card.appendChild(optsBox); card.appendChild(note);
+  // 예시로 비교: 선택지마다 움직이는 예시. 고르면 그 값이 답이 된다(학습된 값과 같으면 「그대로」)
+  var dgrid = null;
+  const vopts = visOpts(a.options);
+  if ((a.type === 'single' || a.type === 'multi') && vopts.some(o => demoOf('asp', a.id, o.id))) {
+    const marks = {};
+    if (m && !m.conflict && typeof m.winner.value === 'string') marks[m.winner.value] = ' <span class="badge">지금 학습된 값</span>';
+    if (m && m.conflict) for (const e of m.conflictSet) if (typeof e.value === 'string') marks[e.value] = ' <span class="badge warn">충돌 후보</span>';
+    const pickDemo = id => {
+      const cur = state.aspects[a.id] || {};
+      if (a.type === 'multi') { const arr = Array.isArray(cur.value) ? [...cur.value] : []; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); setChoice(m ? 'change' : 'new', arr); return; }
+      if (m && !m.conflict && !m.inferred && norm(m.winner.value) === norm(id)) setChoice('keep', m.winner.value);
+      else setChoice(m ? 'change' : 'new', id);
+    };
+    const sec = document.createElement('div'); sec.className = 'dsec';
+    sec.innerHTML = '<p class="hint">예시로 비교 — 눌러 보고 「이걸로 고르기」를 누르면 그 값이 답이 됩니다.</p>';
+    dgrid = choiceBox('asp', a.id, vopts, null, a.type === 'multi', pickDemo, null, marks);
+    sec.appendChild(dgrid);
+    card.appendChild(row); card.appendChild(sec);
+  } else card.appendChild(row);
+  card.appendChild(optsBox); card.appendChild(note);
   card.appendChild(dropStrip('aspect:' + a.id));
   paint();
   return card;
@@ -1220,6 +1372,7 @@ function renderProject(root) {
     else {
       let box; const pick = id => { if (q.type === 'multi') { const arr = Array.isArray(state.project[q.id]) ? [...state.project[q.id]] : []; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); state.project[q.id] = arr; } else state.project[q.id] = id; save(); const nb = optButtons(visOpts(q.options), state.project[q.id], q.type === 'multi', pick); card.replaceChild(nb, box); box = nb; if ($('#tree')) renderTreeOnly(); };
       box = optButtons(visOpts(q.options), cur, q.type === 'multi', pick); card.appendChild(box);
+      card.appendChild(opinionBox('pq:' + q.id));
     }
     card.appendChild(dropStrip('pq:' + q.id));
     root.appendChild(card);
@@ -1292,14 +1445,22 @@ function cleanAnswers() { // 지금 조건에 안 맞아 숨은 질문·선택�
     state.dimensions = cur;
     const asp = {}; for (const [k, v] of Object.entries(state.aspects)) { const a = aspectById[k]; if (!a || aspShown(a)) asp[k] = v; }
     const pj = {}; for (const [k, v] of Object.entries(state.project)) { const q = projectQs.find(x => x.id === k); if (!q || whenOk(q)) pj[k] = v; }
-    return {dimensions: cur, aspects: asp, project: pj};
+    const op = {};
+    for (const [k, v] of Object.entries(state.opinions || {})) {
+      if (!v || !String(v).trim()) continue;
+      const [kind, id] = [k.slice(0, k.indexOf(':')), k.slice(k.indexOf(':') + 1)];
+      if (kind === 'dim' && dimById[id] && !dimShown(dimById[id])) continue;
+      if (kind === 'pq') { const q = projectQs.find(x => x.id === id); if (q && !whenOk(q)) continue; }
+      op[k] = v;
+    }
+    return {dimensions: cur, aspects: asp, project: pj, opinions: op};
   } finally { state.dimensions = saved; }
 }
 function payload() {
   const c = cleanAnswers();
   return {spec_id: SPEC.spec_id || null, mode, lecture: SPEC.lecture || null, submitted_at: new Date().toISOString(),
     client: (window.claude && typeof window.claude.use === 'function') ? 'artifact' : 'file',
-    dimensions: c.dimensions, aspects: c.aspects, project: c.project, items: state.items, overall: state.overall, notes: state.notes,
+    dimensions: c.dimensions, aspects: c.aspects, project: c.project, opinions: c.opinions, items: state.items, overall: state.overall, notes: state.notes,
     base_project: state.base_project, refs: state.refs, new_refs: state.new_refs};
 }
 function renderSummary(root) {
@@ -1309,7 +1470,7 @@ function renderSummary(root) {
   if (mode === 'interview') {
     html += '<div class="kv">';
     if (state.base_project) html += `<b>기본 양식</b><span>${esc(state.base_project.title)} (차원 ${esc(state.base_project.dims_set || 0)} · 취향 ${esc(state.base_project.aspects_set || 0)})</span>`;
-    for (const d of dims) { const v = p.dimensions[d.id]; if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue; html += `<b>${esc(d.name)}</b><span>${esc(dimText(d.id, v))}${p.dimensions[d.id + '_other'] ? ' (' + esc(p.dimensions[d.id + '_other']) + ')' : ''}</span>`; }
+    for (const d of dims) { const v = p.dimensions[d.id]; if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue; html += `<b>${esc(d.name)}</b><span>${esc(dimText(d.id, v))}${p.dimensions[d.id + '_other'] ? ' (' + esc(p.dimensions[d.id + '_other']) + ')' : ''}${p.opinions['dim:' + d.id] ? ' · 의견: ' + esc(short(p.opinions['dim:' + d.id], 60)) : ''}</span>`; }
     html += '</div>';
     const keep = Object.values(state.aspects).filter(x => x.choice === 'keep').length, change = Object.values(state.aspects).filter(x => x.choice === 'change').length, nw = Object.values(state.aspects).filter(x => x.choice === 'new').length, always = Object.values(state.aspects).filter(x => x.always).length;
     html += `<p class="small">취향: 그대로 ${keep} · 다르게 ${change} · 처음 정함 ${nw} · 항상 바꾸기 제안 ${always}</p>`;
@@ -1470,7 +1631,8 @@ function renderHelp(root) {
 <p><b>선택별 진화 기록</b>: 예시 타일의 「방법 v1」은 그 선택을 고르면 지금 어떻게 만드는지(방법·점검·예시·배운 프로젝트·이력)가 기록돼 있다는 뜻입니다. 질문을 펼치거나 크게 보기에서 고른 선택의 방법이 보입니다. 프로젝트를 마무리할 때 방법이 나아지면 버전이 오르므로, 같은 선택을 또 골라도 다음 자료는 새 방법으로 만들어집니다. 저장소 → 「선택 기록」에서 전부 볼 수 있습니다.</p>
 <p><b>고른 것에 따라 바뀌는 질문</b>: 위에서 고른 답에 따라 다음 목차·질문·선택지가 나타나거나 숨습니다(예: 파일 형식에 HTML을 고르면 「HTML 화면 구성」 목차가 생기고, 방향을 고르면 그 방향에 맞는 크기만 보입니다). 「↳ … 골라서 나온 질문」 카드는 위 답에서 이어진 질문입니다. 숨은 질문의 답은 제출에서 빠지고, 다시 고르면 되살아납니다. 목차·질문·선택지 자체를 고치려면 구조 편집 페이지(<code>--mode edit</code>)를 씁니다.</p>
 <p><b>새 레퍼런스</b>: 참고 서랍 「새 메모」에 적으면 <code>new_refs</code>로 전해지고, 작업이 끝나면 다음 인터뷰부터 카드로 쌓입니다. 지난 프로젝트의 실제 결과물은 게시 URL 링크(새 탭)와 PC 경로로 보여 줍니다.</p>
-<p class="small">제출 JSON: dimensions · aspects(choice/value/always/note/from) · project · base_project · refs · new_refs · items · overall.</p>`;
+<p><b>기타 의견</b>: 질문마다 선택지 아래 「기타 의견」 칸에 자유롭게 적을 수 있습니다(사이드 트리의 같은 질문과 같은 칸). 참고를 끌어다 놓는 칸은 그 아래에 있습니다.</p>
+<p class="small">제출 JSON: dimensions · aspects(choice/value/always/note/from) · project · opinions(질문별 기타 의견) · base_project · refs · new_refs · items · overall.</p>`;
   root.appendChild(c);
 }
 

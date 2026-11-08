@@ -1,0 +1,75 @@
+<style>
+.vmap-app{display:flex;height:100%}
+.vmap-rail{flex:none;width:52px;display:flex;flex-direction:column;gap:2px;padding:6px 4px;background:var(--bar);border-right:1px solid var(--line)}
+.vmap-rail button{border:0;background:none;border-radius:8px;padding:4px 0 3px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9.5px;color:var(--muted)}
+.vmap-rail button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+.vmap-rail button.vmap-on{background:var(--soft);color:var(--acc);font-weight:700}
+.vmap-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.vmap-top{flex:none;display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);font-weight:700}
+.vmap-top small{color:var(--muted);font-weight:400}
+.vmap-scr{flex:1;min-height:0;padding:8px 10px;overflow:hidden;display:none}
+.vmap-scr.vmap-show{display:block}
+.vmap-card{border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:6px}
+.vmap-card b{font-size:12px}
+.vmap-pg{height:6px;border-radius:3px;background:var(--line);margin-top:4px;overflow:hidden}
+.vmap-pg i{display:block;height:100%;background:var(--acc)}
+.vmap-tiles{display:flex;gap:6px}.vmap-tiles .vmap-card{flex:1;text-align:center;font-size:11px}
+.vmap-row{display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid var(--line);font-size:12px}
+.vmap-row span{color:var(--muted);font-size:11px}
+.vmap-q{font-weight:700;margin-bottom:6px}
+.vmap-ch{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 8px;margin-bottom:4px;font-size:12px}
+.vmap-ch.vmap-ok{border-color:var(--good);color:var(--good);font-weight:700}
+.vmap-ch.vmap-no{border-color:var(--bad);color:var(--bad)}
+.vmap-note{font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.vmap-add{border:1px solid var(--acc);color:var(--acc);background:none;border-radius:999px;padding:1px 10px;font-size:11px;margin-top:6px}
+</style>
+<div class="vmap-app">
+  <nav class="vmap-rail" id="vmap-rail">
+    <button class="vmap-on" data-s="0"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg>홈</button>
+    <button data-s="1"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M10 9l5 2.5-5 2.5z"/></svg>강의</button>
+    <button data-s="2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5M12 17h.01"/></svg>퀴즈</button>
+    <button data-s="3"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M8 11h8M8 15h6"/></svg>노트</button>
+  </nav>
+  <div class="vmap-main">
+    <div class="vmap-top" id="vmap-title">홈 <small>· 학습 앱</small></div>
+    <div class="vmap-scr vmap-show">
+      <div class="vmap-card"><b>이어서 보기</b> · 2장 실습<div class="vmap-pg"><i style="width:45%"></i></div></div>
+      <div class="vmap-tiles"><div class="vmap-card">오늘 할 일<br><b>2개</b></div><div class="vmap-card">새 퀴즈<br><b>1개</b></div></div>
+    </div>
+    <div class="vmap-scr">
+      <div class="vmap-row">1장 원리 <span>다 봄 ✓</span></div>
+      <div class="vmap-row">2장 실습 <span>보는 중</span></div>
+      <div class="vmap-row">3장 응용 <span>아직</span></div>
+      <div class="vmap-row">정리 <span>아직</span></div>
+    </div>
+    <div class="vmap-scr">
+      <div class="vmap-q">1장에서 가장 먼저 다룬 것은?</div>
+      <button class="vmap-ch" data-ok="1">① 원리</button>
+      <button class="vmap-ch">② 실습</button>
+    </div>
+    <div class="vmap-scr" id="vmap-notes">
+      <div class="vmap-note">원리를 먼저 이해하기</div>
+      <div class="vmap-note">실습 결과 적어 두기</div>
+      <button class="vmap-add" id="vmap-add">+ 메모 추가</button>
+    </div>
+  </div>
+</div>
+<span class="hint-chip">왼쪽 메뉴를 눌러 보세요</span>
+<script>
+(function(){
+  var names=['홈','강의','퀴즈','노트'],bs=document.querySelectorAll('#vmap-rail button'),sc=document.querySelectorAll('.vmap-scr'),tt=document.getElementById('vmap-title');
+  function go(k){
+    for(var j=0;j<bs.length;j++){bs[j].classList.toggle('vmap-on',j===k);sc[j].classList.toggle('vmap-show',j===k);sc[j].classList.remove('fade')}
+    void sc[k].offsetWidth;sc[k].classList.add('fade');
+    tt.innerHTML=names[k]+' <small>· 학습 앱</small>';
+  }
+  for(var j=0;j<bs.length;j++)(function(j){bs[j].onclick=function(){go(j)}})(j);
+  document.querySelectorAll('.vmap-ch').forEach(function(c){c.onclick=function(){
+    document.querySelectorAll('.vmap-ch').forEach(function(x){x.classList.remove('vmap-ok','vmap-no')});
+    c.classList.add(c.getAttribute('data-ok')?'vmap-ok':'vmap-no');
+  }});
+  var n=0;document.getElementById('vmap-add').onclick=function(){
+    if(n>=2)return;n++;var d=document.createElement('div');d.className='vmap-note fade';d.textContent='새 메모 '+n;this.parentNode.insertBefore(d,this);
+  };
+})();
+</script>

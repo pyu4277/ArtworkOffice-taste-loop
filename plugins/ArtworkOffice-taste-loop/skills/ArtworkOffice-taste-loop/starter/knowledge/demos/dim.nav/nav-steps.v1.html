@@ -1,0 +1,45 @@
+<style>
+.nvs-wrap{display:flex;flex-direction:column;height:100%;padding:8px 12px 6px}
+.nvs-track{position:relative;flex:none;display:flex;justify-content:space-between;margin:0 6px}
+.nvs-line,.nvs-fill{position:absolute;left:12px;right:12px;top:11px;height:3px;border-radius:2px;background:var(--line)}
+.nvs-fill{right:auto;width:0;background:var(--acc);transition:width .35s ease}
+.nvs-st{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:none;padding:0;font-size:10px;color:var(--muted);width:24px}
+.nvs-st span{white-space:nowrap}
+.nvs-c{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;background:var(--bg);border:2px solid var(--line);color:var(--muted);transition:all .3s}
+.nvs-st.nvs-done .nvs-c{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+.nvs-st.nvs-cur .nvs-c{border-color:var(--acc);color:var(--acc);box-shadow:0 0 0 4px var(--soft)}
+.nvs-st.nvs-cur{color:var(--fg);font-weight:700}
+.nvs-body{flex:1;min-height:0;padding:8px 2px 0}
+.nvs-body h3{margin:0 0 3px;font-size:14px}
+.nvs-body p{margin:0;color:var(--muted);font-size:11px}
+.nvs-ctl{flex:none;display:flex;justify-content:space-between}
+.nvs-ctl button{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:2px 10px;font-size:11px}
+.nvs-ctl button:disabled{opacity:.35;cursor:default}
+#nvs-next{background:var(--acc);border-color:var(--acc);color:var(--bg);font-weight:700}
+</style>
+<div class="nvs-wrap">
+  <div class="nvs-track" id="nvs-track"><div class="nvs-line"></div><div class="nvs-fill" id="nvs-fill"></div></div>
+  <div class="nvs-body" id="nvs-body"></div>
+  <div class="nvs-ctl"><button id="nvs-prev">← 이전 단계</button><button id="nvs-next">다음 단계 →</button></div>
+</div>
+<span class="hint-chip" style="bottom:32px">다음 단계를 눌러 보세요</span>
+<script>
+(function(){
+  var S=[['준비','1단계 · 준비','필요한 것을 먼저 챙깁니다'],['원리','2단계 · 원리','기본이 되는 생각을 봅니다'],['실습','3단계 · 실습','직접 따라 해 봅니다'],['정리','4단계 · 정리','배운 것을 묶어 봅니다']];
+  var i=0,tr=document.getElementById('nvs-track'),fill=document.getElementById('nvs-fill'),body=document.getElementById('nvs-body'),pv=document.getElementById('nvs-prev'),nx=document.getElementById('nvs-next'),bs=[];
+  S.forEach(function(s,k){
+    var b=document.createElement('button');b.className='nvs-st';b.innerHTML='<i class="nvs-c">'+(k+1)+'</i><span>'+s[0]+'</span>';
+    b.onclick=function(){if(k<=i)go(k)};tr.appendChild(b);bs.push(b);
+  });
+  function go(k){
+    i=Math.max(0,Math.min(S.length-1,k));
+    bs.forEach(function(b,j){b.classList.toggle('nvs-done',j<i);b.classList.toggle('nvs-cur',j===i);b.querySelector('.nvs-c').textContent=j<i?'✓':(j+1)});
+    fill.style.width='calc((100% - 24px) * '+(i/(S.length-1))+')';
+    body.innerHTML='<div class="fade"><h3>'+S[i][1]+'</h3><p>'+S[i][2]+'</p><div class="ln" style="width:80%"></div><div class="ln" style="width:60%"></div></div>';
+    pv.disabled=i===0;nx.textContent=i===S.length-1?'처음으로 ↺':'다음 단계 →';
+  }
+  pv.onclick=function(){go(i-1)};
+  nx.onclick=function(){go(i===S.length-1?0:i+1)};
+  go(0);
+})();
+</script>

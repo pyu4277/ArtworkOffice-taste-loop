@@ -1,0 +1,34 @@
+<style>
+.fne-root{position:absolute;inset:0;display:flex;flex-direction:column;gap:3%;padding:4.5% 4.5% 3.5%;font-size:min(3.5vw,5.6vh)}
+.fne-top{display:flex;align-items:baseline;justify-content:space-between;gap:.5em}
+.fne-top b{font-size:.95em}
+.fne-top span{font-size:.62em;color:var(--muted);white-space:nowrap}
+.fne-row{flex:1;display:flex;gap:3%;min-height:0}
+.fne-dev{flex:1;display:flex;flex-direction:column;border:1px solid var(--acc);border-radius:.45em;overflow:hidden;background:var(--bg)}
+.fne-bar{font-size:.58em;color:var(--muted);background:var(--bar);padding:.25em .6em;border-bottom:1px solid var(--line)}
+.fne-s{flex:1;display:flex;align-items:center;padding:.3em .55em;font-family:"Noto Sans KR","Noto Sans CJK KR",sans-serif;font-weight:700;font-size:.95em;line-height:1.3;letter-spacing:-.01em;word-break:keep-all}
+.fne-size{display:flex;flex-direction:column;gap:.2em}
+.fne-lab{display:flex;justify-content:space-between;font-size:.6em;color:var(--muted)}
+.fne-lab b{color:var(--warn)}
+.fne-track{display:flex;height:.75em;border-radius:.4em;overflow:hidden;background:var(--bar)}
+.fne-a{width:28%;background:var(--muted);opacity:.55}
+.fne-f{width:58%;background:repeating-linear-gradient(135deg,var(--warn) 0 .3em,transparent .3em .5em),var(--soft);animation:fne-grow 6s ease-in-out infinite}
+@keyframes fne-grow{0%,15%{width:0}55%,92%{width:58%}100%{width:0}}
+.fne-foot{display:flex;gap:.5em;align-items:center;font-size:.66em}
+.fne-pill{padding:.12em .6em;border-radius:1em;background:var(--soft);color:var(--acc);font-weight:700}
+.fne-note{color:var(--muted);font-size:.92em;margin-left:auto}
+@media (prefers-reduced-motion:reduce){.fne-f{animation:none!important}}
+</style>
+<div class="fne-root">
+  <div class="fne-top"><b>Noto Sans KR 파일 내장</b><span>글꼴 파일을 HTML 안에 함께 넣음</span></div>
+  <div class="fne-row">
+    <div class="fne-dev"><div class="fne-bar">윈도 PC</div><div class="fne-s">전류가 흐르면 자기장이 생긴다</div></div>
+    <div class="fne-dev"><div class="fne-bar">맥</div><div class="fne-s">전류가 흐르면 자기장이 생긴다</div></div>
+    <div class="fne-dev"><div class="fne-bar">휴대폰</div><div class="fne-s">전류가 흐르면 자기장이 생긴다</div></div>
+  </div>
+  <div class="fne-size">
+    <div class="fne-lab"><span>HTML 파일 크기: 내용</span><b>+ 글꼴 파일</b></div>
+    <div class="fne-track"><div class="fne-a"></div><div class="fne-f"></div></div>
+  </div>
+  <div class="fne-foot"><span class="fne-pill">어디서나 같게 (파일 크기 +)</span><span class="fne-note">(글꼴 모양은 예시)</span></div>
+</div>

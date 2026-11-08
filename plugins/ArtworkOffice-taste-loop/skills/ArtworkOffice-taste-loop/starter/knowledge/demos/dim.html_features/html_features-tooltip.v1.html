@@ -1,0 +1,39 @@
+<style>
+.tt-w{position:absolute;inset:0;padding:14px 16px 28px}
+.tt-w h3{margin:0 0 8px;font-size:14px}
+.tt-p{margin:0;font-size:13px;line-height:2}
+.tt-k{border:0;background:none;padding:0;font:inherit;color:var(--acc);font-weight:600;border-bottom:2px dotted var(--acc);cursor:help;line-height:1.3}
+.tt-k.tt-cur{background:var(--soft);border-radius:3px 3px 0 0}
+.tt-b{position:absolute;max-width:72%;background:var(--fg);color:var(--bg);font-size:12px;line-height:1.5;padding:6px 10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.2);opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s;pointer-events:none}
+.tt-b.tt-show{opacity:1;transform:none}
+.tt-b b{display:block;font-size:11px;opacity:.75}
+.tt-b::after{content:"";position:absolute;bottom:-5px;left:var(--tt-x,20px);border:5px solid transparent;border-bottom:0;border-top-color:var(--fg)}
+</style>
+<div class="tt-w" id="tt-w">
+<h3>빨래는 왜 마를까</h3>
+<p class="tt-p">젖은 빨래가 마르는 것은 물이 <button type="button" class="tt-k" data-t="증발" data-d="물이 끓지 않아도 겉에서부터 조금씩 수증기가 되어 공기 중으로 날아가는 일">증발</button>하기 때문입니다. 공기 속 물기가 많은 날, 곧 <button type="button" class="tt-k" data-t="습도" data-d="공기 속에 물기(수증기)가 얼마나 들어 있는지를 나타내는 정도">습도</button>가 높은 날에는 빨래가 더디게 마릅니다.</p>
+<div class="tt-b" id="tt-b"><b></b><span></span></div>
+</div>
+<span class="hint-chip">점선 낱말을 눌러 보세요</span>
+<script>
+(function(){
+var w=document.getElementById('tt-w'),bb=document.getElementById('tt-b'),cur=null;
+function show(k){
+if(cur)cur.classList.remove('tt-cur');cur=k;k.classList.add('tt-cur');
+bb.querySelector('b').textContent=k.getAttribute('data-t');bb.querySelector('span').textContent=k.getAttribute('data-d');
+var wr=w.getBoundingClientRect(),kr=k.getBoundingClientRect();
+bb.classList.add('tt-show');
+var bw=bb.offsetWidth||180,bh=bb.offsetHeight||50;
+var left=kr.left-wr.left+kr.width/2-bw/2;left=Math.max(6,Math.min(left,wr.width-bw-6));
+bb.style.left=left+'px';bb.style.top=Math.max(4,kr.top-wr.top-bh-8)+'px';
+bb.style.setProperty('--tt-x',Math.max(8,Math.min(bw-16,kr.left-wr.left+kr.width/2-left-5))+'px');
+}
+function hide(){bb.classList.remove('tt-show');if(cur)cur.classList.remove('tt-cur');cur=null;}
+document.querySelectorAll('.tt-k').forEach(function(k){
+k.addEventListener('mouseenter',function(){show(k);});
+k.addEventListener('mouseleave',hide);
+k.addEventListener('click',function(e){e.stopPropagation();if(cur===k&&bb.classList.contains('tt-show'))hide();else show(k);});
+});
+w.addEventListener('click',hide);
+})();
+</script>

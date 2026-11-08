@@ -1,0 +1,35 @@
+<style>
+.tm-w{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 16px 24px}
+.tm-r{position:relative;width:40%;max-width:150px;aspect-ratio:1}
+.tm-r svg{width:100%;height:100%;transform:rotate(-90deg)}
+.tm-bg{fill:none;stroke:var(--line);stroke-width:8}
+.tm-fg{fill:none;stroke:var(--acc);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
+.tm-d{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.tm-d small{display:block;font-size:10px;font-weight:400;color:var(--muted);text-align:center}
+.tm-s{display:flex;flex-direction:column;gap:6px;min-width:110px}
+.tm-s strong{font-size:13px}
+.tm-s p{margin:0;font-size:11px;color:var(--muted)}
+.tm-go{border:0;background:var(--acc);color:var(--bg);border-radius:8px;padding:5px 10px;font-weight:700}
+.tm-rs{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:3px 10px;font-size:12px}
+.tm-run .tm-d{color:var(--acc)}
+</style>
+<div class="tm-w" id="tm-w">
+<div class="tm-r"><svg viewBox="0 0 100 100"><circle class="tm-bg" cx="50" cy="50" r="42"/><circle class="tm-fg" id="tm-fg" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="263.9"/></svg><div class="tm-d"><div><span id="tm-t">00:00</span><small>지난 시간</small></div></div></div>
+<div class="tm-s"><strong>모둠 활동 시간</strong><p>원이 한 바퀴 돌면 1분입니다.</p><button type="button" class="tm-go" id="tm-go">▶ 시작</button><button type="button" class="tm-rs" id="tm-rs">처음으로</button></div>
+</div>
+<span class="hint-chip">시작을 눌러 보세요</span>
+<script>
+(function(){
+var w=document.getElementById('tm-w'),t=document.getElementById('tm-t'),fg=document.getElementById('tm-fg'),go=document.getElementById('tm-go');
+var C=263.9,acc=0,start=0,iv=null;
+function now(){return acc+(iv?Date.now()-start:0);}
+function draw(){var s=Math.floor(now()/1000);t.textContent=(s<600?'0':'')+Math.floor(s/60)+':'+('0'+s%60).slice(-2);fg.setAttribute('stroke-dashoffset',String(C-C*((s%60)||(s?60:0))/60));}
+function stop(){if(iv){acc+=Date.now()-start;clearInterval(iv);iv=null;}go.textContent='▶ 시작';w.classList.remove('tm-run');draw();}
+go.addEventListener('click',function(){
+if(iv){stop();return;}
+start=Date.now();iv=setInterval(draw,250);go.textContent='❚❚ 멈춤';w.classList.add('tm-run');draw();
+});
+document.getElementById('tm-rs').addEventListener('click',function(){stop();acc=0;draw();});
+draw();
+})();
+</script>

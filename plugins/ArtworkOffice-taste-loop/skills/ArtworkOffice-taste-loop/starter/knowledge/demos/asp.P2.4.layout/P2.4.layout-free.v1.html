@@ -1,0 +1,30 @@
+<style>
+.lyr-root{position:absolute;inset:0;font-size:min(3.5vw,5.6vh);overflow:hidden}
+.lyr-s{position:absolute;inset:0;opacity:0}
+.lyr-s1{opacity:1}
+.lyr-anim .lyr-s{animation:lyr-cyc 9s ease-in-out infinite}
+.lyr-anim .lyr-s2{animation-delay:-6s}.lyr-anim .lyr-s3{animation-delay:-3s}
+@keyframes lyr-cyc{0%,30%{opacity:1;transform:none}34%{opacity:0;transform:scale(1.04)}96%{opacity:0;transform:scale(.97)}100%{opacity:1;transform:none}}
+.lyr-s1{display:flex}
+.lyr-fil{flex:0 0 58%;background:radial-gradient(circle,#e9a066 0 4%,#8a4518 5.5%,transparent 7.5%),radial-gradient(circle,transparent 25%,#ddd6c7 72%),repeating-conic-gradient(#ddd6c7 0 2.2deg,transparent 2.2deg 4.3deg),repeating-radial-gradient(circle,rgba(30,28,26,.9) 0 .9px,transparent 1.5px 5.2px),#ddd6c7;position:relative}
+.lyr-fil::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 70%,rgba(0,0,0,.15)),radial-gradient(ellipse,transparent 55%,rgba(0,0,0,.3))}
+.lyr-s1 .lyr-t{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 5%}
+.lyr-t h3{margin:0 0 .35em;font-size:1.1em;line-height:1.3;letter-spacing:-.02em}
+.lyr-t p{margin:0;font-size:.76em;color:var(--muted);line-height:1.45}
+.lyr-s2{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3em;background:radial-gradient(ellipse at 50% 55%,var(--soft),var(--bg) 70%)}
+.lyr-big{font-size:1.9em;font-weight:800;letter-spacing:-.03em}
+.lyr-big b{color:var(--acc)}
+.lyr-s2 p{margin:0;font-size:.74em;color:var(--muted)}
+.lyr-s3{background:#0c1624;color:#e8eef7}
+.lyr-s3 svg{position:absolute;inset:6% 4% 4% 10%;width:86%;height:90%}
+.lyr-s3 h3{position:absolute;left:5%;top:6%;margin:0;font-size:.95em}
+.lyr-cap{position:absolute;left:5%;bottom:7%;font-size:.72em;padding:.25em .7em;border-radius:.3em;background:rgba(0,0,0,.55)}
+.lyr-n{position:absolute;right:2.5%;bottom:3.5%;font-size:.56em;color:var(--muted);background:var(--bar);padding:.05em .6em;border-radius:1em}
+.lyr-s3 .lyr-n{background:rgba(255,255,255,.12);color:#cbd5e1}
+@media (prefers-reduced-motion:reduce){.lyr-anim .lyr-s{animation:none!important}}
+</style>
+<div class="lyr-root lyr-anim">
+  <div class="lyr-s lyr-s1"><div class="lyr-fil" role="img" aria-label="쇳가루 사진 느낌"></div><div class="lyr-t"><h3>전선 둘레의<br>둥근 자기장</h3><p>사진을 크게,<br>글은 옆에 짧게</p></div><span class="lyr-n">장면 1 · 사진 크게</span></div>
+  <div class="lyr-s lyr-s2"><div class="lyr-big">거리 <b>2배</b> → 세기 <b>절반</b></div><p>한 문장을 가운데 크게</p><span class="lyr-n">장면 2 · 글 가운데</span></div>
+  <div class="lyr-s lyr-s3"><h3>멀어질수록 약해진다</h3><svg viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true"><path d="M8 52H96M8 52V6" fill="none" stroke="#475569" stroke-width=".8"/><path d="M18 8Q24 34 40 40T94 48" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round"/></svg><div class="lyr-cap">그래프를 화면 가득, 설명은 귀퉁이에</div><span class="lyr-n">장면 3 · 그래프 가득</span></div>
+</div>

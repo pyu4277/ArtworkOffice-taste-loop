@@ -1,0 +1,47 @@
+<style>
+.nvt-wrap{display:flex;height:100%}
+.nvt-pane{flex:none;width:56%;padding:6px 6px 6px 8px;border-right:1px solid var(--line);overflow:hidden}
+.nvt-pane ul{list-style:none;margin:0;padding:0}
+.nvt-pane ul ul{padding-left:16px;display:none}
+.nvt-pane li.nvt-open>ul{display:block}
+.nvt-pane ul ul li{position:relative}
+.nvt-pane ul ul li::before{content:"";position:absolute;left:-9px;top:0;bottom:0;border-left:1.5px solid var(--muted);opacity:.55}
+.nvt-pane ul ul li:last-child::before{bottom:auto;height:50%}
+.nvt-pane ul ul li::after{content:"";position:absolute;left:-9px;top:50%;width:8px;border-top:1.5px solid var(--muted);opacity:.55}
+.nvt-pane button{display:flex;align-items:center;gap:3px;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:1px 4px;font-size:11px;white-space:nowrap}
+.nvt-g{font-weight:700}
+.nvt-g i{display:inline-block;width:10px;font-style:normal;color:var(--acc);transition:transform .2s}
+.nvt-open>.nvt-g i{transform:rotate(90deg)}
+.nvt-leaf{color:var(--muted)}
+.nvt-leaf.nvt-on{background:var(--soft);color:var(--acc);font-weight:700}
+.nvt-view{flex:1;min-width:0;padding:10px}
+.nvt-view small{color:var(--muted);font-size:10px}
+.nvt-view h3{margin:0 0 4px;font-size:14px}
+</style>
+<div class="nvt-wrap">
+  <nav class="nvt-pane" id="nvt-pane">
+    <ul>
+      <li class="nvt-open"><button class="nvt-g"><i>▸</i>1장 원리</button>
+        <ul><li><button class="nvt-leaf nvt-on">1-1 들어가며</button></li><li><button class="nvt-leaf">1-2 핵심 개념</button></li><li><button class="nvt-leaf">1-3 예시</button></li></ul></li>
+      <li><button class="nvt-g"><i>▸</i>2장 실습</button>
+        <ul><li><button class="nvt-leaf">2-1 준비</button></li><li><button class="nvt-leaf">2-2 따라 하기</button></li></ul></li>
+      <li><button class="nvt-g"><i>▸</i>3장 정리</button>
+        <ul><li><button class="nvt-leaf">3-1 요약</button></li><li><button class="nvt-leaf">3-2 확인 문제</button></li></ul></li>
+    </ul>
+  </nav>
+  <div class="nvt-view" id="nvt-view"></div>
+</div>
+<span class="hint-chip">묶음을 눌러 펴고 접기</span>
+<script>
+(function(){
+  var pane=document.getElementById('nvt-pane'),view=document.getElementById('nvt-view');
+  function pick(b){
+    pane.querySelectorAll('.nvt-leaf').forEach(function(x){x.classList.remove('nvt-on')});b.classList.add('nvt-on');
+    var grp=b.closest('ul').parentNode.querySelector('.nvt-g').textContent.slice(1);
+    view.innerHTML='<div class="fade"><small>'+grp+' ›</small><h3>'+b.textContent+'</h3><div class="ln" style="width:90%"></div><div class="ln" style="width:72%"></div><div class="ln" style="width:80%"></div></div>';
+  }
+  pane.querySelectorAll('.nvt-g').forEach(function(b){b.onclick=function(){b.parentNode.classList.toggle('nvt-open')}});
+  pane.querySelectorAll('.nvt-leaf').forEach(function(b){b.onclick=function(){pick(b)}});
+  pick(pane.querySelector('.nvt-leaf'));
+})();
+</script>

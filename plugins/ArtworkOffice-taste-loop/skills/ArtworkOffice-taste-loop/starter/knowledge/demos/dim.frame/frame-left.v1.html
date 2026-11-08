@@ -1,0 +1,46 @@
+<style>
+.frl-wrap{display:flex;height:100%}
+.frl-side{flex:none;width:34%;display:flex;flex-direction:column;background:var(--bar);border-right:1px solid var(--line);transition:width .3s ease;overflow:hidden}
+.frl-head{display:flex;align-items:center;gap:4px;padding:5px 6px;font-weight:700;font-size:11px;white-space:nowrap}
+.frl-head span{flex:1}
+.frl-tog{border:1px solid var(--line);background:var(--bg);border-radius:5px;width:22px;height:20px;padding:0;font-size:11px;flex:none}
+.frl-side ul{list-style:none;margin:0;padding:0 4px}
+.frl-side li button{display:block;width:100%;text-align:left;border:0;background:none;border-radius:5px;padding:2px 6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frl-side li.frl-sub button{padding-left:16px;color:var(--muted);font-size:10.5px}
+.frl-side li button.frl-on{background:var(--soft);color:var(--acc);font-weight:700}
+.frl-wrap.frl-shut .frl-side{width:34px}
+.frl-wrap.frl-shut .frl-head span,.frl-wrap.frl-shut .frl-side ul{display:none}
+.frl-body{flex:1;min-width:0;padding:12px 14px}
+.frl-body small{color:var(--muted);font-size:10px}
+.frl-body h3{margin:0 0 4px;font-size:15px}
+</style>
+<div class="frl-wrap" id="frl-wrap">
+  <aside class="frl-side">
+    <div class="frl-head"><span>목차</span><button class="frl-tog" id="frl-tog" aria-label="목차 접기">«</button></div>
+    <ul id="frl-list">
+      <li><button class="frl-on">1장 원리</button></li>
+      <li class="frl-sub"><button>들어가며</button></li>
+      <li class="frl-sub"><button>핵심 개념</button></li>
+      <li><button>2장 실습</button></li>
+      <li class="frl-sub"><button>따라 하기</button></li>
+      <li><button>정리</button></li>
+    </ul>
+  </aside>
+  <main class="frl-body" id="frl-body"></main>
+</div>
+<span class="hint-chip">목차를 접고 눌러 보세요</span>
+<script>
+(function(){
+  var w=document.getElementById('frl-wrap'),t=document.getElementById('frl-tog'),bs=document.querySelectorAll('#frl-list button'),body=document.getElementById('frl-body');
+  var par=['1장 원리','1장 원리','1장 원리','2장 실습','2장 실습','정리'],len=[[90,80,60],[86,70],[92,88,74,50],[80,64],[94,72,84],[70,56]];
+  function go(k){
+    for(var j=0;j<bs.length;j++)bs[j].classList.toggle('frl-on',j===k);
+    var h='<div class="fade"><small>'+par[k]+'</small><h3>'+bs[k].textContent+'</h3>';
+    len[k].forEach(function(x){h+='<div class="ln" style="width:'+x+'%"></div>'});
+    body.innerHTML=h+'</div>';
+  }
+  for(var j=0;j<bs.length;j++)(function(j){bs[j].onclick=function(){go(j)}})(j);
+  t.onclick=function(){var s=w.classList.toggle('frl-shut');t.textContent=s?'☰':'«';t.setAttribute('aria-label',s?'목차 펴기':'목차 접기')};
+  go(0);
+})();
+</script>

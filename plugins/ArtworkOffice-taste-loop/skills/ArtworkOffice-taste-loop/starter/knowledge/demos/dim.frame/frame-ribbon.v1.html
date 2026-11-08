@@ -1,0 +1,60 @@
+<style>
+.frr-wrap{display:flex;flex-direction:column;height:100%}
+.frr-tabs{flex:none;display:flex;gap:1px;padding:3px 6px 0;background:var(--bar)}
+.frr-tabs button{border:0;background:none;padding:2px 10px;font-size:11px;border-radius:5px 5px 0 0;color:var(--muted)}
+.frr-tabs button.frr-on{background:var(--bg);color:var(--acc);font-weight:700;box-shadow:0 -1px 0 var(--line) inset}
+.frr-tools{flex:none;display:flex;align-items:stretch;gap:2px;padding:3px 6px;background:var(--bg);border-bottom:1px solid var(--line);min-height:44px}
+.frr-tools button{border:1px solid transparent;background:none;border-radius:5px;padding:2px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:9.5px;min-width:38px}
+.frr-tools button:hover{border-color:var(--line);background:var(--bar)}
+.frr-tools button.frr-act{border-color:var(--acc);background:var(--soft)}
+.frr-tools svg{width:16px;height:16px;fill:none;stroke:var(--acc);stroke-width:1.8}
+.frr-sep{width:1px;background:var(--line);margin:2px 4px}
+.frr-desk{flex:1;min-height:0;background:var(--bar);padding:8px 14%;overflow:hidden}
+.frr-sheet{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:8px 12px;box-shadow:0 1px 4px rgba(0,0,0,.1);transform-origin:top center;transition:transform .25s;font-size:11px;position:relative}
+.frr-sheet h3{margin:0 0 4px;font-size:13px}
+.frr-sheet p{margin:0 0 3px}
+.frr-hl{background:rgba(250,204,21,.55)}
+.frr-ul{text-decoration:underline;text-decoration-color:var(--acc);text-decoration-thickness:2px}
+.frr-find{outline:2px solid var(--warn);border-radius:2px}
+.frr-memo{position:absolute;right:-6px;top:-6px;background:#fde68a;color:#3f2d00;font-size:9.5px;padding:2px 6px;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.2);transform:rotate(3deg)}
+</style>
+<div class="frr-wrap">
+  <div class="frr-tabs" id="frr-tabs"><button class="frr-on" data-t="0">보기</button><button data-t="1">그리기</button><button data-t="2">도구</button></div>
+  <div class="frr-tools" id="frr-tools"></div>
+  <div class="frr-desk"><div class="frr-sheet" id="frr-sheet">
+    <h3 id="frr-h">1장 원리</h3>
+    <p>기본이 되는 <span id="frr-w">원리</span>를 먼저 살펴봅니다.</p>
+    <p id="frr-p2">그다음 예시로 확인합니다.</p>
+    <div class="ln" style="width:80%"></div>
+  </div></div>
+</div>
+<span class="hint-chip">탭과 도구를 눌러 보세요</span>
+<script>
+(function(){
+  var I={plus:'<circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M16 16l5 5"/>',minus:'<circle cx="11" cy="11" r="7"/><path d="M8 11h6M16 16l5 5"/>',fit:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/>',
+    pen:'<path d="M4 20l4-1 11-11-3-3L5 16z"/>',hl:'<path d="M5 19h14"/><path d="M8 15l6-10 4 2-6 10z"/>',ul:'<path d="M7 4v7a5 5 0 0 0 10 0V4M5 20h14"/>',
+    find:'<circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/>',memo:'<path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5"/>',clr:'<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>'};
+  var T=[[['plus','크게'],['minus','작게'],['fit','맞춤']],[['hl','형광펜'],['ul','밑줄'],['clr','지우기']],[['find','찾기'],['memo','메모']]];
+  var tabs=document.querySelectorAll('#frr-tabs button'),tools=document.getElementById('frr-tools'),sh=document.getElementById('frr-sheet'),z=1,g=function(id){return document.getElementById(id)};
+  function act(k,b){
+    if(k==='plus'){z=Math.min(1.25,z+.1);sh.style.transform='scale('+z+')'}
+    else if(k==='minus'){z=Math.max(.8,z-.1);sh.style.transform='scale('+z+')'}
+    else if(k==='fit'){z=1;sh.style.transform=''}
+    else if(k==='hl')b.classList.toggle('frr-act',g('frr-p2').classList.toggle('frr-hl'));
+    else if(k==='ul')b.classList.toggle('frr-act',g('frr-h').classList.toggle('frr-ul'));
+    else if(k==='clr'){g('frr-p2').classList.remove('frr-hl');g('frr-h').classList.remove('frr-ul');var m=sh.querySelector('.frr-memo');if(m)m.remove();tools.querySelectorAll('.frr-act').forEach(function(x){x.classList.remove('frr-act')})}
+    else if(k==='find'){var w=g('frr-w');w.classList.add('frr-find');setTimeout(function(){w.classList.remove('frr-find')},1200)}
+    else if(k==='memo'){var o=sh.querySelector('.frr-memo');if(o)o.remove();else{var d=document.createElement('span');d.className='frr-memo fade';d.textContent='다시 보기!';sh.appendChild(d)}}
+  }
+  function show(t){
+    for(var j=0;j<tabs.length;j++)tabs[j].classList.toggle('frr-on',j===t);
+    tools.innerHTML='';
+    T[t].forEach(function(x){
+      var b=document.createElement('button');b.innerHTML='<svg viewBox="0 0 24 24">'+I[x[0]]+'</svg>'+x[1];b.onclick=function(){act(x[0],b)};tools.appendChild(b);
+    });
+    var s2=document.createElement('span');s2.className='frr-sep';tools.appendChild(s2);
+  }
+  for(var j=0;j<tabs.length;j++)(function(j){tabs[j].onclick=function(){show(j)}})(j);
+  show(0);
+})();
+</script>

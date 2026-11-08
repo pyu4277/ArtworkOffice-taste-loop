@@ -1,0 +1,1332 @@
+{
+  "version": 1,
+  "note": "엔진 기본 선택지 예시 — 키: dim.<질문>|<선택지> · asp.<취향 질문>|<선택지>. 판 관리는 scripts/demos.py",
+  "items": {
+    "asp.P2.3.diagrams|capture": {
+      "title": "캡처·사진",
+      "file": "asp.P2.3.diagrams/P2.3.diagrams-capture.v1.html",
+      "version": 1,
+      "now": "누른 순간 실제 실험·화면 모습을 그대로 보여 주어 믿음이 갑니다.",
+      "later": "나중에 원본을 찾아 출처를 적어야 하고, 화질이나 구도가 원하는 설명과 딱 맞지 않을 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.diagrams/P2.3.diagrams-capture.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.diagrams|code": {
+      "title": "코드(SVG)로 정확하게",
+      "file": "asp.P2.3.diagrams/P2.3.diagrams-code.v1.html",
+      "version": 1,
+      "now": "누른 순간 눈금과 값이 정확한 그래프·도식이 코드로 그려지고, 그려지는 과정을 움직임으로 보여 줄 수 있습니다.",
+      "later": "나중에 분위기나 질감이 필요한 장면은 코드 그림만으로는 밋밋해질 수 있어 다른 방법을 섞어야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.diagrams/P2.3.diagrams-code.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.diagrams|gen": {
+      "title": "생성 이미지",
+      "file": "asp.P2.3.diagrams/P2.3.diagrams-gen.v1.html",
+      "version": 1,
+      "now": "누른 순간 그림 같은 분위기와 색감이 있는 장면을 빨리 얻습니다.",
+      "later": "나중에 눈금·수치·모양이 정확하지 않을 수 있어 정보 전달용 도식에는 확인과 수정이 따로 필요하고, 생성 비용(크레딧)도 듭니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.diagrams/P2.3.diagrams-gen.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.icons|allow": {
+      "title": "허용",
+      "file": "asp.P2.3.icons/P2.3.icons-allow.v1.html",
+      "version": 1,
+      "now": "누른 순간 선으로 그린 아이콘으로 빈 곳을 빠르게 채워 화면이 금방 완성됩니다.",
+      "later": "나중에 흔한 아이콘 장식 때문에 자료가 'AI가 만든 것 같다'는 인상을 줄 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.icons/P2.3.icons-allow.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.icons|forbid": {
+      "title": "금지 ('AI스럽다')",
+      "file": "asp.P2.3.icons/P2.3.icons-forbid.v1.html",
+      "version": 1,
+      "now": "누른 순간 장식 아이콘 없이 사진·실제 자료와 글로만 화면을 채웁니다.",
+      "later": "나중에 쓸 만한 실제 자료가 없는 장면은 사진을 찾거나 만들 일이 늘어납니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.icons/P2.3.icons-forbid.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.icons|minimal": {
+      "title": "최소",
+      "file": "asp.P2.3.icons/P2.3.icons-minimal.v1.html",
+      "version": 1,
+      "now": "누른 순간 방향 화살표처럼 뜻이 있는 기호만 한두 개 남기고 장식은 뺍니다.",
+      "later": "나중에 어떤 기호가 '꼭 필요한지' 장면마다 판단해야 해서 기준이 흔들릴 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.icons/P2.3.icons-minimal.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.math|active": {
+      "title": "적극",
+      "file": "asp.P2.3.math/P2.3.math-active.v1.html",
+      "version": 1,
+      "now": "누른 순간 식이 한 줄씩 나타나며 결과까지 가는 과정을 모두 보여 줍니다.",
+      "later": "나중에 수식에 익숙하지 않은 사람은 따라오기 어렵고, 단계마다 검산할 일이 늘어납니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.math/P2.3.math-active.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.math|minimal": {
+      "title": "최소화",
+      "file": "asp.P2.3.math/P2.3.math-minimal.v1.html",
+      "version": 1,
+      "now": "누른 순간 수식 없이 말과 그림으로 관계를 설명합니다.",
+      "later": "나중에 정확한 계산이나 다음 단계 공부가 필요한 사람에게는 근거가 부족하게 느껴질 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.math/P2.3.math-minimal.v1.html"
+        }
+      ]
+    },
+    "asp.P2.3.math|needed": {
+      "title": "필요한 만큼",
+      "file": "asp.P2.3.math/P2.3.math-needed.v1.html",
+      "version": 1,
+      "now": "누른 순간 핵심 식 하나를 크게 보여 주고 각 글자가 무엇인지 말로 붙입니다.",
+      "later": "나중에 어떤 식을 '꼭 필요한 것'으로 넣을지 장면마다 골라야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.3.math/P2.3.math-needed.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.density|dense": {
+      "title": "빽빽하게",
+      "file": "asp.P2.4.density/P2.4.density-dense.v1.html",
+      "version": 1,
+      "now": "누른 순간 그래프·표·요점을 한 화면에 모아 한 번에 비교할 수 있습니다.",
+      "later": "나중에 글씨가 작아지고 볼 곳이 많아 영상처럼 흘러가면 따라 읽기 어렵습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.density/P2.4.density-dense.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.density|normal": {
+      "title": "보통",
+      "file": "asp.P2.4.density/P2.4.density-normal.v1.html",
+      "version": 1,
+      "now": "누른 순간 제목·그림 하나·짧은 요점 몇 줄로 균형 있게 채웁니다.",
+      "later": "나중에 아주 쉬운 장면이나 아주 자세한 장면에서는 양을 따로 조절해야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.density/P2.4.density-normal.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.density|one": {
+      "title": "핵심 하나",
+      "file": "asp.P2.4.density/P2.4.density-one.v1.html",
+      "version": 1,
+      "now": "누른 순간 한 화면에 메시지 하나만 크게 보여 한눈에 들어옵니다.",
+      "later": "나중에 장면 수가 늘어나고, 내용을 비교하며 보기에는 불편할 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.density/P2.4.density-one.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.font|embed_noto": {
+      "title": "Noto Sans KR 파일 내장",
+      "file": "asp.P2.4.font/P2.4.font-embed_noto.v1.html",
+      "version": 1,
+      "now": "누른 순간 글꼴 파일을 함께 넣어 어느 기기에서나 같은 모양으로 보입니다.",
+      "later": "나중에 글꼴 파일만큼 HTML 파일이 커져 보내고 여는 데 부담이 생길 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.font/P2.4.font-embed_noto.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.font|specified": {
+      "title": "지정 글꼴 (메모에 적기)",
+      "file": "asp.P2.4.font/P2.4.font-specified.v1.html",
+      "version": 1,
+      "now": "누른 순간 메모에 적은 글꼴로 모든 장면의 글자를 통일합니다.",
+      "later": "나중에 그 글꼴 파일을 구해 넣거나 설치해야 하고, 사용 허락 범위를 따로 확인해야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.font/P2.4.font-specified.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.font|system_gothic": {
+      "title": "시스템 한글 고딕 (Pretendard·맑은 고딕·Noto)",
+      "file": "asp.P2.4.font/P2.4.font-system_gothic.v1.html",
+      "version": 1,
+      "now": "누른 순간 보는 기기에 깔린 고딕으로 바로 보여 파일 크기가 늘지 않습니다.",
+      "later": "나중에 PC나 휴대폰마다 글자 모양과 줄바꿈이 조금씩 달라 보일 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.font/P2.4.font-system_gothic.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.layout|fixed": {
+      "title": "고정 틀 (예: 위 1/3 고정·아래 2/3 전환)",
+      "file": "asp.P2.4.layout/P2.4.layout-fixed.v1.html",
+      "version": 1,
+      "now": "누른 순간 위쪽 제목 띠는 그대로 두고 아래 내용만 장면마다 바뀌어 흐름이 안정됩니다.",
+      "later": "나중에 사진이나 그래프를 화면 가득 크게 보여 주고 싶은 장면에서는 고정 영역이 자리를 차지합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.layout/P2.4.layout-fixed.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.layout|free": {
+      "title": "장면마다 자유",
+      "file": "asp.P2.4.layout/P2.4.layout-free.v1.html",
+      "version": 1,
+      "now": "누른 순간 장면마다 내용에 가장 맞는 배치를 골라 변화가 큽니다.",
+      "later": "나중에 장면 사이 통일감이 약해지고, 장면마다 배치를 새로 정하느라 시간이 더 듭니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.layout/P2.4.layout-free.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.layout|template": {
+      "title": "템플릿 지정 (메모에 적기)",
+      "file": "asp.P2.4.layout/P2.4.layout-template.v1.html",
+      "version": 1,
+      "now": "누른 순간 정해 둔 틀(제목·그림·설명 자리)에 내용만 바꿔 넣어 빠르고 일정하게 만듭니다.",
+      "later": "나중에 틀에 맞지 않는 내용은 억지로 끼워 맞추게 되어 화면이 답답해질 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.layout/P2.4.layout-template.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.theme|by_venue": {
+      "title": "보는 환경에 따라",
+      "file": "asp.P2.4.theme/P2.4.theme-by_venue.v1.html",
+      "version": 1,
+      "now": "누른 순간 강의실은 밝게, 전시장은 어둡게처럼 장소에 맞춰 바탕을 고릅니다.",
+      "later": "나중에 자료마다 보는 장소를 먼저 정해야 하고, 두 가지 색 조합을 모두 점검해야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.theme/P2.4.theme-by_venue.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.theme|dark": {
+      "title": "어두운 바탕",
+      "file": "asp.P2.4.theme/P2.4.theme-dark.v1.html",
+      "version": 1,
+      "now": "누른 순간 그림과 빛나는 색이 돋보이는 어두운 화면이 됩니다.",
+      "later": "나중에 불 켜진 강의실 프로젝터에서는 화면이 흐리고 글씨가 덜 또렷해 보일 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.theme/P2.4.theme-dark.v1.html"
+        }
+      ]
+    },
+    "asp.P2.4.theme|light": {
+      "title": "밝은 바탕",
+      "file": "asp.P2.4.theme/P2.4.theme-light.v1.html",
+      "version": 1,
+      "now": "누른 순간 밝은 방에서도 글씨가 또렷한 밝은 화면이 됩니다.",
+      "later": "나중에 어두운 전시장 같은 곳에서는 화면이 눈부시게 느껴질 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.4.theme/P2.4.theme-light.v1.html"
+        }
+      ]
+    },
+    "asp.P2.5.on_screen_text|caption": {
+      "title": "하단 자막 한 줄",
+      "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-caption.v1.html",
+      "version": 1,
+      "now": "누른 순간 그림 아래에 지금 장면을 한 문장으로 말해 주는 자막이 한 줄 뜹니다.",
+      "later": "나중에 문장을 한 줄에 맞게 줄여야 하고, 그림 아래쪽 일부를 자막이 가립니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-caption.v1.html"
+        }
+      ]
+    },
+    "asp.P2.5.on_screen_text|keywords": {
+      "title": "키워드만",
+      "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-keywords.v1.html",
+      "version": 1,
+      "now": "누른 순간 그림 옆에 「전류」, 「자기장」 같은 짧은 낱말이 순서대로 붙습니다.",
+      "later": "나중에 낱말만으로는 둘 사이의 관계(무엇 때문에 무엇이 되는지)가 전해지지 않을 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-keywords.v1.html"
+        }
+      ]
+    },
+    "asp.P2.5.on_screen_text|none": {
+      "title": "글 없음",
+      "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-none.v1.html",
+      "version": 1,
+      "now": "누른 순간 화면에는 움직이는 그림만 남고 글자는 한 자도 나오지 않습니다.",
+      "later": "나중에 소리나 발표자 설명이 없으면 무엇을 보여 주는 장면인지 놓치기 쉽습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-none.v1.html"
+        }
+      ]
+    },
+    "asp.P2.5.on_screen_text|paragraph": {
+      "title": "설명 문단",
+      "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-paragraph.v1.html",
+      "version": 1,
+      "now": "누른 순간 그림은 한쪽으로 작아지고, 옆에 몇 문장짜리 설명이 함께 놓입니다.",
+      "later": "나중에 글을 읽는 동안 그림의 움직임을 놓치기 쉽고, 작은 화면에서는 글씨가 작아집니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.5.on_screen_text/P2.5.on_screen_text-paragraph.v1.html"
+        }
+      ]
+    },
+    "asp.P2.5.title_date|both": {
+      "title": "제목과 날짜",
+      "file": "asp.P2.5.title_date/P2.5.title_date-both.v1.html",
+      "version": 1,
+      "now": "누른 순간 제목 아래에 날짜(예: 2026. 11.)가 함께 뜨고, 위쪽 띠에도 날짜가 남습니다.",
+      "later": "나중에 같은 자료를 다른 때 다시 쓰면 화면 속 날짜를 고쳐야 하고, 고치지 않으면 옛 날짜가 그대로 보입니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.5.title_date/P2.5.title_date-both.v1.html"
+        }
+      ]
+    },
+    "asp.P2.5.title_date|none": {
+      "title": "넣지 않음",
+      "file": "asp.P2.5.title_date/P2.5.title_date-none.v1.html",
+      "version": 1,
+      "now": "누른 순간 제목 화면 없이 첫 장면부터 바로 내용이 시작됩니다.",
+      "later": "나중에 파일만 따로 돌아다닐 때 무슨 내용의 몇 번째 자료인지 화면만 보고는 알기 어렵습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.5.title_date/P2.5.title_date-none.v1.html"
+        }
+      ]
+    },
+    "asp.P2.5.title_date|title_only": {
+      "title": "제목만",
+      "file": "asp.P2.5.title_date/P2.5.title_date-title_only.v1.html",
+      "version": 1,
+      "now": "누른 순간 처음 몇 초 동안 제목이 크게 뜨고, 그 뒤에는 위쪽에 작게 남습니다.",
+      "later": "나중에 언제 만든 자료인지는 화면에 없으니 날짜는 파일 기록에서 따로 찾아야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.5.title_date/P2.5.title_date-title_only.v1.html"
+        }
+      ]
+    },
+    "asp.P2.6.motion_purpose|allow_some": {
+      "title": "조금 허용",
+      "file": "asp.P2.6.motion_purpose/P2.6.motion_purpose-allow_some.v1.html",
+      "version": 1,
+      "now": "누른 순간 전류 흐름에 더해 배경의 작은 빛 알갱이와 은은하게 숨 쉬는 제목이 함께 움직입니다.",
+      "later": "나중에 장식 움직임이 뜻이 있는 움직임으로 오해되거나, 시선을 조금씩 빼앗을 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.6.motion_purpose/P2.6.motion_purpose-allow_some.v1.html"
+        }
+      ]
+    },
+    "asp.P2.6.motion_purpose|forbid": {
+      "title": "금지 (이해를 돕는 움직임만)",
+      "file": "asp.P2.6.motion_purpose/P2.6.motion_purpose-forbid.v1.html",
+      "version": 1,
+      "now": "누른 순간 전선을 따라 흐르는 전류만 움직이고, 나머지 화면은 가만히 있습니다.",
+      "later": "나중에 화면이 차분한 대신, 설명할 움직임이 없는 장면은 다소 심심해 보일 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.6.motion_purpose/P2.6.motion_purpose-forbid.v1.html"
+        }
+      ]
+    },
+    "asp.P2.6.motion_still|no": {
+      "title": "아니오",
+      "file": "asp.P2.6.motion_still/P2.6.motion_still-no.v1.html",
+      "version": 1,
+      "now": "누른 순간 화면이 깔끔하고, 움직이는 동안에는 전류와 고리가 잘 보입니다.",
+      "later": "나중에 멈춘 화면이나 인쇄본, 미리보기 사진으로는 무엇이 어느 쪽으로 움직였는지 알 수 없습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.6.motion_still/P2.6.motion_still-no.v1.html"
+        }
+      ]
+    },
+    "asp.P2.6.motion_still|yes": {
+      "title": "예 (정지 화면으로 검수)",
+      "file": "asp.P2.6.motion_still/P2.6.motion_still-yes.v1.html",
+      "version": 1,
+      "now": "누른 순간 전류 꼬리·방향 화살표·바늘이 돈 길이 그림에 함께 그려져, 멈춰도 무엇이 움직이는지 보입니다.",
+      "later": "나중에 화살표와 꼬리 같은 표시를 장면마다 더 그려야 해서 만드는 품이 늘고 화면이 조금 붐빕니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.6.motion_still/P2.6.motion_still-yes.v1.html"
+        }
+      ]
+    },
+    "asp.P2.6.motion_strength|bold": {
+      "title": "눈에 확 띄게",
+      "file": "asp.P2.6.motion_strength/P2.6.motion_strength-bold.v1.html",
+      "version": 1,
+      "now": "누른 순간 화살표가 튀어 오르고 빛나는 전류가 빠르게 흘러 시선이 바로 그쪽으로 갑니다.",
+      "later": "나중에 장면마다 이렇게 세면 눈이 쉽게 지치고, 정말 중요한 순간이 덜 두드러집니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.6.motion_strength/P2.6.motion_strength-bold.v1.html"
+        }
+      ]
+    },
+    "asp.P2.6.motion_strength|normal": {
+      "title": "보통",
+      "file": "asp.P2.6.motion_strength/P2.6.motion_strength-normal.v1.html",
+      "version": 1,
+      "now": "누른 순간 화살표가 부드럽게 올라오고 전류가 알맞은 빠르기로 흐릅니다.",
+      "later": "나중에 아주 중요한 장면은 따로 강조를 더해야 다른 장면과 구별됩니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.6.motion_strength/P2.6.motion_strength-normal.v1.html"
+        }
+      ]
+    },
+    "asp.P2.6.motion_strength|subtle": {
+      "title": "절제",
+      "file": "asp.P2.6.motion_strength/P2.6.motion_strength-subtle.v1.html",
+      "version": 1,
+      "now": "누른 순간 화살표와 고리가 조용히 나타나고 전류도 천천히, 빛 없이 흐릅니다.",
+      "later": "나중에 큰 화면이나 뒷자리에서는 움직임을 알아채지 못하고 지나칠 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P2.6.motion_strength/P2.6.motion_strength-subtle.v1.html"
+        }
+      ]
+    },
+    "asp.P3.3.pace|fast": {
+      "title": "빠르게",
+      "file": "asp.P3.3.pace/P3.3.pace-fast.v1.html",
+      "version": 1,
+      "now": "누른 순간 단계가 1초 남짓마다 넘어가, 세 단계를 4초 안에 훑습니다.",
+      "later": "나중에 처음 보는 사람은 단계를 놓치기 쉬워 다시 돌려 보게 됩니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P3.3.pace/P3.3.pace-fast.v1.html"
+        }
+      ]
+    },
+    "asp.P3.3.pace|learner": {
+      "title": "학습자 속도 (따라 할 수 있게)",
+      "file": "asp.P3.3.pace/P3.3.pace-learner.v1.html",
+      "version": 1,
+      "now": "누른 순간 한 단계씩 멈춰 기다리고, 「다음」을 눌러야 다음 단계로 넘어갑니다.",
+      "later": "나중에 전체 길이가 길어지고, 이미 아는 사람은 기다리는 시간을 답답하게 느낄 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P3.3.pace/P3.3.pace-learner.v1.html"
+        }
+      ]
+    },
+    "asp.P3.3.pace|normal": {
+      "title": "보통",
+      "file": "asp.P3.3.pace/P3.3.pace-normal.v1.html",
+      "version": 1,
+      "now": "누른 순간 단계마다 3초쯤 머물며 저절로 넘어가, 세 단계를 10초 남짓에 봅니다.",
+      "later": "나중에 손으로 따라 하는 사람에게는 조금 빠르고, 아는 사람에게는 조금 느릴 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "asp.P3.3.pace/P3.3.pace-normal.v1.html"
+        }
+      ]
+    },
+    "dim.format|a3": {
+      "title": "A3 (포스터·판넬)",
+      "file": "dim.format/format-a3.v1.html",
+      "version": 1,
+      "now": "누른 순간 A4 두 장을 붙인 크기(A3)로 잡혀, 멀리서도 보이는 포스터·판넬을 만들 수 있습니다.",
+      "later": "나중에 A4까지만 인쇄하는 프린터가 많아, 인쇄소나 큰 프린터가 필요할 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-a3.v1.html"
+        }
+      ]
+    },
+    "dim.format|a4l": {
+      "title": "A4 가로 (297×210mm)",
+      "file": "dim.format/format-a4l.v1.html",
+      "version": 1,
+      "now": "누른 순간 A4 종이를 눕힌 크기로 잡혀, 넓은 표나 도표를 한 장에 담기 좋습니다.",
+      "later": "나중에 16:9 화면보다는 덜 길쭉해서, 화면에 띄우면 양옆에 빈자리가 생깁니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-a4l.v1.html"
+        }
+      ]
+    },
+    "dim.format|a4p": {
+      "title": "A4 세로 (210×297mm)",
+      "file": "dim.format/format-a4p.v1.html",
+      "version": 1,
+      "now": "누른 순간 A4 종이 세로 크기로 잡혀, 그대로 인쇄하거나 PDF로 나눠 주기 좋습니다.",
+      "later": "나중에 화면에 띄우면 위아래로 길어 한 번에 다 보이지 않거나 글자가 작아집니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-a4p.v1.html"
+        }
+      ]
+    },
+    "dim.format|fluid": {
+      "title": "창 크기에 맞춤 (반응형)",
+      "file": "dim.format/format-fluid.v1.html",
+      "version": 1,
+      "now": "누른 순간 내용이 브라우저 창 너비에 맞춰 늘고 줄어, 어떤 창에서도 빈틈없이 채워집니다.",
+      "later": "나중에 정해진 쪽 크기가 없어서, 인쇄하거나 PDF로 만들 때 쪽이 어디서 나뉠지 미리 정하기 어렵습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-fluid.v1.html"
+        }
+      ]
+    },
+    "dim.format|mobile": {
+      "title": "휴대폰 폭 우선 (세로로 내려 읽기)",
+      "file": "dim.format/format-mobile.v1.html",
+      "version": 1,
+      "now": "누른 순간 휴대폰 화면 폭에 맞춰 한 줄로 쌓인 내용을 위에서 아래로 내려 읽게 됩니다.",
+      "later": "나중에 큰 화면에서는 가운데 좁은 띠로 보이거나 너무 길게 늘어져, 큰 화면용 배치를 따로 손봐야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-mobile.v1.html"
+        }
+      ]
+    },
+    "dim.format|v916": {
+      "title": "9:16 세로 (1080×1920)",
+      "file": "dim.format/format-v916.v1.html",
+      "version": 1,
+      "now": "누른 순간 휴대폰을 세로로 든 모양(9:16)으로 화면이 잡혀, 휴대폰에서 꽉 차게 보입니다.",
+      "later": "나중에 가로로 긴 모니터나 프로젝터에 띄우면 가운데 좁은 띠로만 보입니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-v916.v1.html"
+        }
+      ]
+    },
+    "dim.format|w169": {
+      "title": "16:9 와이드 (1920×1080)",
+      "file": "dim.format/format-w169.v1.html",
+      "version": 1,
+      "now": "누른 순간 요즘 TV·모니터에 흔한 16:9 비율로 화면이 잡힙니다.",
+      "later": "나중에 A4 종이에 인쇄하면 비율이 달라 위아래가 남거나 작게 줄어들어, 인쇄용으로는 손이 더 갑니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-w169.v1.html"
+        }
+      ]
+    },
+    "dim.format|w43": {
+      "title": "4:3 (표준 슬라이드)",
+      "file": "dim.format/format-w43.v1.html",
+      "version": 1,
+      "now": "누른 순간 예전 표준 슬라이드처럼 정사각형에 가까운 4:3 비율로 잡힙니다.",
+      "later": "나중에 16:9 와이드 화면에 띄우면 양옆이 비어 보입니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.format/format-w43.v1.html"
+        }
+      ]
+    },
+    "dim.frame|bottom": {
+      "title": "아래 조작 막대",
+      "file": "dim.frame/frame-bottom.v1.html",
+      "version": 1,
+      "now": "누른 순간 아래 막대의 이전·다음 단추와 쪽 번호로 쉽게 넘깁니다.",
+      "later": "나중에 원하는 곳으로 바로 건너뛰기는 어렵고, 막대가 아래 공간을 조금 차지합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.frame/frame-bottom.v1.html"
+        }
+      ]
+    },
+    "dim.frame|left": {
+      "title": "왼쪽 사이드바",
+      "file": "dim.frame/frame-left.v1.html",
+      "version": 1,
+      "now": "누른 순간 왼쪽 목차에서 지금 위치를 보며 원하는 곳으로 바로 가고, 필요 없으면 접어 둡니다.",
+      "later": "나중에 가로 공간을 나눠 써서 본문이 좁아지고, 작은 화면에서는 접어 두어야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.frame/frame-left.v1.html"
+        }
+      ]
+    },
+    "dim.frame|none": {
+      "title": "틀 없음",
+      "file": "dim.frame/frame-none.v1.html",
+      "version": 1,
+      "now": "누른 순간 본문만 화면을 꽉 채워 가장 깔끔하고 넓게 보입니다.",
+      "later": "나중에 목차나 조작 단추가 없어 이동 방법을 따로 알려 주거나 키보드에 기대야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.frame/frame-none.v1.html"
+        }
+      ]
+    },
+    "dim.frame|ribbon": {
+      "title": "리본",
+      "file": "dim.frame/frame-ribbon.v1.html",
+      "version": 1,
+      "now": "누른 순간 문서 편집 프로그램처럼 위쪽 탭과 도구 단추로 크게 보기·형광펜 같은 기능을 바로 씁니다.",
+      "later": "나중에 위쪽 두 줄이 화면 높이를 꽤 차지하고, 보기만 하는 사람에게는 단추가 많아 복잡해 보일 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.frame/frame-ribbon.v1.html"
+        }
+      ]
+    },
+    "dim.frame|right": {
+      "title": "오른쪽 사이드바",
+      "file": "dim.frame/frame-right.v1.html",
+      "version": 1,
+      "now": "누른 순간 본문 옆에 그 쪽의 요약과 참고가 함께 보여 다시 보기 편합니다.",
+      "later": "나중에 요약·참고 글을 쪽마다 따로 써야 해 만들 양이 늘고, 본문 폭이 줄어듭니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.frame/frame-right.v1.html"
+        }
+      ]
+    },
+    "dim.frame|top": {
+      "title": "위쪽 메뉴 줄",
+      "file": "dim.frame/frame-top.v1.html",
+      "version": 1,
+      "now": "누른 순간 위쪽 메뉴 줄에서 큰 단원을 바로 골라 옮겨 갑니다.",
+      "later": "나중에 메뉴 줄이 세로 공간을 조금 차지하고, 항목이 많으면 한 줄에 다 들어가지 않습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.frame/frame-top.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|fold": {
+      "title": "접기·펼치기",
+      "file": "dim.html_features/html_features-fold.v1.html",
+      "version": 1,
+      "now": "누른 순간 긴 설명을 접어 두었다가, 제목을 누르면 펼쳐 볼 수 있습니다.",
+      "later": "나중에 접힌 내용은 그냥 넘기기 쉬워 놓칠 수 있고, 인쇄할 때 펼쳐 둘지 따로 정해야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-fold.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|fontsize": {
+      "title": "글자 크기 조절",
+      "file": "dim.html_features/html_features-fontsize.v1.html",
+      "version": 1,
+      "now": "누른 순간 A− / A+ 단추로 보는 사람이 글자 크기를 직접 키우고 줄일 수 있습니다.",
+      "later": "나중에 글자를 크게 키우면 줄이 넘치거나 그림과 겹칠 수 있어, 큰 글자에서도 화면이 깨지지 않는지 확인해야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-fontsize.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|fullscreen": {
+      "title": "전체 화면 단추",
+      "file": "dim.html_features/html_features-fullscreen.v1.html",
+      "version": 1,
+      "now": "누른 순간 단추 하나로 자료가 화면 전체를 채우고, 「나가기」로 원래대로 돌아옵니다.",
+      "later": "나중에 다른 페이지 안에 끼워 넣어 보여 줄 때는 브라우저가 전체 화면을 막을 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-fullscreen.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|pagenum": {
+      "title": "쪽(장면) 번호",
+      "file": "dim.html_features/html_features-pagenum.v1.html",
+      "version": 1,
+      "now": "누른 순간 화면 구석에 「3 / 12」처럼 지금 장면 번호와 전체 장면 수가 나옵니다.",
+      "later": "나중에 장면을 넣거나 빼면 번호가 모두 바뀌어, 미리 나눠 준 자료의 쪽 번호와 어긋날 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-pagenum.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|pen": {
+      "title": "판서 펜",
+      "file": "dim.html_features/html_features-pen.v1.html",
+      "version": 1,
+      "now": "누른 순간 마우스나 손가락으로 화면 위에 바로 줄을 긋고 동그라미를 칠 수 있습니다.",
+      "later": "나중에 그린 표시는 따로 저장하는 기능을 넣지 않으면 페이지를 다시 열 때 사라지고, 펜을 쓰는 동안에는 화면 넘기기 같은 조작과 겹칠 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-pen.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|print_btn": {
+      "title": "인쇄·PDF 저장 단추",
+      "file": "dim.html_features/html_features-print_btn.v1.html",
+      "version": 1,
+      "now": "누른 순간 인쇄 단추가 생겨, 종이(A4)에 맞춘 모습으로 인쇄하거나 PDF로 저장할 수 있습니다.",
+      "later": "나중에 움직이는 장면은 종이에 멈춘 한 장면으로만 나오므로, 인쇄용 모양을 따로 손봐야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-print_btn.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|progress": {
+      "title": "진행 막대",
+      "file": "dim.html_features/html_features-progress.v1.html",
+      "version": 1,
+      "now": "누른 순간 화면 맨 위에 얇은 막대가 생겨, 지금까지 얼마나 봤는지 한눈에 보입니다.",
+      "later": "나중에 화면 위쪽 한 줄을 늘 차지하고, 내용이 아주 짧으면 막대가 금방 차서 쓸모가 적습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-progress.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|search": {
+      "title": "검색",
+      "file": "dim.html_features/html_features-search.v1.html",
+      "version": 1,
+      "now": "누른 순간 검색 칸이 생겨, 낱말을 치면 본문에서 같은 말이 색으로 표시됩니다.",
+      "later": "나중에 그림 속 글자는 찾지 못하고, 글이 짧은 자료에서는 거의 쓰이지 않을 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-search.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|theme_toggle": {
+      "title": "밝게·어둡게 바꾸기 단추",
+      "file": "dim.html_features/html_features-theme_toggle.v1.html",
+      "version": 1,
+      "now": "누른 순간 단추 하나로 밝은 화면과 어두운 화면을 오갈 수 있습니다.",
+      "later": "나중에 색을 두 벌씩 맞춰야 하고, 그림이나 도표가 어두운 바탕에서도 잘 보이는지 따로 살펴야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-theme_toggle.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|timer": {
+      "title": "타이머",
+      "file": "dim.html_features/html_features-timer.v1.html",
+      "version": 1,
+      "now": "누른 순간 시작·멈춤 단추가 있는 타이머가 생겨, 활동 시간을 화면에서 함께 볼 수 있습니다.",
+      "later": "나중에 타이머가 필요 없는 장면에서는 자리만 차지하므로, 넣을 장면을 골라야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-timer.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|toc_jump": {
+      "title": "목차로 바로 가기",
+      "file": "dim.html_features/html_features-toc_jump.v1.html",
+      "version": 1,
+      "now": "누른 순간 목차 단추가 생겨, 목차를 열고 원하는 부분으로 곧장 갈 수 있습니다.",
+      "later": "나중에 본문 제목을 고칠 때마다 목차 항목도 함께 맞춰야 하고, 단추 하나가 화면에 늘 떠 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-toc_jump.v1.html"
+        }
+      ]
+    },
+    "dim.html_features|tooltip": {
+      "title": "용어 풀이 말풍선",
+      "file": "dim.html_features/html_features-tooltip.v1.html",
+      "version": 1,
+      "now": "누른 순간 점선 밑줄이 그어진 낱말에 마우스를 올리거나 누르면 쉬운 풀이가 말풍선으로 뜹니다.",
+      "later": "나중에 낱말마다 풀이 글을 따로 써야 하고, 휴대폰에서는 마우스를 올리는 동작이 없어 눌러야만 보입니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.html_features/html_features-tooltip.v1.html"
+        }
+      ]
+    },
+    "dim.nav|floating": {
+      "title": "필요할 때 여는 목차",
+      "file": "dim.nav/nav-floating.v1.html",
+      "version": 1,
+      "now": "누른 순간 평소에는 떠 있는 단추 하나만 보여 본문을 넓게 쓰고, 필요할 때 목차를 엽니다.",
+      "later": "나중에 목차가 늘 보이지 않아 지금 위치를 놓치기 쉽고, 단추가 본문 일부를 가릴 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.nav/nav-floating.v1.html"
+        }
+      ]
+    },
+    "dim.nav|list": {
+      "title": "목록",
+      "file": "dim.nav/nav-list.v1.html",
+      "version": 1,
+      "now": "누른 순간 모든 항목이 차례대로 한 줄씩 보여 가장 단순하고 읽기 쉽습니다.",
+      "later": "나중에 항목이 많아지면 길게 늘어져 큰 묶음이 무엇인지 구분하기 어렵습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.nav/nav-list.v1.html"
+        }
+      ]
+    },
+    "dim.nav|steps": {
+      "title": "단계 표시",
+      "file": "dim.nav/nav-steps.v1.html",
+      "version": 1,
+      "now": "누른 순간 1 → 2 → 3 순서와 지금 몇 단계인지가 분명하게 보입니다.",
+      "later": "나중에 순서대로 따라가는 내용에만 맞고, 자유롭게 건너뛰며 보는 자료에는 답답할 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.nav/nav-steps.v1.html"
+        }
+      ]
+    },
+    "dim.nav|tabs": {
+      "title": "탭",
+      "file": "dim.nav/nav-tabs.v1.html",
+      "version": 1,
+      "now": "누른 순간 가로로 놓인 단추를 눌러 단원을 바로 바꿉니다.",
+      "later": "나중에 한 줄에 들어가는 탭 수가 적어, 항목이 많으면 넘치거나 글자가 잘립니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.nav/nav-tabs.v1.html"
+        }
+      ]
+    },
+    "dim.nav|tree": {
+      "title": "접고 펴는 트리",
+      "file": "dim.nav/nav-tree.v1.html",
+      "version": 1,
+      "now": "누른 순간 큰 묶음을 펴면 작은 항목이 선으로 이어져 나와 전체 구조가 잘 보입니다.",
+      "later": "나중에 단계가 깊어지면 여러 번 눌러야 하고, 좁은 칸에서는 긴 제목이 잘립니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.nav/nav-tree.v1.html"
+        }
+      ]
+    },
+    "dim.orientation|landscape": {
+      "title": "가로",
+      "file": "dim.orientation/orientation-landscape.v1.html",
+      "version": 1,
+      "now": "누른 순간 화면이 옆으로 긴 가로형으로 잡혀, 모니터나 프로젝터 화면을 꽉 채웁니다.",
+      "later": "나중에 휴대폰을 세로로 들고 보면 화면이 작게 줄어 글자가 읽기 어려울 수 있습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.orientation/orientation-landscape.v1.html"
+        }
+      ]
+    },
+    "dim.orientation|portrait": {
+      "title": "세로",
+      "file": "dim.orientation/orientation-portrait.v1.html",
+      "version": 1,
+      "now": "누른 순간 화면이 위아래로 긴 세로형으로 잡혀, 종이나 휴대폰으로 읽기에 알맞습니다.",
+      "later": "나중에 프로젝터나 TV처럼 옆으로 긴 화면에 띄우면 양옆이 비고 그림이 작아집니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.orientation/orientation-portrait.v1.html"
+        }
+      ]
+    },
+    "dim.orientation|responsive": {
+      "title": "화면에 맞춤 (반응형 웹)",
+      "file": "dim.orientation/orientation-responsive.v1.html",
+      "version": 1,
+      "now": "누른 순간 화면 크기에 따라 배치가 스스로 바뀌어, 넓으면 두 단, 좁으면 한 단으로 보입니다.",
+      "later": "나중에 화면 크기마다 모양이 달라지므로, 여러 크기에서 깨지지 않는지 하나하나 확인해야 합니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.orientation/orientation-responsive.v1.html"
+        }
+      ]
+    },
+    "dim.view_mode|app": {
+      "title": "메뉴로 여러 화면 오가기",
+      "file": "dim.view_mode/view_mode-app.v1.html",
+      "version": 1,
+      "now": "누른 순간 메뉴로 원하는 화면을 바로 골라 오가는 앱처럼 보입니다.",
+      "later": "나중에 정해진 순서로 이끄는 힘이 약해 무엇부터 볼지 헷갈릴 수 있고, 만들어야 할 화면이 늘어납니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.view_mode/view_mode-app.v1.html"
+        }
+      ]
+    },
+    "dim.view_mode|dashboard": {
+      "title": "한 화면에 카드 모음",
+      "file": "dim.view_mode/view_mode-dashboard.v1.html",
+      "version": 1,
+      "now": "누른 순간 여러 내용이 카드로 한 화면에 펼쳐져 한눈에 비교할 수 있고, 카드를 누르면 크게 봅니다.",
+      "later": "나중에 카드 하나에 담을 수 있는 설명이 짧아, 차근차근 이어지는 설명에는 맞지 않습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.view_mode/view_mode-dashboard.v1.html"
+        }
+      ]
+    },
+    "dim.view_mode|scenes": {
+      "title": "장면 자동 재생",
+      "file": "dim.view_mode/view_mode-scenes.v1.html",
+      "version": 1,
+      "now": "누른 순간 장면이 저절로 이어지며 영상처럼 흘러가고, 재생·이전·다음 단추로 조절합니다.",
+      "later": "나중에 원하는 곳만 찾아 읽기는 덜 편하고, 장면마다 시간과 움직임을 맞추는 제작 품이 더 듭니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.view_mode/view_mode-scenes.v1.html"
+        }
+      ]
+    },
+    "dim.view_mode|scroll": {
+      "title": "한 페이지 스크롤",
+      "file": "dim.view_mode/view_mode-scroll.v1.html",
+      "version": 1,
+      "now": "누른 순간 위에서 아래로 쭉 읽는 웹 문서처럼 모든 내용이 한 페이지에 이어집니다.",
+      "later": "나중에 화면 단위로 끊기지 않아 발표 화면으로 띄우기 어색하고, 길어지면 지금 어디쯤인지 놓치기 쉽습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.view_mode/view_mode-scroll.v1.html"
+        }
+      ]
+    },
+    "dim.view_mode|slide": {
+      "title": "한 장씩 넘김",
+      "file": "dim.view_mode/view_mode-slide.v1.html",
+      "version": 1,
+      "now": "누른 순간 한 번에 한 장씩, 보는 사람이 직접 넘기며 자기 속도로 봅니다.",
+      "later": "나중에 흐름이 저절로 이어지지 않아 움직임으로 설명하는 힘이 약하고, 장이 많으면 전체를 훑기 어렵습니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.view_mode/view_mode-slide.v1.html"
+        }
+      ]
+    },
+    "dim.view_mode|snap": {
+      "title": "한 화면씩 끊어 내리기",
+      "file": "dim.view_mode/view_mode-snap.v1.html",
+      "version": 1,
+      "now": "누른 순간 스크롤하면 한 화면씩 딱 멈춰서, 스크롤과 넘김의 중간 느낌이 납니다.",
+      "later": "나중에 한 화면보다 긴 내용은 나눠야 하고, 기기나 브라우저에 따라 멈추는 느낌이 조금씩 다릅니다.",
+      "source": "엔진 기본 예시",
+      "history": [
+        {
+          "v": 1,
+          "date": "2026-11-08",
+          "from": "엔진 기본 예시",
+          "what": "처음 만든 예시",
+          "file": "dim.view_mode/view_mode-snap.v1.html"
+        }
+      ]
+    }
+  }
+}

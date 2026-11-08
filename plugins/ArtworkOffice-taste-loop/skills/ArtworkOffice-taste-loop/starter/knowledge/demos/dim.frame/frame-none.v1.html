@@ -1,0 +1,15 @@
+<style>
+.frn-page{height:100%;display:flex;flex-direction:column;justify-content:center;padding:12px 18%}
+.frn-page h3{margin:0 0 2px;font-size:17px}
+.frn-page p{margin:0 0 6px;color:var(--muted);font-size:11px}
+.frn-l{height:7px;border-radius:3px;background:var(--line);margin:6px 0;transform-origin:left;animation:frn-type 4s ease-in-out infinite}
+.frn-l:nth-of-type(2){animation-delay:.3s}.frn-l:nth-of-type(3){animation-delay:.6s}.frn-l:nth-of-type(4){animation-delay:.9s}
+@keyframes frn-type{0%{transform:scaleX(0)}25%,85%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+.frn-fig{display:block;width:100%;max-height:34%;margin-top:6px}
+</style>
+<div class="frn-page">
+  <h3>1장 원리</h3>
+  <p>메뉴도 단추도 없이 내용만 보입니다</p>
+  <div><div class="frn-l" style="width:96%"></div><div class="frn-l" style="width:88%"></div><div class="frn-l" style="width:92%"></div><div class="frn-l" style="width:64%"></div></div>
+  <svg class="frn-fig" viewBox="0 0 220 50" aria-label="그림"><rect x="1" y="1" width="218" height="48" rx="8" fill="var(--soft)"/><circle cx="60" cy="25" r="12" fill="var(--acc)" opacity=".75"/><path d="M80 25 H140" stroke="var(--acc)" stroke-width="3"/><path d="M136 19 L146 25 L136 31 z" fill="var(--acc)"/><rect x="152" y="13" width="24" height="24" rx="4" fill="none" stroke="var(--acc)" stroke-width="3"/></svg>
+</div>

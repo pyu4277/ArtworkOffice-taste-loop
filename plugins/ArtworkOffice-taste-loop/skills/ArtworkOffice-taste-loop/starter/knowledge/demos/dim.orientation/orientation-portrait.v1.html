@@ -1,0 +1,24 @@
+<style>
+.op-sv{position:absolute;inset:0;width:100%;height:100%}
+.op-fr{fill:var(--bg);stroke:var(--fg);stroke-width:2.5}
+.op-tt{fill:var(--fg);font-size:14px;font-weight:700}
+.op-tx{fill:var(--muted);font-size:10.5px}
+.op-ac{fill:var(--acc)}.op-so{fill:var(--soft)}.op-ln{fill:var(--line)}
+.op-dv{fill:none;stroke:var(--acc);stroke-width:2}
+.op-rot{transform-box:fill-box;transform-origin:center;animation:op-r 5s ease-in-out infinite both}
+@keyframes op-r{0%,15%{transform:rotate(90deg)}35%,100%{transform:rotate(0deg)}}
+.op-a{animation:op-in 5s infinite both}
+@keyframes op-in{0%{opacity:0}14%,100%{opacity:1}}
+.op-d1{animation-delay:.2s}.op-d2{animation-delay:.6s}.op-d3{animation-delay:1s}
+</style>
+<svg class="op-sv" viewBox="0 0 340 212" preserveAspectRatio="xMidYMid meet">
+<rect class="op-fr" x="60" y="14" width="138" height="184" rx="6"/>
+<rect class="op-ac op-a op-d1" x="74" y="28" width="90" height="11" rx="3"/>
+<g class="op-a op-d2"><rect class="op-so" x="74" y="48" width="110" height="62" rx="5"/><path class="op-ac" opacity=".45" d="M80 104L104 76L120 92L134 82L178 104Z"/><circle class="op-ac" opacity=".6" cx="168" cy="62" r="6"/></g>
+<g class="op-a op-d3"><rect class="op-ln" x="74" y="122" width="110" height="6" rx="3"/><rect class="op-ln" x="74" y="136" width="96" height="6" rx="3"/><rect class="op-ln" x="74" y="150" width="104" height="6" rx="3"/><rect class="op-ln" x="74" y="164" width="72" height="6" rx="3"/><rect class="op-ln" x="74" y="178" width="88" height="6" rx="3"/></g>
+<text class="op-tt" x="218" y="70">세로</text>
+<text class="op-tx" x="218" y="90">위아래로 긴 화면</text>
+<text class="op-tx" x="218" y="114">제목 → 그림 → 글을</text>
+<text class="op-tx" x="218" y="130">위에서 아래로 쌓음</text>
+<rect class="op-dv op-rot" x="238" y="146" width="14" height="22" rx="3"/>
+</svg>

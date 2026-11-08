@@ -1,0 +1,42 @@
+<style>
+.icm-root{position:absolute;inset:0;display:flex;gap:4%;padding:4.5%;font-size:min(3.5vw,5.6vh)}
+.icm-photo{position:relative;flex:0 0 54%;border-radius:.4em;overflow:hidden;box-shadow:0 .3em .9em rgba(0,0,0,.22)}
+.icm-plate{position:absolute;inset:-6%;background:
+  radial-gradient(circle at 50% 50%,#e9a066 0 3.5%,#8a4518 4.8%,rgba(40,20,8,.6) 5.6%,transparent 7.5%),
+  radial-gradient(circle at 50% 50%,transparent 26%,#ddd6c7 72%),
+  repeating-conic-gradient(from 5deg at 50% 50%,#ddd6c7 0 2.2deg,transparent 2.2deg 4.3deg),
+  repeating-conic-gradient(from 1deg at 50% 50%,transparent 0 1.2deg,#ddd6c7 1.2deg 1.7deg,transparent 1.7deg 2.9deg),
+  repeating-radial-gradient(circle at 50% 50%,rgba(30,28,26,.92) 0 .9px,transparent 1.5px 5.2px),#ddd6c7}
+.icm-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(130deg,rgba(255,250,235,.25),transparent 45%,rgba(0,0,0,.28)),radial-gradient(ellipse,transparent 55%,rgba(0,0,0,.35))}
+.icm-arc{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.icm-arc path{fill:none;stroke:#ffb020;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.icm-arc .icm-a{stroke-dasharray:1;stroke-dashoffset:1;animation:icm-draw 6s ease-in-out infinite}
+@keyframes icm-draw{0%,8%{stroke-dashoffset:1}35%,90%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+.icm-arc .icm-h{animation:icm-head 6s ease-in-out infinite}
+@keyframes icm-head{0%,33%{opacity:0}38%,90%{opacity:1}100%{opacity:0}}
+.icm-arc text{font-family:var(--font);font-size:6.5px;fill:#fff;font-weight:700;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:1.6px}
+.icm-txt{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.45em}
+.icm-txt h3{margin:0;font-size:1.15em;line-height:1.25;letter-spacing:-.02em}
+.icm-txt p{margin:0;font-size:.8em;color:var(--muted);line-height:1.45}
+.icm-row{display:flex;align-items:center;gap:.45em;font-size:.82em;font-weight:600}
+.icm-row svg{width:1.5em;height:1.5em;flex:none}
+.icm-row svg *{fill:none;stroke:var(--acc);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.icm-tag{margin-top:.3em;align-self:flex-start;font-size:.62em;padding:.15em .6em;border-radius:1em;border:1px solid var(--line);color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.icm-arc .icm-a,.icm-arc .icm-h{animation:none!important;stroke-dashoffset:0;opacity:1}}
+</style>
+<div class="icm-root">
+  <div class="icm-photo" role="img" aria-label="쇳가루 사진 위에 자기장 방향 화살표 하나">
+    <div class="icm-plate"></div>
+    <svg class="icm-arc" viewBox="0 0 100 100" aria-hidden="true">
+      <path class="icm-a" pathLength="1" d="M76.3 59.6A28 28 0 0 0 50 22"/>
+      <path class="icm-h" d="M55 18L49.5 22L55 26"/>
+      <text class="icm-h" x="60" y="17">자기장 방향</text>
+    </svg>
+  </div>
+  <div class="icm-txt">
+    <h3>전류 둘레에<br>둥근 자기장</h3>
+    <p>전류가 화면 밖으로 나오면<br>시계 반대 방향으로 돕니다</p>
+    <div class="icm-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 5l2.2 7H9.8z"/><path d="M12 19l-2.2-7h4.4z" style="stroke:var(--muted)"/></svg>나침반으로 확인</div>
+    <div class="icm-tag">꼭 필요한 기호 한두 개만</div>
+  </div>
+</div>

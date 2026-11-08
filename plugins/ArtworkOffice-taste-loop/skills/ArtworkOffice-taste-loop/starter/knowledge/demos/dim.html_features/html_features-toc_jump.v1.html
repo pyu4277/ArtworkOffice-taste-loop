@@ -1,0 +1,48 @@
+<style>
+.tj-w{position:absolute;inset:0;display:flex;flex-direction:column}
+.tj-h{flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--line)}
+.tj-h strong{font-size:13px}
+.tj-btn{border:1px solid var(--acc);color:var(--acc);background:var(--bg);border-radius:6px;padding:1px 9px;font-size:12px}
+.tj-b{flex:1;overflow-y:auto;padding:0 14px 60px;position:relative;scroll-behavior:smooth}
+.tj-sec{padding:8px 6px;margin:4px -6px;border-radius:8px;transition:background .4s}
+.tj-sec h4{margin:0 0 2px;font-size:13px}
+.tj-hit{background:var(--soft)}
+.tj-p{position:absolute;top:34px;right:8px;width:58%;max-width:220px;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:6px;display:none}
+.tj-p.tj-open{display:block;animation:demo-fade .25s ease both}
+.tj-p div{font-size:11px;color:var(--muted);padding:2px 6px}
+.tj-p button{display:block;width:100%;text-align:left;border:0;background:none;padding:4px 6px;border-radius:6px;font-size:12px}
+.tj-p button:hover{background:var(--soft)}
+</style>
+<div class="tj-w">
+<div class="tj-h"><strong>학습 자료</strong><button type="button" class="tj-btn" id="tj-open">☰ 목차</button></div>
+<div class="tj-b" id="tj-b">
+<div class="tj-sec" id="tj-s1"><h4>1. 들어가며</h4><div class="ln" style="width:90%"></div><div class="ln" style="width:65%"></div></div>
+<div class="tj-sec" id="tj-s2"><h4>2. 기본 생각</h4><div class="ln" style="width:84%"></div><div class="ln" style="width:92%"></div><div class="ln" style="width:58%"></div></div>
+<div class="tj-sec" id="tj-s3"><h4>3. 그림으로 보기</h4><div class="ln" style="width:76%"></div><div class="ln" style="width:88%"></div></div>
+<div class="tj-sec" id="tj-s4"><h4>4. 직접 해 보기</h4><div class="ln" style="width:92%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:80%"></div></div>
+<div class="tj-sec" id="tj-s5"><h4>5. 정리</h4><div class="ln" style="width:66%"></div><div class="ln" style="width:48%"></div></div>
+</div>
+<div class="tj-p" id="tj-p">
+<div>목차 — 누르면 그곳으로</div>
+<button type="button" data-to="tj-s1">1. 들어가며</button>
+<button type="button" data-to="tj-s2">2. 기본 생각</button>
+<button type="button" data-to="tj-s3">3. 그림으로 보기</button>
+<button type="button" data-to="tj-s4">4. 직접 해 보기</button>
+<button type="button" data-to="tj-s5">5. 정리</button>
+</div>
+</div>
+<span class="hint-chip">목차를 눌러 보세요</span>
+<script>
+(function(){
+var p=document.getElementById('tj-p'),b=document.getElementById('tj-b'),last=null;
+document.getElementById('tj-open').addEventListener('click',function(){p.classList.toggle('tj-open');});
+p.addEventListener('click',function(e){
+var t=e.target.closest?e.target.closest('button'):null;if(!t)return;
+var s=document.getElementById(t.getAttribute('data-to'));if(!s)return;
+p.classList.remove('tj-open');
+b.scrollTop=Math.max(0,s.offsetTop-4);
+if(last)last.classList.remove('tj-hit');s.classList.add('tj-hit');last=s;
+setTimeout(function(){s.classList.remove('tj-hit');},1400);
+});
+})();
+</script>
