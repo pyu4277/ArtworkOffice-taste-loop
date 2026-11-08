@@ -53,10 +53,36 @@ def jsdom_path():
     return ''
 
 
+def python_cmd():
+    """실제로 실행되는 파이썬 3.8 이상 명령을 고른다. 이름 찾기(which)만으로 판정하지 않는다:
+    Windows 의 python3 는 마이크로소프트 스토어 바로가기(실행하면 오류만 내는 가짜)일 수 있다(실수 기록 E22)."""
+    for c in (['python', 'py', 'python3'] if os.name == 'nt' else ['python3', 'python', 'py']):
+        if not shutil.which(c):
+            continue
+        try:
+            r = subprocess.run([c, '-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)'],
+                               capture_output=True, timeout=8)
+        except Exception:  # noqa: BLE001
+            continue
+        if r.returncode == 0:
+            return c
+    return ''
+
+
 def collect():
     cloud = os.environ.get('CLAUDE_CODE_REMOTE') == 'true'
     rows = []
     for cmd, use, where, level in TOOLS:
+        if cmd == 'python3':  # 이름이 아니라 실제로 실행되는 명령으로 판정한다(E22)
+            py = python_cmd()
+            label = cmd if py in ('', 'python3') else f'{cmd}→{py}'
+            if py:
+                hint = version_of(py) + ('' if py == 'python3' else f' (python3 대신 {py} 를 쓴다)')
+                rows.append({'tool': label, 'use': use, 'where': where, 'level': level, 'status': '가능', 'hint': hint})
+            else:
+                rows.append({'tool': label, 'use': use, 'where': where, 'level': level, 'status': '설치 필요',
+                             'hint': 'python3 이름은 있어도 실행되지 않으면 설치 필요(스토어 바로가기 등)'})
+            continue
         found = shutil.which(cmd)
         if found:
             status, hint = '가능', version_of(cmd)

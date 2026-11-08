@@ -210,6 +210,12 @@ print(json.dumps({'dims':d,'qs':q,'problems':p,'vis':vis,'qs2':q2,'p2':len(p2)},
   const dimsAfter = JSON.parse(fs.readFileSync(path.join(store, 'dimensions.json'), 'utf8'));
   const led = JSON.parse(fs.readFileSync(path.join(store, 'knowledge', 'structure_edits.json'), 'utf8'));
   ok(s.status === 0 && JSON.stringify(dimsAfter.dimensions) === JSON.stringify(PYR.dims.dimensions) && led.batches.every(b => b.status === 'applied'), 'apply --yes → dimensions.json 반영 · 묶음 「반영됨」' + (s.status ? '\n' + s.stdout + s.stderr : ''));
+  {  // 줄바꿈 LF 고정(실수 기록 E22): Windows 파이썬의 write_text 는 CRLF 로 써서 PC와 클라우드 결과가 달라진다
+    const written = ['dimensions.json', 'questions.json', path.join('knowledge', 'structure_edits.json'), path.join('knowledge', '02_변경이력.md')]
+      .filter(f => fs.existsSync(path.join(store, f)));
+    const crlf = written.filter(f => fs.readFileSync(path.join(store, f)).includes('\r\n'));
+    ok(written.length >= 3 && crlf.length === 0, `apply --yes 가 쓴 파일 ${written.length}개 줄바꿈 LF` + (crlf.length ? ' — CRLF: ' + crlf.join(', ') : ''));
+  }
   s = py([path.join(HERE, 'check_store.py'), '--no-summary']);
   ok(s.status === 0, '반영 뒤 check_store 통과' + (s.status ? '\n' + s.stdout : ''));
 

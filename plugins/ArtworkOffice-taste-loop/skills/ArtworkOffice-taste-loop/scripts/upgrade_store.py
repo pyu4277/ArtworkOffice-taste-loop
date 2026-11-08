@@ -317,15 +317,15 @@ def upgrade(store, check_only=False):
             new, ch = fn(json.loads(p.read_text(encoding='utf-8')))
             if ch:
                 changed.append(name)
-                if not check_only:
-                    p.write_text(json.dumps(new, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+                if not check_only:  # 줄바꿈 LF 고정: Windows 의 write_text 는 CRLF 로 쓴다(실수 기록 E22)
+                    p.write_bytes((json.dumps(new, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
     pj = store / 'knowledge' / 'projects'
     for f in sorted(pj.glob('*.json')) if pj.exists() else []:
         new, ch = migrate_project(json.loads(f.read_text(encoding='utf-8')))
         if ch:
             changed.append(f'knowledge/projects/{f.name}')
-            if not check_only:
-                f.write_text(json.dumps(new, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+            if not check_only:  # 줄바꿈 LF 고정(E22)
+                f.write_bytes((json.dumps(new, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
     return changed
 
 

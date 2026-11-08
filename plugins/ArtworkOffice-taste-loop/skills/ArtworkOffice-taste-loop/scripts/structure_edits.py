@@ -38,10 +38,15 @@ def load_ledger():
     return {'version': 1, 'note': '구조 편집 기록 모음 — structure_edits.py 로만 고친다', 'batches': []}
 
 
+def write_lf(p, text):
+    """줄바꿈을 LF 로 고정해 쓴다. Windows 파이썬의 write_text 는 CRLF 로 써서 PC와 클라우드 결과가 달라진다(실수 기록 E22)."""
+    p.write_bytes(text.encode('utf-8'))
+
+
 def save_ledger(led):
     p = ledger_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(led, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    write_lf(p, json.dumps(led, ensure_ascii=False, indent=2) + '\n')
 
 
 def load_base():
@@ -162,8 +167,8 @@ def cmd_apply(yes):
     today = datetime.date.today().isoformat()
     d2['updated'] = today
     q2['updated'] = today
-    ST.path('dimensions.json').write_text(json.dumps(d2, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    ST.path('questions.json').write_text(json.dumps(q2, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    write_lf(ST.path('dimensions.json'), json.dumps(d2, ensure_ascii=False, indent=2) + '\n')
+    write_lf(ST.path('questions.json'), json.dumps(q2, ensure_ascii=False, indent=2) + '\n')
     led = load_ledger()
     dims_before = d2
     done = []
@@ -178,7 +183,7 @@ def cmd_apply(yes):
             what = ' / '.join(SX.describe(op, dims_before) for op in b['ops']).replace('|', '¦').replace('\n', ' ')
             rows.append(f"| {today} | {b.get('lecture') or '-'} | 구조 편집 {b['id']} (편집 {len(b['ops'])}건): {what} | 구조 편집 반영(structure_edits.py) | {(b.get('note') or '편집기 기록').replace('|', '¦')} | 사용자(반영 확인) |")
         body = ch.read_text(encoding='utf-8').rstrip('\n')
-        ch.write_text(body + '\n' + '\n'.join(rows) + '\n', encoding='utf-8')
+        write_lf(ch, body + '\n' + '\n'.join(rows) + '\n')
     print(f"반영함: {', '.join(b['id'] for b in done)}. 다음: check_store.py 로 검증·요약을 다시 만들고, 인터뷰 페이지를 다시 만든다.")
     return 0
 
