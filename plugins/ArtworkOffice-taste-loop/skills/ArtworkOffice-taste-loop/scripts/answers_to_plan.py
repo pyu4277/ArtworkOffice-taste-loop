@@ -29,7 +29,11 @@ REPO = ST.project_root()
 BEGIN, END = '<!-- taste-loop:begin -->', '<!-- taste-loop:end -->'
 OLD_MARKS = ('<!-- preference-evolution:begin -->', '<!-- preference-evolution:end -->')
 EXT = {'html169': 'html', 'mp4_916': 'mp4', 'mp4_169': 'mp4', 'pdf': 'pdf', 'hwpx': 'hwpx', 'docx': 'docx', 'pptx': 'pptx', 'print_a4': 'pdf', 'audio_file': 'mp3'}
-CHOICE = {'keep': '그대로', 'change': '이번엔 다르게', 'new': '처음 정함', 'skip': '나중에·해당 없음'}
+CHOICE = {'keep': '그대로', 'change': '이번엔 다르게', 'new': '처음 정함', 'skip': '제외', 'ref': '레퍼런스대로'}
+FOLLOW = {'all': '전체 양식', 'text': '글(톤 · 양식 · 밀도)', 'design': '디자인(색 · 글꼴 · 배치)', 'structure': '구성 · 흐름', 'motion': '움직임 · 영상'}
+# 질문 메모 · 기타 의견에 적은 참고 자료(파일 경로 · 주소). 예: 「"E:\…\자료집.pdf" 해당 자료 참고」 (한 프로젝트 인터뷰에서 메모 10곳)
+REF_PATH = re.compile(r'[A-Za-z]:[\\/][^"\n<>|?*]*?\.(?:pdf|pptx?|hwpx?|docx?|xlsx?|png|jpe?g|gif|mp4|mov|html?|md)\b', re.I)
+REF_URL = re.compile(r'https?://[^\s"<>]+')
 KIND = {'project': '프로젝트', 'past_all': '지난 답변', 'past': '지난 답', 'entry': '취향', 'decision': '결정', 'lesson': '교훈', 'mistake': '실수', 'design_ref': '레퍼런스', 'template': '템플릿', 'new_ref': '새 메모'}
 
 MANUAL_SECTIONS = """
@@ -88,6 +92,68 @@ def ref_text(refs):
             s += f' ({r["url"]})'
         out.append(s.replace('|', '¦'))
     return ' / '.join(out)
+
+
+def memo_references(asp_ans, opinions, aspects, dims):
+    """취향 질문 메모(aspects[*].note)와 1부 기타 의견에서 참고 자료(파일 경로 · 주소)를 모은다 → [{where, questions}].
+    3부(이번 자료) 글은 원자료 경로가 섞이므로 보지 않는다."""
+    found = {}
+    dname = {d['id']: d['name'] for d in dims.get('dimensions', [])}
+
+    def scan(text, label):
+        for m in list(REF_PATH.finditer(text or '')) + list(REF_URL.finditer(text or '')):
+            w = m.group(0).strip().rstrip('.,)」』')
+            q = found.setdefault(w, [])
+            if label not in q:
+                q.append(label)
+    for aid, s in (asp_ans or {}).items():
+        scan(s.get('note'), aspects.get(aid, {}).get('text', aid))
+    for k, v in (opinions or {}).items():
+        kind, _, i = k.partition(':')
+        if kind == 'dim':
+            scan(v, dname.get(i, i))
+    return [{'where': w, 'questions': q} for w, q in found.items()]
+
+
+def opt_label(aspect, v):
+    lab = {o['id']: o['label'] for o in (aspect or {}).get('options', [])}
+    return ', '.join(lab.get(x, str(x)) for x in v) if isinstance(v, list) else lab.get(v, str(v))
+
+
+def reference_section(ans, asp_ans, opinions, aspects, dims):
+    """「레퍼런스 먼저」 절 — 인터뷰 맨 앞에서 넣은 레퍼런스 · 메모에서 지정한 참고 자료 · 「레퍼런스대로」 질문 → 먼저 할 일(기준표)."""
+    refs = [r for r in (ans.get('references') or []) if isinstance(r, dict) and (r.get('where') or r.get('note'))]
+    memo = memo_references(asp_ans, opinions, aspects, dims)
+    ref_asp = [aid for aid, s in asp_ans.items() if s.get('choice') == 'ref']
+    stage = ans.get('stage') == 'references'
+    if not (refs or memo or ref_asp or ans.get('ref_none') or stage):
+        return []
+    L = ['## 레퍼런스 먼저 (인터뷰 맨 앞 — 스킬 3.1-0)', '']
+    if stage:
+        L += ['- **이 답은 「레퍼런스만 먼저 보내기」다**: 레퍼런스를 분석해 질문지를 채운 인터뷰 페이지를 다시 만든다(아래 할 일). 나머지 절은 사용자가 그 페이지에서 확인 · 제출한 답으로 다시 만든다.', '']
+    if ans.get('ref_none') and not refs:
+        L.append('- 이번엔 레퍼런스 없이 (사용자 선택)')
+    for r in refs:
+        fl = ' · '.join(FOLLOW.get(f, f) for f in (r.get('follow') or ['all']))
+        L.append(f'- {r.get("where") or "(주소 없음)"} — 따를 것: {fl}' + (f' — 메모: {" ".join(str(r["note"]).split())}' if r.get('note') else ''))
+    for m in memo:
+        L.append(f'- (질문 메모에서 지정) {m["where"]} — {" · ".join(m["questions"][:6])}' + (f' 외 {len(m["questions"]) - 6}곳' if len(m['questions']) > 6 else ''))
+    if refs or memo or ref_asp:
+        L += ['', '### 먼저 할 일 — 참고 자료는 기준표로 바꿔야 지켜진다 (실수 기록 E37)', '',
+              '- [ ] 레퍼런스를 끝까지 분석해 **기준표**를 먼저 만든다 → `materials/인터뷰/00_레퍼런스_기준표.md`: 「따를 것」에 맞춰 글(장당 글자 수 · 문장 꼴 · 제목 꼴 · 글머리 · 표 꼴) · 디자인(색 · 글꼴 · 배치 · 여백) · 구성(흐름 · 장 수 · 시간 배분). 읽은 범위(쪽 · 장 번호)를 적는다',
+              ('- [ ] 질문지 답 초안을 `materials/인터뷰/00_레퍼런스_채움.json`({"id", "source", "doc", "references", "dimensions", "aspects": {"<질문>": {"value", "reason"}}})으로 쓰고 '
+               '`build_interview.py … --prefill materials/인터뷰/00_레퍼런스_채움.json`으로 인터뷰를 다시 만든다(같은 경로 · 같은 게시 URL) → 사용자가 「레퍼런스에서」 표시를 확인해 제출')
+              if stage else '- [ ] 「레퍼런스대로」로 답한 질문과 메모로 지정한 질문을 기준표에서 정해 아래 표의 「정한 값」에 적고 사용자에게 확인받는다',
+              '- [ ] 제작 지시문(서브에이전트 포함)에 기준표를 그대로 넣고, 빌드 뒤 대조 스크립트로 기준표를 지켰는지 검증한다', '']
+    if ref_asp:
+        L += ['### 「레퍼런스대로」로 답한 질문', '', '| 질문 | 레퍼런스 분석 값 | 근거 | 정한 값 |', '|---|---|---|---|']
+        for aid in ref_asp:
+            s = asp_ans[aid]
+            a_ = aspects.get(aid, {})
+            val = opt_label(a_, s.get('value')) if s.get('value') is not None else '(기준표에서 정함)'
+            L.append(f'| {a_.get("text", aid)} | {val} | {" ".join(str(s.get("reason") or "").split()).replace("|", "¦")} | |')
+        L.append('')
+    return L
 
 
 def target_label(target, dims, aspects, pq):
@@ -162,6 +228,7 @@ def main(argv):
         L += ['## 기본 양식 (사용자가 인터뷰에서 끌어다 놓은 지난 프로젝트)', '',
               f'- **{bp.get("title", bp.get("id"))}** (`{src}`) — 차원 {bp.get("dims_set", "?")}개 · 취향 {bp.get("aspects_set", "?")}개를 이 기록대로 맞춤 ({str(bp.get("applied_at", ""))[:10]})',
               '- 뜻: 사용자는 이 프로젝트의 설정을 **기본 셋팅**으로 원한다. 그 기록의 차원 값·적용 항목·결정·결과를 출발점으로 삼고, 아래 표에서 달라진 답만 차이로 다룬다. 추측으로 바꾸지 않는다.', '']
+    L += reference_section(ans, ans.get('aspects') or {}, opinions, aspects, dims)
     L += ['## 사양 (차원 값 — 인터뷰 1부)', '', '| 차원 | 값 | 참고·기타 의견 |', '|---|---|---|']
     for d in dims['dimensions']:
         v = dv.get(d['id'])
@@ -180,8 +247,11 @@ def main(argv):
     # 환경 점검
     L += ['', '## 환경 점검 (스킬 1절 ③ — 이 세션에서 실행)', '']
     try:
-        r = subprocess.run([sys.executable, '-I', str(HERE / 'check_env.py')], capture_output=True, text=True, timeout=60)
-        L += r.stdout.strip().splitlines()
+        # 자식도 UTF-8 로 쓰게 하고(-X utf8) 바이트로 받아 직접 푼다. text=True 로 받으면 Windows 에서 자식의 CP949 출력을
+        # UTF-8 로 읽다가 읽기 스레드가 UnicodeDecodeError 를 내고 stdout 이 None 이 되어 'NoneType … strip' 으로 실패했다(1.3.0 에서 고침)
+        r = subprocess.run([sys.executable, '-X', 'utf8', '-I', str(HERE / 'check_env.py')], capture_output=True, timeout=60)
+        env_out = (r.stdout or b'').decode('utf-8', 'replace').strip()
+        L += env_out.splitlines() if env_out else [f'(check_env.py 출력 없음 — 종료 코드 {r.returncode}: {(r.stderr or b"").decode("utf-8", "replace").strip()[:200]})']
     except Exception as e:  # noqa: BLE001
         L.append(f'(check_env.py 실행 실패: {e})')
     L.append('- PC 점검 결과(check_env.ps1)는 사용자가 붙여 넣으면 여기에 추가한다. 커넥터(Higgsfield·Figma) 확인 결과: (적을 것)')
@@ -196,7 +266,9 @@ def main(argv):
         rt = ref_text(refs.get('aspect:' + aid))
         if s and s.get('choice'):
             val = s.get('value') if s.get('choice') in ('change', 'new') else r['value']
-            note = ('⭐항상 바꾸기 → 갱신 후보' if s.get('always') else '') + (f' 메모: {s["note"]}' if s.get('note') else '') + (f' (출처: {s["from"]})' if s.get('from') else '')
+            if s.get('choice') == 'ref':
+                val = s.get('value') if s.get('value') is not None else '(레퍼런스 기준표에서 정함)'
+            note = ('⭐항상 바꾸기 → 갱신 후보' if s.get('always') else '') + (f' 메모: {s["note"]}' if s.get('note') else '') + (f' (출처: {s["from"]})' if s.get('from') else '') + (f' 레퍼런스: {s["reason"]}' if s.get('reason') else '')
             L.append(f'| {a_.get("text", aid)} | {CHOICE.get(s["choice"], s["choice"])} | {M.json.dumps(val, ensure_ascii=False)} | {r["winner"]} | {note} | {rt} |')
         else:
             flag = '⚠충돌 — 사용자 선택 필요' if r['conflict'] else ('⚠추론 — 확인 전 적용 금지' if r['inferred'] else '기본값 적용')
@@ -218,8 +290,8 @@ def main(argv):
     L += ['', '## 선택별 진화 기록 적용 (knowledge/choices.json — 같은 선택이라도 지금 버전의 방법으로 만든다)', '']
     used = []
     for aid, s in asp_ans.items():
-        if not s.get('choice') or s.get('choice') == 'skip':
-            continue
+        if not s.get('choice') or s.get('choice') == 'skip' or (s.get('choice') == 'ref' and s.get('value') is None):
+            continue  # 제외 · 아직 기준표로 정하지 않은 「레퍼런스대로」는 방법을 붙이지 않는다
         val = s.get('value') if s.get('value') is not None else (matches.get(aid) or {}).get('value')
         for oid in (val if isinstance(val, list) else [val]):
             c = choices.get(f'{aid}|{oid}')

@@ -178,8 +178,10 @@ function applyOp(m, op) {
   }
   if (kind === 'add') {
     const data = clone(op.data || {}) || {};
-    data.id = node.id;
-    if (!data.id) throw new EditError('새 항목에 id 가 없음');
+    // 새 id 는 node.id(편집기가 내보내는 곳). 손으로 쓴 기록이 data.id 에만 두었으면 그것을 쓴다 — scripts/structure.py 와 같은 규칙
+    if (node.id && data.id && node.id !== data.id) throw new EditError(`새 항목의 id 가 두 곳에서 다름(node.id '${node.id}' ≠ data.id '${data.id}') — 한 값으로 맞추세요`);
+    data.id = node.id || data.id;
+    if (!data.id) throw new EditError('새 항목에 id 가 없음 — 새 id 는 node 안에 넣는다(예: {"op": "add", "node": {"t": "option", "aspect": "P2.4.density", "id": "medium"}, "data": {"label": "…"}})');
     if (t === 'sub') {
       const c = find(m.qs.categories, node.cat); if (!c) throw new EditError(`취향 묶음 '${node.cat}' 없음`);
       c.subs = c.subs || {};

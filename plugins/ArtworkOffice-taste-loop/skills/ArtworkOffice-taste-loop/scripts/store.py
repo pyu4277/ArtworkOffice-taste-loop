@@ -28,9 +28,11 @@ def project_root():
         if v and pathlib.Path(v).is_dir():
             return pathlib.Path(v).resolve()
     try:
-        out = subprocess.run(['git', 'rev-parse', '--show-toplevel'], capture_output=True, text=True, timeout=5)
-        if out.returncode == 0 and out.stdout.strip():
-            return pathlib.Path(out.stdout.strip()).resolve()
+        # git 은 경로를 UTF-8 로 낸다. text=True 는 Windows 에서 CP949 로 읽어 한글 경로가 깨지므로 직접 푼다
+        out = subprocess.run(['git', 'rev-parse', '--show-toplevel'], capture_output=True, timeout=5)
+        top = (out.stdout or b'').decode('utf-8', 'replace').strip()
+        if out.returncode == 0 and top:
+            return pathlib.Path(top).resolve()
     except Exception:  # noqa: BLE001
         pass
     return pathlib.Path.cwd().resolve()

@@ -3,7 +3,7 @@
 
 사용법:
   python3 build_interview.py --lecture <강의폴더> --mode interview --out <출력.html> [--artifact]
-      [--like <강의폴더>] [--answers <이전 답변.json>] [--topic <낱말>]... [--title <제목>] [--intro <안내문>]
+      [--like <강의폴더>] [--answers <이전 답변.json>] [--prefill <레퍼런스로 채운 답.json>] [--topic <낱말>]... [--title <제목>] [--intro <안내문>]
   python3 build_interview.py --lecture <강의폴더> --mode structure --spec <구성안.json> --out <출력.html>
   python3 build_interview.py --lecture <강의폴더> --mode review --spec <항목.json> --out <출력.html>
   python3 build_interview.py --lecture <강의폴더> --mode approve --spec <제안.json> --out <출력.html>
@@ -17,6 +17,10 @@
 --artifact: claude.ai 게시용(문서 머리 없음). 없으면 브라우저로 여는 파일용(doctype·head 포함).
 --like: 그 프로젝트 기록(knowledge/projects/<강의폴더>.json)의 차원 값을 기본값으로 미리 선택한다.
         생략하면 같은 강의의 기록이 있을 때 그것을 쓴다.
+--prefill <JSON>(interview): 「레퍼런스 먼저」에서 받은 레퍼런스를 분석해 채운 답 초안. 아직 답하지 않은 칸만 채우고
+        「레퍼런스에서」로 표시한다. 형식: {"id": "<판 이름>", "source": "<답변 JSON>", "doc": "<기준표 문서>",
+        "references": [{"where", "note", "follow"}], "dimensions": {"<질문>": 값}, "aspects": {"<취향 질문>": {"value": 값, "reason": "<근거>"}}}
+        질문 은행에 없는 질문·선택지는 빼고 알린다.
 --spec(structure/review/approve): {"items":[{"id","title","desc","url","chapters":[...]}], "items_title", "items_question"}
 
 페이지는 사이트형 앱이다: 메뉴 줄(대시보드·인터뷰·저장소·도움말) · 리본 · 왼쪽 「참고 서랍」 · 본문.
@@ -120,6 +124,8 @@ def load_store():
             continue
         if not isinstance(ans, dict) or not ans.get('dimensions') and not ans.get('items'):
             continue
+        if ans.get('stage') == 'references':  # 「레퍼런스만 먼저 보내기」 중간 답은 지난 답 내역에 넣지 않는다
+            continue
         slim = {k: ans.get(k) for k in ANSWER_KEYS if ans.get(k) is not None}
         if 'dimensions' in slim:
             slim['dimensions'] = UP.migrate_answers_dims(slim['dimensions'])
@@ -159,7 +165,7 @@ def parse(argv):
             a['no_pending'] = True; i += 1; continue
         if k == '--topic':
             a['topics'].append(argv[i + 1]); i += 2; continue
-        if k in ('--lecture', '--mode', '--out', '--like', '--answers', '--spec', '--title', '--intro', '--pc'):
+        if k in ('--lecture', '--mode', '--out', '--like', '--answers', '--spec', '--title', '--intro', '--pc', '--prefill'):
             a[k[2:]] = argv[i + 1]; i += 2; continue
         print(__doc__, file=sys.stderr); sys.exit(2)
     if not a.get('lecture') or not a.get('out'):
@@ -168,6 +174,56 @@ def parse(argv):
     if a['mode'] not in MODES:
         print('mode는', MODES, file=sys.stderr); sys.exit(2)
     return a
+
+
+def clean_prefill(pf, dims, qs):
+    """--prefill JSON 검사: 질문 은행에 있는 질문·선택지만 남긴다. (정리한 것, 알림 목록)"""
+    notes = []
+    if not isinstance(pf, dict):
+        return None, ['--prefill 은 JSON 객체여야 합니다']
+    dby = {d['id']: d for d in dims.get('dimensions', [])}
+    aby = {x['id']: x for x in qs.get('aspects', [])}
+
+    def ok_vals(item, v, key):
+        opts = {o['id'] for o in item.get(key, [])}
+        if item.get('type') in ('text', 'scale') or not opts:
+            return v
+        vs = v if isinstance(v, list) else [v]
+        bad = [x for x in vs if x not in opts]
+        if bad:
+            return None
+        if item.get('type') == 'multi' and not isinstance(v, list):
+            return [v]
+        return v
+    out = {k: pf[k] for k in ('id', 'source', 'doc') if pf.get(k)}
+    out['references'] = [r for r in (pf.get('references') or []) if isinstance(r, dict) and (r.get('where') or r.get('note'))]
+    out['dimensions'] = {}
+    for k, v in (pf.get('dimensions') or {}).items():
+        base = re.sub(r'_(other|primary)$', '', k)
+        d = dby.get(base)
+        if not d:
+            notes.append(f'prefill: 1부 질문 {k!r} 없음 — 뺌'); continue
+        if base != k:
+            out['dimensions'][k] = v; continue
+        vv = ok_vals(d, v, 'values')
+        if vv is None:
+            notes.append(f'prefill: {k} 값 {v!r} 이 선택지에 없음 — 뺌'); continue
+        out['dimensions'][k] = vv
+    out['aspects'] = {}
+    for aid, s in (pf.get('aspects') or {}).items():
+        a = aby.get(aid)
+        if not a:
+            notes.append(f'prefill: 취향 질문 {aid!r} 없음 — 뺌'); continue
+        if not isinstance(s, dict):
+            s = {'value': s}
+        if s.get('value') is not None:
+            vv = ok_vals(a, s['value'], 'options')
+            if vv is None:
+                notes.append(f'prefill: {aid} 값 {s["value"]!r} 이 선택지에 없음 — 값 없이 「레퍼런스대로」로 둠'); s = dict(s, value=None)
+            else:
+                s = dict(s, value=vv)
+        out['aspects'][aid] = {'value': s.get('value'), 'reason': str(s.get('reason') or '')}
+    return out, notes
 
 
 def write_page(a, template, spec):
@@ -238,7 +294,17 @@ def main(argv):
             prev = load_json(a['answers'])
             spec['defaults']['dimensions'].update(UP.migrate_answers_dims(prev.get('dimensions', {})))
             spec['defaults']['from'] = a['answers']
+        if a.get('prefill'):
+            pf, notes = clean_prefill(load_json(a['prefill']), dims, qs)
+            for n in notes:
+                print('알림: ' + n, file=sys.stderr)
+            if pf:
+                pf.setdefault('id', pathlib.Path(a['prefill']).stem)
+                spec['prefill'] = pf
+                print(f"레퍼런스로 채운 답: 1부 {len(pf['dimensions'])}개 · 취향 {len(pf['aspects'])}개 · 레퍼런스 {len(pf['references'])}개 (아직 답하지 않은 칸만 채움)", file=sys.stderr)
     else:
+        if a.get('prefill'):
+            print('--prefill 은 interview 모드에서만 씁니다', file=sys.stderr); return 2
         if not a.get('spec'):
             print('structure/review/approve 모드는 --spec <json> 이 필요합니다', file=sys.stderr); return 2
         extra = load_json(a['spec'])

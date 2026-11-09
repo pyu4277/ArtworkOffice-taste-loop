@@ -38,6 +38,18 @@ FIELDS = {
 LEGACY = ('ask_when', 'ask_strict', 'applies_when')
 T_NAME = {'screen': '목차', 'dim': '질문', 'value': '선택지', 'cat': '취향 묶음', 'sub': '하위 묶음', 'aspect': '취향 질문', 'option': '취향 선택지', 'pq': '3부 질문', 'pqopt': '3부 선택지'}
 F_NAME = {'title': '이름', 'name': '이름', 'label': '이름', 'text': '질문 글', 'desc': '설명', 'type': '유형', 'when': '보이는 조건', 'free': '직접 입력 칸', 'group': '묶음 제목', 'retired': '빼기'}
+# 손으로 쓰는 「추가」 기록의 모양 — 새 id 는 node.id, 부모는 node 의 부모 키와 parent(질문은 목차 id, 취향 질문은 하위 묶음 id)
+ADD_EXAMPLE = {
+    'screen': '{"op": "add", "node": {"t": "screen", "id": "S8"}, "data": {"title": "새 목차"}}',
+    'dim': '{"op": "add", "node": {"t": "dim", "id": "new_dim"}, "parent": "S4", "data": {"name": "새 질문", "type": "single"}}',
+    'value': '{"op": "add", "node": {"t": "value", "dim": "field", "id": "new_value"}, "parent": "field", "data": {"label": "새 선택지"}}',
+    'cat': '{"op": "add", "node": {"t": "cat", "id": "P6"}, "data": {"name": "새 취향 묶음"}}',
+    'sub': '{"op": "add", "node": {"t": "sub", "cat": "P2", "id": "P2.8"}, "data": {"name": "새 하위 묶음"}}',
+    'aspect': '{"op": "add", "node": {"t": "aspect", "id": "P2.4.new_q"}, "parent": "P2.4", "data": {"text": "새 취향 질문?", "type": "single"}}',
+    'option': '{"op": "add", "node": {"t": "option", "aspect": "P2.4.density", "id": "medium"}, "parent": "P2.4.density", "index": 2, "data": {"label": "새 선택지"}}',
+    'pq': '{"op": "add", "node": {"t": "pq", "id": "new_pq"}, "data": {"text": "새 3부 질문", "type": "text"}}',
+    'pqopt': '{"op": "add", "node": {"t": "pqopt", "pq": "delivery", "id": "new_opt"}, "data": {"label": "새 선택지"}}',
+}
 
 
 # ---------- 보이는 조건 ----------
@@ -310,9 +322,12 @@ def apply_op(m, op):
         return
     if kind == 'add':
         data = copy.deepcopy(op.get('data') or {})
-        data['id'] = node.get('id')
+        # 새 id 는 node.id 에 둔다(편집기가 그렇게 내보낸다). 손으로 쓴 기록이 data.id 에만 두었으면 그것을 쓴다.
+        if node.get('id') and data.get('id') and node['id'] != data['id']:
+            raise EditError(f"새 항목의 id 가 두 곳에서 다름(node.id {node['id']!r} ≠ data.id {data['id']!r}) — 한 값으로 맞추세요")
+        data['id'] = node.get('id') or data.get('id')
         if not data['id']:
-            raise EditError('새 항목에 id 가 없음')
+            raise EditError('새 항목에 id 가 없음 — 새 id 는 node 안에 넣는다: ' + ADD_EXAMPLE.get(t, ADD_EXAMPLE['option']))
         if t == 'sub':
             c = _find(m['qs'].get('categories', []), node.get('cat'))
             if c is None:

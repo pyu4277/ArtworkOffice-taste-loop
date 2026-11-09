@@ -125,6 +125,14 @@ a{color:var(--accent)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;margin:12px 0}
 .card.over{outline:3px solid var(--accent);outline-offset:1px}
 .card.base{border-style:dashed}
+.reflinks{display:grid;gap:6px;margin:0 0 6px}
+.reflink{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:6px 8px;border:1px solid var(--line);border-radius:10px}
+.reflink a{font-weight:600;color:var(--accent);text-decoration:none;overflow-wrap:anywhere}
+.reflink .small{flex:1 1 220px;min-width:0}
+.refitem{display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px;margin:8px 0}
+.refitem .chips{display:flex;flex-wrap:wrap;gap:6px}
+.refitem .chip{white-space:normal}
+.refnote{margin:8px 0 0;padding:8px 10px;border-left:4px solid var(--warn);border-radius:0 8px 8px 0;font-size:.92rem}
 .q{font-weight:600;margin:0 0 8px}
 .hint{color:var(--muted);font-size:.9rem;margin:-4px 0 8px}
 .card.sub{margin-left:18px;border-left:4px solid var(--accent)}
@@ -280,16 +288,20 @@ const DEMOS = (SPEC.demos && SPEC.demos.items) || {};
 const DEMO_BASE = (SPEC.demos && SPEC.demos.base_css) || '';
 const demoOf = (kind, qid, oid) => DEMOS[kind + '.' + qid + '|' + oid] || null;
 const KIND_NAME = {project: '프로젝트', past_all: '지난 답변', past: '지난 답', entry: '취향', decision: '결정', lesson: '교훈', mistake: '실수', design_ref: '레퍼런스', template: '템플릿', new_ref: '새 메모'};
-const CHOICE_NAME = {keep: '그대로', change: '이번엔 다르게', new: '처음 정함', skip: '나중에·해당 없음'};
+// skip 은 「제외」(사용자 요청 2026-11-08: 건너뛰기 단추 옛 이름을 「제외」로), ref 는 「레퍼런스대로」 — 인터뷰 맨 앞 「레퍼런스 먼저」에서 넣은 레퍼런스를 분석해 정한다
+const CHOICE_NAME = {keep: '그대로', change: '이번엔 다르게', new: '처음 정함', skip: '제외', ref: '레퍼런스대로'};
+const FOLLOW = [['all', '전체 양식'], ['text', '글 (톤·양식·밀도)'], ['design', '디자인 (색·글꼴·배치)'], ['structure', '구성·흐름'], ['motion', '움직임·영상']];
 const isNarrow = () => !!(window.matchMedia && window.matchMedia('(max-width: 639px)').matches);
 const lectureName = f => { const m = /^\d{4}(?:\d{2})?_[^_/]+_(.+)$/.exec(f || ''); return m ? m[1] : (f || ''); };
 
 // ---------- 상태 (답) ----------
-const blank = () => ({dimensions: {}, aspects: {}, project: {}, items: {}, overall: '', notes: '', refs: {}, base_project: null, new_refs: [], opinions: {}});
+const blank = () => ({dimensions: {}, aspects: {}, project: {}, items: {}, overall: '', notes: '', refs: {}, base_project: null, new_refs: [], opinions: {}, references: [], ref_none: false, dim_from: {}});
 let state = blank();
 try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.dimensions) state = Object.assign(blank(), saved); } catch (e) {}
 if (!state.refs || typeof state.refs !== 'object') state.refs = {};
 if (!Array.isArray(state.new_refs)) state.new_refs = [];
+if (!Array.isArray(state.references)) state.references = []; // 「레퍼런스 먼저」에서 넣은 레퍼런스: {id, where, note, follow:[…], from}
+if (!state.dim_from || typeof state.dim_from !== 'object') state.dim_from = {}; // 레퍼런스 분석으로 채운 1부 답 표시
 if (!state.opinions || typeof state.opinions !== 'object') state.opinions = {}; // 질문별 기타 의견: 'dim:<id>' · 'pq:<id>' (취향 질문은 aspects[id].note)
 if (SPEC.defaults && SPEC.defaults.dimensions) {
   for (const [k, v] of Object.entries(SPEC.defaults.dimensions)) if (state.dimensions[k] == null) state.dimensions[k] = clone(v);
@@ -380,10 +392,33 @@ function similarity(rec) {
 const dimAnswered = did => { const v = state.dimensions[did]; return !(v == null || v === '' || (Array.isArray(v) && !v.length)); };
 const aspectAnswered = aid => !!(state.aspects[aid] && state.aspects[aid].choice);
 
+// ---------- 레퍼런스 먼저 (인터뷰 맨 앞, 1.3.0) ----------
+// 사용자가 둘러보다 찾은 레퍼런스를 넣으면 ① 「레퍼런스만 먼저 보내기」 → Claude가 분석해 질문지를 채운 페이지를 다시 만든다(--prefill)
+// ② 질문마다 「레퍼런스대로」를 고르면 계획 단계에서 레퍼런스 기준표로 정한다.
+const PREFILL = (mode === 'interview' && SPEC.prefill) || null; // {id, source, doc, references, dimensions, aspects: {id: {value, reason}}}
+const prefillKey = PREFILL ? String(PREFILL.id || PREFILL.source || 'prefill') : '';
+const newRefItem = (where, from, note) => ({id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), where: where || '', note: note || '', follow: ['all'], from: from || ''});
+const refItems = () => state.references.filter(r => String(r.where || '').trim() || String(r.note || '').trim());
+const hasRefs = () => refItems().length > 0 || !!PREFILL;
+const prefillOf = aid => (PREFILL && PREFILL.aspects && PREFILL.aspects[aid]) || null;
+if (PREFILL && state.prefill_applied !== prefillKey) { // 이미 답한 칸은 건드리지 않는다
+  const emptyV = v => v == null || v === '' || (Array.isArray(v) && !v.length);
+  for (const [k, v] of Object.entries(PREFILL.dimensions || {})) if (dimById[k.replace(/_(other|primary)$/, '')] && emptyV(state.dimensions[k])) { state.dimensions[k] = clone(v); state.dim_from[k] = 'reference'; }
+  for (const [aid, s] of Object.entries(PREFILL.aspects || {})) {
+    if (!aspectById[aid] || !s || aspectAnswered(aid)) continue;
+    state.aspects[aid] = {choice: 'ref', value: s.value == null ? null : clone(s.value), reason: s.reason || '', from: 'reference', winner: ((matchAspect(aid) || {}).winner || {}).id || null};
+  }
+  if (Array.isArray(PREFILL.references) && !state.references.length) state.references = PREFILL.references.map(r => Object.assign(newRefItem(), clone(r)));
+  if (state.references.length) state.ref_none = false;
+  state.prefill_applied = prefillKey;
+  save();
+}
+
 // ---------- 화면 목록 (인터뷰 흐름) ----------
 const screens = [];
 screens.push({id: 'intro', kind: 'intro', title: SPEC.title || '제작 인터뷰'});
 if (mode === 'interview') {
+  screens.push({id: 'R0', kind: 'reffirst', title: '레퍼런스 먼저'}); // 1부 큰 구분보다 앞(사용자 요청 2026-11-08)
   for (const s of dimScreens) screens.push({id: s.id, kind: 'dims', title: s.title, dimensions: s.dimensions, src: s});
   for (const c of cats) screens.push({id: c.id, kind: 'taste', title: c.id + ' ' + c.name, cat: c});
   screens.push({id: 'project', kind: 'project', title: '이번 자료에 대해'});
@@ -391,6 +426,7 @@ if (mode === 'interview') {
   screens.push({id: 'items', kind: mode, title: SPEC.items_title || ({structure: '구성안 확인', review: '검토', approve: '업데이트 제안 승인'}[mode] || '항목')});
 }
 screens.push({id: 'summary', kind: 'summary', title: '정리·제출'});
+const firstDims = screens.find(s => s.kind === 'dims') || null; // 「기본 양식」 칸을 함께 보여 주는 첫 1부 화면
 let idx = 0;
 try { const i = parseInt(sessionStorage.getItem(KEY + ':idx') || '0', 10); if (i >= 0 && i < screens.length) idx = i; } catch (e) {}
 function stepScreen(dir) { // 조건에 안 맞는 목차(화면)는 건너뛴다
@@ -404,7 +440,8 @@ const screenOfDim = did => screens.findIndex(s => s.kind === 'dims' && s.dimensi
 function screenTargets(sc) {
   const t = [];
   if (!sc) return t;
-  if (sc.kind === 'intro' || (sc.kind === 'dims' && sc === screens[1])) t.push({id: 'base', label: '기본 양식으로 삼기 (차원 값·취향을 한 번에 맞춤)', kinds: ['project', 'past_all']});
+  if (sc.kind === 'intro' || (sc.kind === 'dims' && sc === firstDims)) t.push({id: 'base', label: '기본 양식으로 삼기 (차원 값·취향을 한 번에 맞춤)', kinds: ['project', 'past_all']});
+  if (sc.kind === 'reffirst') t.push({id: 'ref0', label: '찾은 레퍼런스로 넣기 (이 양식대로 만들어 보기)'});
   if (sc.kind === 'dims') for (const did of sc.dimensions) { const d = dimById[did]; if (dimShown(d)) t.push({id: 'dim:' + did, label: d.name}); }
   if (sc.kind === 'taste') for (const a of applicableAspects(sc.cat)) t.push({id: 'aspect:' + a.id, label: a.text});
   if (sc.kind === 'project') for (const q of projectQs.filter(whenOk)) t.push({id: 'pq:' + q.id, label: q.text});
@@ -413,6 +450,7 @@ function screenTargets(sc) {
 }
 function targetLabel(target) {
   if (target === 'base') return '기본 양식';
+  if (target === 'ref0') return '찾은 레퍼런스';
   const k = target.slice(0, target.indexOf(':')), id = target.slice(target.indexOf(':') + 1);
   if (k === 'dim') return (dimById[id] || {}).name || id;
   if (k === 'aspect') return (aspectById[id] || {}).text || id;
@@ -424,6 +462,7 @@ function targetLabel(target) {
 // ---------- 답 기록 ----------
 function pickDim(did, id) { // 차원 값 고르기 (본문 카드와 트리가 같이 쓴다)
   const d = dimById[did]; if (!d) return;
+  delete state.dim_from[did]; // 사용자가 직접 고르면 「레퍼런스에서」 표시를 뗀다
   if (d.type === 'multi') {
     const arr = [...asArr(state.dimensions[did])]; // 옛 기록의 한 값(문자열)도 목록으로
     const i = arr.indexOf(id);
@@ -489,6 +528,17 @@ function applyRef(target, ref) {
   if (target === 'base') {
     if (ref.kind === 'project' || ref.kind === 'past_all') return applyBase(ref.kind, ref.id);
     toast('기본 양식에는 지난 프로젝트나 지난 인터뷰 답변만 넣을 수 있습니다'); return false;
+  }
+  if (target === 'ref0') { // 서랍 카드 → 찾은 레퍼런스 (지난 프로젝트 결과물·템플릿·서비스·새 메모를 「이 양식대로」의 출발점으로)
+    const key = ref.kind + ':' + ref.id;
+    if (!state.references.some(r => r.from === key)) {
+      const p = ref.kind === 'project' ? projById[ref.id] : null;
+      const where = ref.url || ref.location || (p && (p.deliverables || []).find(u => /^https?:/.test(u))) || (p && (p.deliverables || [])[0]) || '';
+      state.references.push(newRefItem(where, key, `${KIND_NAME[ref.kind] || ref.kind}: ${short(ref.label, 120)}`));
+      state.ref_none = false;
+    }
+    save(); renderAll(); toast(`「찾은 레퍼런스」에 넣었습니다: ${short(ref.label, 36)}`);
+    return true;
   }
   const list = state.refs[target] || (state.refs[target] = []);
   if (!list.some(r => r.kind === ref.kind && r.id === ref.id)) {
@@ -815,7 +865,7 @@ function leafDefault(n) { // 기본 열림: 지금 화면의 묶음
 const isOpen = n => ui.open[n.id] != null ? !!ui.open[n.id] : leafDefault(n);
 function leafStatus(n) { // 줄 끝의 현재 답 표시
   if (n.kind === 'dim') { if (!dimAnswered(n.did)) return {t: '', on: false}; return {t: '✓ ' + short(dimText(n.did, state.dimensions[n.did]), 22), on: true}; }
-  if (n.kind === 'aspect') { const s = state.aspects[n.aid]; const m = matchAspect(n.aid); if (s && s.choice) return {t: (s.choice === 'skip' ? '나중에' : '✓ ' + short(optionLabel(aspectById[n.aid], s.value), 18)), on: s.choice !== 'skip'}; return {t: m ? (m.conflict ? '충돌' : m.inferred ? '추론' : '기본값 있음') : '처음', on: false}; }
+  if (n.kind === 'aspect') { const s = state.aspects[n.aid]; const m = matchAspect(n.aid); if (s && s.choice) return {t: (s.choice === 'skip' ? '제외' : s.choice === 'ref' && s.value == null ? '레퍼런스대로' : '✓ ' + short(optionLabel(aspectById[n.aid], s.value), 18)), on: s.choice !== 'skip'}; return {t: m ? (m.conflict ? '충돌' : m.inferred ? '추론' : '기본값 있음') : '처음', on: false}; }
   if (n.kind === 'pq') { const v = state.project[n.qid]; return {t: v && (Array.isArray(v) ? v.length : String(v).trim()) ? '✓' : '', on: true}; }
   if (n.kind === 'item') { const s = state.items[n.item.id]; return {t: s && s.choice ? '✓' : '', on: true}; }
   return {t: '', on: false};
@@ -863,7 +913,7 @@ function aspectDetail(aid) {
   let h = '';
   if (m) h += `<div class="cur">${m.conflict ? badge('충돌: 골라 주세요', 'bad') : ''}${m.inferred ? badge('추론 — 확인 필요', 'warn') : ''}${badge('세기 ' + m.winner.strength)}${badge(scopeText(m.winner.scope))}<div>${esc(optionLabel(a, m.winner.value))}</div><small>${esc(m.winner.statement)}</small></div>`;
   else h += `<p class="small">${badge('처음 정하는 항목', 'warn')} 학습된 값이 없습니다. 아래 예시에서 고르면 그 값이 됩니다.</p>`;
-  h += `<p class="small">이번 답: ${st.choice ? esc(CHOICE_NAME[st.choice] || st.choice) + (st.value != null && st.choice !== 'skip' ? ' → <b>' + esc(optionLabel(a, st.value)) + '</b>' : '') : '아직 없음'}${st.always ? ' · ' + badge('항상') : ''}</p>`;
+  h += `<p class="small">이번 답: ${st.choice ? esc(CHOICE_NAME[st.choice] || st.choice) + (st.value != null && st.choice !== 'skip' ? ' → <b>' + esc(optionLabel(a, st.value)) + '</b>' : '') : '아직 없음'}${st.always ? ' · ' + badge('항상') : ''}${st.choice === 'ref' && st.reason ? '<br>레퍼런스 분석: ' + esc(st.reason) : ''}</p>`;
   d.innerHTML = h;
   if ((a.type === 'single' || a.type === 'multi') && (a.options || []).length) {
     const row = document.createElement('div'); row.className = 'tiles';
@@ -880,8 +930,10 @@ function aspectDetail(aid) {
   mk('크게 보기', () => openGallery([aid]), 'gallery');
   mk('비교에 추가', () => openGallery([...ui.gallery.filter(x => x !== aid), aid]), 'compare');
   mk('화면으로', () => goToLeaf({kind: 'aspect', aid}), 'goto');
-  if (m && !m.conflict && !m.inferred) mk('이번에도 그대로', () => { state.aspects[aid] = Object.assign({}, st, {choice: 'keep', value: m.winner.value, winner: m.winner.id}); save(); renderAll(); }, 'keep');
-  mk('나중에·해당 없음', () => { state.aspects[aid] = Object.assign({}, st, {choice: 'skip', value: null}); save(); renderAll(); }, 'skip');
+  const noRef = o => { const x = Object.assign({}, st, o); if (x.from === 'reference') { delete x.from; delete x.reason; } return x; };
+  if (m && !m.conflict && !m.inferred) mk('이번에도 그대로', () => { state.aspects[aid] = noRef({choice: 'keep', value: m.winner.value, winner: m.winner.id}); save(); renderAll(); }, 'keep');
+  if (hasRefs()) mk('레퍼런스대로', () => { const pf = prefillOf(aid); state.aspects[aid] = Object.assign({}, st, {choice: 'ref', value: pf ? clone(pf.value) : null, reason: pf ? pf.reason || '' : '', from: 'reference'}); save(); renderAll(); }, 'ref');
+  mk('제외', () => { state.aspects[aid] = noRef({choice: 'skip', value: null}); save(); renderAll(); }, 'skip');
   const al = document.createElement('label'); al.className = 'small'; al.style.display = 'inline-flex'; al.style.alignItems = 'center'; al.style.gap = '4px';
   al.innerHTML = `<input type="checkbox" ${st.always ? 'checked' : ''}> 앞으로도 항상`; $('input', al).onchange = ev => { state.aspects[aid] = Object.assign({}, state.aspects[aid], {always: ev.target.checked}); save(); renderSide(); }; acts.appendChild(al);
   d.appendChild(acts);
@@ -1115,7 +1167,7 @@ function render() {
   $('#prev').disabled = idx === 0;
   $('#next').textContent = idx === screens.length - 1 ? '처음으로' : '다음';
   if (!scrShown(sc)) { root.innerHTML = `<div class="card"><p class="q">이 목차는 지금 고른 내용에는 해당하지 않습니다.</p><p class="hint">${esc(condText((sc.src || sc.cat || {}).when))}을(를) 고르면 나옵니다.</p></div>`; renderRibbon(); if ($('#tree')) renderTreeOnly(); placeScroll('flow:' + idx, y0); return; }
-  ({intro: renderIntro, dims: renderDims, taste: renderTaste, project: renderProject, structure: renderItems, review: renderItems, approve: renderItems, summary: renderSummary}[sc.kind])(root, sc);
+  ({intro: renderIntro, reffirst: renderRefFirst, dims: renderDims, taste: renderTaste, project: renderProject, structure: renderItems, review: renderItems, approve: renderItems, summary: renderSummary}[sc.kind])(root, sc);
   try { sessionStorage.setItem(KEY + ':idx', String(idx)); } catch (e) {}
   renderRibbon();
   if ($('#tree')) { renderTreeOnly(); followTree(); }
@@ -1161,6 +1213,7 @@ function renderIntro(root) {
   card.innerHTML = `<h2>${esc(SPEC.title || '제작 인터뷰')}</h2>
     <p>${esc(SPEC.intro || '큰 구분부터 고르면, 그에 맞는 학습된 취향만 확인합니다. 이미 아는 것은 「그대로」 한 번으로 넘어갑니다.')}</p>
     <p class="small">화면 ${n}개 · 답은 이 기기에 임시 저장되고, 마지막 화면에서 제출합니다. 왼쪽 사이드 트리에서 항목을 펼쳐 예시를 보고 고를 수도 있고, 참고 서랍의 카드를 질문 카드에 끌어다 놓을 수도 있습니다.</p>
+    ${mode === 'interview' ? '<p class="small">다음 화면은 <b>레퍼런스 먼저</b>입니다 — 큰 구분을 고르기 전에 레퍼런스 사이트를 둘러보고, 찾은 자료를 넣으면 그 양식대로 질문지를 채워 한번 만들어 봅니다(건너뛰어도 됩니다).</p>' : ''}
     <p class="small">저장소: 취향 ${entries.filter(isActive).length} · 프로젝트 ${projects.length} · 지난 답변 ${pastAnswers.length} · 교훈 ${lessons.length} · 실수 ${mistakes.length} · 레퍼런스 ${designRefs.length} · 템플릿 ${templates.length}</p>`;
   const row = document.createElement('div'); row.className = 'row';
   row.appendChild(btn('사이드 트리 열기', () => { setSide(true); renderSide(); }));
@@ -1248,15 +1301,89 @@ function freeInput(value, onChange, placeholder) { // 기타(직접 입력): 여
   const t = document.createElement('textarea'); t.className = 'free'; t.rows = 1; t.value = value || ''; t.placeholder = placeholder || '직접 입력';
   const fit = () => { t.style.height = 'auto'; if (t.scrollHeight) t.style.height = t.scrollHeight + 'px'; };
   t.oninput = () => { onChange(t.value); fit(); }; setTimeout(fit, 0); return t; }
+function renderRefFirst(root) {
+  // ① 둘러보기 — 레퍼런스를 모아 둔 사이트(저장소 knowledge/03 표, 서랍 「디자인 레퍼런스」와 같은 목록)
+  const c1 = document.createElement('div'); c1.className = 'card';
+  c1.innerHTML = '<p class="q">이번엔 색다른 레퍼런스가 없나 먼저 둘러보기 <span class="badge dim">선택</span></p><p class="hint">큰 구분(1부)을 고르기 전에 레퍼런스를 모아 둔 사이트를 둘러봅니다. 마음에 드는 자료를 찾으면 아래 「찾은 레퍼런스」에 주소나 파일 경로를 넣으세요. 넣은 레퍼런스의 양식대로 질문지를 채워 한번 만들어 봅니다.</p>';
+  if (!designRefs.length) c1.insertAdjacentHTML('beforeend', '<p class="small">저장소에 레퍼런스 사이트 목록(knowledge/03)이 없습니다. 아는 사이트나 파일을 아래에 바로 넣으세요.</p>');
+  for (const t of [...new Set(designRefs.map(r => r.type))]) {
+    c1.appendChild(grpTitle(t));
+    const list = document.createElement('div'); list.className = 'reflinks';
+    for (const r of designRefs.filter(x => x.type === t)) {
+      const row = document.createElement('div'); row.className = 'reflink';
+      row.innerHTML = `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.service)} ↗</a><span class="small">${esc(short(r.what || '', 80))}</span>`;
+      const b = chipBtn('여기서 찾은 것 넣기', () => { state.references.push(newRefItem(r.url, 'design_ref:' + r.service, `${r.service}에서 찾음 — 주소를 찾은 페이지로 바꾸세요`)); state.ref_none = false; save(); render(); });
+      b.dataset.act = 'addref'; row.appendChild(b); list.appendChild(row);
+    }
+    c1.appendChild(list);
+  }
+  root.appendChild(c1);
+  // ② 찾은 레퍼런스 — 주소·파일 경로 + 무엇을 따를지. 서랍 카드를 끌어다 놓아도 된다(target 'ref0')
+  const c2 = document.createElement('div'); c2.className = 'card'; c2.dataset.drop = 'ref0'; c2.id = 'refs0';
+  c2.innerHTML = `<p class="q">찾은 레퍼런스 <span class="badge">${refItems().length}</span></p><p class="hint">주소(URL)나 이 PC의 파일 경로(PDF·PPTX·HWP 등)를 넣고 무엇을 따를지 고르세요. 트리 「참고 서랍」의 지난 프로젝트·템플릿·새 메모 카드를 여기에 끌어다 놓아도 됩니다.</p>`;
+  state.references.forEach((r, i) => {
+    const box = document.createElement('div'); box.className = 'refitem'; box.dataset.ref = r.id;
+    const w = document.createElement('input'); w.type = 'text'; w.className = 'where'; w.placeholder = '주소(https://…) 또는 파일 경로(예: D:/자료/발표자료.pdf)'; w.value = r.where || '';
+    const canSend = () => { const sb = $('#refsend'); if (sb) sb.disabled = !refItems().length; }; // 다시 그리지 않고 단추만(입력 중 포커스 유지)
+    w.oninput = () => { r.where = w.value; state.ref_none = false; save(); canSend(); };
+    const n = document.createElement('textarea'); n.className = 'note'; n.rows = 2; n.placeholder = '무엇이 좋았나 · 무엇을 가져올까 (선택)'; n.value = r.note || '';
+    n.oninput = () => { r.note = n.value; save(); canSend(); };
+    const chips = document.createElement('div'); chips.className = 'chips';
+    const paintChips = () => { for (const c of chips.children) c.setAttribute('aria-pressed', (r.follow || []).includes(c.dataset.f) ? 'true' : 'false'); };
+    for (const [fid, flab] of FOLLOW) {
+      const c = chipBtn(flab, () => {
+        let f = (r.follow || []).filter(x => x !== 'all');
+        if (fid === 'all') f = ['all']; else if (f.includes(fid)) f = f.filter(x => x !== fid); else f.push(fid);
+        r.follow = f.length ? f : ['all']; save(); paintChips();
+      });
+      c.dataset.f = fid; chips.appendChild(c);
+    }
+    paintChips();
+    const row = document.createElement('div'); row.className = 'row';
+    const x = btn('✕ 빼기', () => { state.references.splice(i, 1); save(); render(); }); x.dataset.act = 'delref'; row.appendChild(x);
+    if (r.from) row.insertAdjacentHTML('beforeend', `<span class="small">${esc(r.from.startsWith('design_ref:') ? '사이트 목록에서' : '서랍에서')} 넣음</span>`);
+    box.appendChild(w); box.appendChild(n); box.insertAdjacentHTML('beforeend', '<span class="small">따를 것</span>'); box.appendChild(chips); box.appendChild(row);
+    c2.appendChild(box);
+  });
+  const addRow = document.createElement('div'); addRow.className = 'row';
+  const add = btn('+ 레퍼런스 추가', () => { state.references.push(newRefItem()); state.ref_none = false; save(); render(); const ins = $$('#refs0 input.where'); if (ins.length && ins[ins.length - 1].focus) ins[ins.length - 1].focus(); });
+  add.id = 'addref'; addRow.appendChild(add); c2.appendChild(addRow);
+  root.appendChild(c2);
+  // ③ 질문지 채우기
+  const c3 = document.createElement('div'); c3.className = 'card';
+  const nAsp = Object.values(state.aspects).filter(s => s && s.choice === 'ref').length;
+  let h = '<p class="q">질문지를 어떻게 채울까요?</p>';
+  if (PREFILL) {
+    const nd = Object.keys(PREFILL.dimensions || {}).length, na = Object.keys(PREFILL.aspects || {}).length;
+    h += `<div class="cur"><div>레퍼런스를 분석해 질문지를 채웠습니다 — 큰 구분 ${nd}개 · 취향 ${na}개</div><small>화면마다 「레퍼런스에서」 표시를 확인하고, 다르면 바꾸세요.${PREFILL.doc ? ' 분석 기준표: ' + esc(PREFILL.doc) : ''}</small></div>`;
+  }
+  h += '<p class="hint">「레퍼런스만 먼저 보내기」를 누르면 Claude가 레퍼런스를 끝까지 분석해 기준표(글·디자인·구성)를 만들고, 그 양식대로 질문지를 채운 페이지를 다시 드립니다. 직접 답하면서 질문마다 「레퍼런스대로」를 골라도 됩니다' + (nAsp ? ` (지금 ${nAsp}개)` : '') + '.</p>';
+  c3.innerHTML = h;
+  const row = document.createElement('div'); row.className = 'row';
+  const send = btn('레퍼런스만 먼저 보내기', () => { box3.hidden = false; refreshJson(); }, 'primary'); send.id = 'refsend'; send.disabled = !refItems().length;
+  row.appendChild(send);
+  row.appendChild(btn('이어서 직접 답하기', () => stepScreen(1)));
+  const none = btn('이번엔 레퍼런스 없이', () => { state.references = []; state.ref_none = true; for (const [aid, s] of Object.entries(state.aspects)) if (s && s.choice === 'ref' && s.value == null) delete state.aspects[aid]; save(); stepScreen(1); });
+  none.id = 'refnone'; none.setAttribute('aria-pressed', state.ref_none ? 'true' : 'false'); row.appendChild(none);
+  c3.appendChild(row);
+  const box3 = document.createElement('div'); box3.hidden = true; box3.id = 'refsendbox';
+  box3.innerHTML = '<div class="row"><button class="btn primary" id="rsubmit" type="button">저장·제출</button><button class="btn" id="rdl" type="button">JSON 내려받기</button><button class="btn" id="rcopy" type="button">복사</button></div><p class="small" id="rmsg" aria-live="polite"></p><pre class="json" id="rjson"></pre>';
+  const refreshJson = () => { $('#rjson', box3).textContent = JSON.stringify(payload('references'), null, 1); };
+  $('#rsubmit', box3).onclick = () => submit($('#rmsg', box3), 'references');
+  $('#rdl', box3).onclick = () => download($('#rmsg', box3), 'references');
+  $('#rcopy', box3).onclick = () => copyJson($('#rmsg', box3), 'references');
+  c3.appendChild(box3);
+  root.appendChild(c3);
+}
 function renderDims(root, sc) {
-  if (sc === screens[1] && mode === 'interview') root.appendChild(baseZone());
+  if (sc === firstDims && mode === 'interview') root.appendChild(baseZone());
   for (const did of sc.dimensions) {
     const d = dimById[did]; if (!d) continue;
     if (!dimShown(d)) continue;
     const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'dim:' + did;
     const def = SPEC.defaults && SPEC.defaults.dimensions && SPEC.defaults.dimensions[did] != null;
     const cond = d.when || d.ask_when; if (cond) card.classList.add('sub');
-    card.innerHTML = `<p class="q">${esc(d.name)}${d.type === 'multi' ? ' <span class="badge">여러 개</span>' : ''}${def ? ' <span class="badge">지난번과 같음</span>' : ''}</p>` + (cond ? `<p class="hint cond">↳ ${esc(condText(cond))}을(를) 골라서 나온 질문</p>` : '') + (d.desc ? `<p class="hint">${esc(d.desc)}</p>` : '');
+    card.innerHTML = `<p class="q">${esc(d.name)}${d.type === 'multi' ? ' <span class="badge">여러 개</span>' : ''}${def ? ' <span class="badge">지난번과 같음</span>' : ''}${state.dim_from[did] === 'reference' ? ' <span class="badge warn">레퍼런스에서</span>' : ''}</p>` + (cond ? `<p class="hint cond">↳ ${esc(condText(cond))}을(를) 골라서 나온 질문</p>` : '') + (d.desc ? `<p class="hint">${esc(d.desc)}</p>` : '');
     const cur = state.dimensions[did];
     if (d.type === 'text') card.appendChild(freeInput(cur, v => { state.dimensions[did] = v; save(); }, d.desc || '직접 입력'));
     else {
@@ -1285,6 +1412,10 @@ function renderTaste(root, sc) {
   const list = applicableAspects(sc.cat);
   const keepAll = btn('이 묶음 모두 그대로', () => { for (const a of list) { const m = matchAspect(a.id); if (m && !m.conflict && !m.inferred) state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {choice: 'keep', value: m.winner.value, winner: m.winner.id}); } save(); render(); });
   $('#midbtns').appendChild(keepAll);
+  if (hasRefs()) { // 아직 답하지 않은 질문만 「레퍼런스대로」(직접 고른 답은 그대로 둔다)
+    const refAll = btn('답 안 한 것 모두 레퍼런스대로', () => { for (const a of list) { if (aspectAnswered(a.id)) continue; const pf = prefillOf(a.id); state.aspects[a.id] = {choice: 'ref', value: pf ? clone(pf.value) : null, reason: pf ? pf.reason || '' : '', from: 'reference', winner: ((matchAspect(a.id) || {}).winner || {}).id || null}; } save(); render(); });
+    refAll.id = 'refall'; $('#midbtns').appendChild(refAll);
+  }
   if (!list.length) { root.innerHTML = '<div class="card"><p class="q">이 묶음에서 이번 자료에 해당하는 항목이 없습니다.</p></div>'; return; }
   for (const a of list) root.appendChild(tasteCard(a));
 }
@@ -1293,7 +1424,7 @@ function tasteCard(a) {
   const st = state.aspects[a.id] || {};
   const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'aspect:' + a.id;
   const pastN = pastAnswers.filter(p => p.aspects && p.aspects[a.id] && p.aspects[a.id].choice).length;
-  let head = `<p class="q">${esc(a.text)} <span class="small">${esc(a.sub)}</span>${pastN ? ` <span class="badge dim">지난 답 ${pastN}</span>` : ''}</p>`;
+  let head = `<p class="q">${esc(a.text)} <span class="small">${esc(a.sub)}</span>${pastN ? ` <span class="badge dim">지난 답 ${pastN}</span>` : ''}${st.from === 'reference' ? ' <span class="badge warn">레퍼런스에서</span>' : ''}</p>`;
   if (m) {
     const w = m.winner;
     const badges = (m.conflict ? '<span class="badge bad">충돌: 골라 주세요</span>' : '') + (m.inferred ? '<span class="badge warn">추론 — 확인 필요</span>' : '') + `<span class="badge">세기 ${esc(w.strength)}</span><span class="badge">${esc(scopeText(w.scope))}</span>`;
@@ -1305,13 +1436,24 @@ function tasteCard(a) {
   const optsBox = document.createElement('div'); optsBox.style.marginTop = '8px';
   const always = document.createElement('label'); always.className = 'row small'; always.innerHTML = '<input type="checkbox" id="al-' + esc(a.id) + '"> 앞으로도 항상 이렇게 (취향 갱신 제안)';
   const note = document.createElement('textarea'); note.placeholder = '기타 의견 (선택) — 이 질문에 더 하고 싶은 말. 새 레퍼런스는 트리 「새 메모」에'; note.className = 'opinion'; note.dataset.opinion = 'aspect:' + a.id; note.value = st.note || ''; note.oninput = () => { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {note: note.value}); save(); syncOpinion('aspect:' + a.id, note); };
-  function setChoice(choice, value) { state.aspects[a.id] = Object.assign({}, state.aspects[a.id], {choice, value, winner: m ? m.winner.id : null, always: !!(st.always)}); save(); paint(); if ($('#tree')) renderTreeOnly(); }
+  function setChoice(choice, value) {
+    const next = Object.assign({}, state.aspects[a.id], {choice, value, winner: m ? m.winner.id : null, always: !!(st.always)});
+    if (choice === 'ref') { const pf = prefillOf(a.id); if (value == null && pf) next.value = clone(pf.value); next.reason = next.reason || (pf && pf.reason) || ''; next.from = 'reference'; }
+    else if (next.from === 'reference') { delete next.from; delete next.reason; } // 직접 고르면 레퍼런스 표시를 뗀다
+    state.aspects[a.id] = next; save(); paint(); if ($('#tree')) renderTreeOnly();
+  }
   function paint() {
     const cur = state.aspects[a.id] || {};
     if (dgrid) dgrid.sync(cur.choice === 'skip' ? null : (cur.value != null ? cur.value : (cur.choice === 'keep' && m ? m.winner.value : null)));
     for (const b of row.querySelectorAll('.btn')) b.setAttribute('aria-pressed', b.dataset.c === cur.choice ? 'true' : 'false');
-    const showOpts = cur.choice === 'change' || cur.choice === 'new' || (m && m.conflict && cur.choice !== 'skip') || (m && m.inferred && cur.choice !== 'skip');
+    const showOpts = cur.choice === 'change' || cur.choice === 'new' || (m && m.conflict && !['skip', 'ref'].includes(cur.choice)) || (m && m.inferred && !['skip', 'ref'].includes(cur.choice));
     optsBox.innerHTML = '';
+    if (cur.choice === 'ref') { // 레퍼런스대로: 분석 값이 있으면 보여 주고, 없으면 계획 단계에서 기준표로 정한다
+      const nb = document.createElement('div'); nb.className = 'refnote';
+      nb.innerHTML = cur.value != null ? `레퍼런스 분석 → <b>${esc(optionLabel(a, cur.value))}</b>${cur.reason ? '<br><span class="small">' + esc(cur.reason) + '</span>' : ''}<br><span class="small">다르면 「이번엔 다르게」나 예시에서 고르세요.</span>`
+        : '레퍼런스를 분석해 정합니다 — 계획 단계에서 레퍼런스 기준표(글·디자인·구성)를 먼저 만들고 이 질문의 답을 그 표에서 정합니다.';
+      optsBox.appendChild(nb);
+    }
     if (showOpts) {
       if (a.type === 'single' || a.type === 'multi') {
         let opts = visOpts(a.options);
@@ -1336,8 +1478,9 @@ function tasteCard(a) {
   if (m && !m.conflict && !m.inferred) { row.appendChild(mk('이번에도 그대로', 'keep', () => setChoice('keep', m.winner.value))); row.appendChild(mk('이번엔 다르게', 'change', () => setChoice('change', st.value != null && st.choice === 'change' ? st.value : null))); }
   else if (m && m.inferred) { row.appendChild(mk('추론이 맞다 (확정)', 'keep', () => setChoice('keep', m.winner.value))); row.appendChild(mk('다르게 정한다', 'change', () => setChoice('change', null))); }
   else if (m && m.conflict) row.appendChild(mk('아래에서 고른다', 'change', () => setChoice('change', st.value)));
-  else row.appendChild(mk('지금 정한다', 'new', () => setChoice('new', st.value)));
-  row.appendChild(mk('나중에·해당 없음', 'skip', () => setChoice('skip', null)));
+  else row.appendChild(mk('지금 정한다', 'new', () => setChoice('new', st.choice === 'ref' ? null : st.value)));
+  if (hasRefs()) row.appendChild(mk('레퍼런스대로', 'ref', () => setChoice('ref', null)));
+  row.appendChild(mk('제외', 'skip', () => setChoice('skip', null)));
   const ex = document.createElement('button'); ex.type = 'button'; ex.className = 'btn'; ex.textContent = '예시 보기'; ex.dataset.c = 'gallery'; ex.onclick = () => openGallery([a.id]); row.appendChild(ex);
   // 예시로 비교: 선택지마다 움직이는 예시. 고르면 그 값이 답이 된다(학습된 값과 같으면 「그대로」)
   var dgrid = null;
@@ -1456,12 +1599,19 @@ function cleanAnswers() { // 지금 조건에 안 맞아 숨은 질문·선택�
     return {dimensions: cur, aspects: asp, project: pj, opinions: op};
   } finally { state.dimensions = saved; }
 }
-function payload() {
+function payload(stage) { // stage: 'references' = 「레퍼런스만 먼저 보내기」(분석해서 질문지를 채워 달라), 그 밖에는 'full'
   const c = cleanAnswers();
-  return {spec_id: SPEC.spec_id || null, mode, lecture: SPEC.lecture || null, submitted_at: new Date().toISOString(),
+  const p = {spec_id: SPEC.spec_id || null, mode, stage: stage === 'references' ? 'references' : 'full', lecture: SPEC.lecture || null, submitted_at: new Date().toISOString(),
     client: (window.claude && typeof window.claude.use === 'function') ? 'artifact' : 'file',
     dimensions: c.dimensions, aspects: c.aspects, project: c.project, opinions: c.opinions, items: state.items, overall: state.overall, notes: state.notes,
     base_project: state.base_project, refs: state.refs, new_refs: state.new_refs};
+  if (mode === 'interview') {
+    p.references = refItems().map(r => ({where: String(r.where || '').trim(), note: String(r.note || '').trim(), follow: (r.follow && r.follow.length) ? r.follow : ['all'], from: r.from || ''}));
+    p.ref_none = !!state.ref_none && !p.references.length;
+    const df = Object.keys(state.dim_from).filter(k => state.dim_from[k] === 'reference' && k in c.dimensions);
+    if (PREFILL) p.prefill = {id: prefillKey, source: PREFILL.source || '', dims_kept: df, aspects_kept: Object.keys(c.aspects).filter(k => c.aspects[k].from === 'reference')};
+  }
+  return p;
 }
 function renderSummary(root) {
   const p = payload();
@@ -1473,7 +1623,9 @@ function renderSummary(root) {
     for (const d of dims) { const v = p.dimensions[d.id]; if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue; html += `<b>${esc(d.name)}</b><span>${esc(dimText(d.id, v))}${p.dimensions[d.id + '_other'] ? ' (' + esc(p.dimensions[d.id + '_other']) + ')' : ''}${p.opinions['dim:' + d.id] ? ' · 의견: ' + esc(short(p.opinions['dim:' + d.id], 60)) : ''}</span>`; }
     html += '</div>';
     const keep = Object.values(state.aspects).filter(x => x.choice === 'keep').length, change = Object.values(state.aspects).filter(x => x.choice === 'change').length, nw = Object.values(state.aspects).filter(x => x.choice === 'new').length, always = Object.values(state.aspects).filter(x => x.always).length;
-    html += `<p class="small">취향: 그대로 ${keep} · 다르게 ${change} · 처음 정함 ${nw} · 항상 바꾸기 제안 ${always}</p>`;
+    const nref = Object.values(p.aspects).filter(x => x.choice === 'ref').length, nskip = Object.values(p.aspects).filter(x => x.choice === 'skip').length;
+    html += `<p class="small">취향: 그대로 ${keep} · 다르게 ${change} · 처음 정함 ${nw} · 레퍼런스대로 ${nref} · 제외 ${nskip} · 항상 바꾸기 제안 ${always}</p>`;
+    html += `<p class="small">레퍼런스: ${p.references.length ? esc(p.references.map(r => short(r.where || r.note, 50)).join(' / ')) : (p.ref_none ? '이번엔 없이' : '없음')}</p>`;
     const open = aspects.filter(a => cats.some(c => a.sub.startsWith(c.id + '.')) && aspShown(a)).filter(a => { const m = matchAspect(a.id); const s = state.aspects[a.id]; return (m && (m.conflict || m.inferred) && !s) || (!m && !s); });
     if (open.length) html += `<p class="small ng">아직 답하지 않은 항목 ${open.length}개: ${esc(open.map(a => a.text).join(' / '))}</p>`;
   } else html += `<p class="small">항목 ${Object.keys(state.items).filter(k => state.items[k] && state.items[k].choice).length}개 답함</p>`;
@@ -1486,8 +1638,8 @@ function renderSummary(root) {
   $('#dl', card).onclick = () => download($('#msg', card));
   $('#copy', card).onclick = () => copyJson($('#msg', card));
 }
-async function submit(msg) {
-  const p = payload();
+async function submit(msg, stage) {
+  const p = payload(stage);
   msg.textContent = '저장 중…';
   const use = window.claude && window.claude.use;
   if (use) {
@@ -1498,8 +1650,8 @@ async function submit(msg) {
     } catch (e) { msg.innerHTML = `<span class="ng">저장 실패</span>: ${esc(e && (e.code || e.message) || e)}. 「JSON 내려받기」나 「복사」로 전달하세요.`; }
   } else msg.textContent = '게시 페이지가 아니라 파일로 열었습니다. 「JSON 내려받기」로 저장해 materials/인터뷰/ 에 두거나 「복사」해 대화에 붙여 넣으세요.';
 }
-async function download(msg) {
-  const p = payload(); const name = (SPEC.answers_filename || 'interview_answers') + '.json'; const text = JSON.stringify(p, null, 1);
+async function download(msg, stage) {
+  const p = payload(stage); const name = (SPEC.answers_filename || 'interview_answers') + (p.stage === 'references' ? '_레퍼런스' : '') + '.json'; const text = JSON.stringify(p, null, 1);
   if (window.claude && window.claude.use) {
     try { const d = await window.claude.use('downloads'); if (d) { await d.save({filename: name, data: text}); msg.textContent = '내려받기 완료: ' + name; return; } }
     catch (e) { msg.textContent = '내려받기 거절 또는 실패: ' + (e && (e.code || e.message) || e); return; }
@@ -1508,8 +1660,8 @@ async function download(msg) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type: 'application/json'})); a.download = name; document.body.appendChild(a); a.click(); a.remove();
   msg.textContent = '내려받기: ' + name + ' (materials/인터뷰/ 에 두세요)';
 }
-async function copyJson(msg) {
-  const text = JSON.stringify(payload(), null, 1);
+async function copyJson(msg, stage) {
+  const text = JSON.stringify(payload(stage), null, 1);
   try { await navigator.clipboard.writeText(text); msg.textContent = '복사됨. 대화에 붙여 넣으세요.'; }
   catch (e) { const pre = $('#json'); const r = document.createRange(); r.selectNodeContents(pre); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); msg.textContent = '자동 복사가 막혀 있습니다. 아래 글을 길게 눌러 복사하세요.'; }
 }
@@ -1632,7 +1784,9 @@ function renderHelp(root) {
 <p><b>고른 것에 따라 바뀌는 질문</b>: 위에서 고른 답에 따라 다음 목차·질문·선택지가 나타나거나 숨습니다(예: 파일 형식에 HTML을 고르면 「HTML 화면 구성」 목차가 생기고, 방향을 고르면 그 방향에 맞는 크기만 보입니다). 「↳ … 골라서 나온 질문」 카드는 위 답에서 이어진 질문입니다. 숨은 질문의 답은 제출에서 빠지고, 다시 고르면 되살아납니다. 목차·질문·선택지 자체를 고치려면 구조 편집 페이지(<code>--mode edit</code>)를 씁니다.</p>
 <p><b>새 레퍼런스</b>: 참고 서랍 「새 메모」에 적으면 <code>new_refs</code>로 전해지고, 작업이 끝나면 다음 인터뷰부터 카드로 쌓입니다. 지난 프로젝트의 실제 결과물은 게시 URL 링크(새 탭)와 PC 경로로 보여 줍니다.</p>
 <p><b>기타 의견</b>: 질문마다 선택지 아래 「기타 의견」 칸에 자유롭게 적을 수 있습니다(사이드 트리의 같은 질문과 같은 칸). 참고를 끌어다 놓는 칸은 그 아래에 있습니다.</p>
-<p class="small">제출 JSON: dimensions · aspects(choice/value/always/note/from) · project · opinions(질문별 기타 의견) · base_project · refs · new_refs · items · overall.</p>`;
+<p><b>레퍼런스 먼저</b>: 인터뷰 첫 화면 다음에 레퍼런스 사이트 목록이 나옵니다. 둘러보다 찾은 자료의 주소·파일 경로를 「찾은 레퍼런스」에 넣고 따를 것(전체 양식·글·디자인·구성·움직임)을 고르세요. 「레퍼런스만 먼저 보내기」를 누르면 Claude가 레퍼런스를 분석해 그 양식대로 질문지를 채운 페이지를 다시 드리고(「레퍼런스에서」 표시), 직접 답하면서 질문마다 「레퍼런스대로」를 골라도 됩니다.</p>
+<p><b>제외</b>: 이번 자료에 해당하지 않거나 정하지 않을 질문은 「제외」를 누릅니다.</p>
+<p class="small">제출 JSON: stage(full · references) · dimensions · aspects(choice: keep/change/new/ref/skip · value/always/note/from/reason) · project · opinions(질문별 기타 의견) · references(찾은 레퍼런스: where/note/follow) · ref_none · base_project · refs · new_refs · items · overall.</p>`;
   root.appendChild(c);
 }
 

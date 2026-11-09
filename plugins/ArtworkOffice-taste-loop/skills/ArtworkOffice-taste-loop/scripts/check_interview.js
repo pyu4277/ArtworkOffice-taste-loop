@@ -259,7 +259,7 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
 {
   const {w, d, errors} = open(fileA, false);
   const PE = w.PE;
-  PE.go(1);
+  PE.go(PE.screens.findIndex(s => s.id === 'S1'));
   d.querySelector('#rbase').click();
   const pc = d.querySelector('#tree .rc[data-kind="project"][data-id="demo_expo"]');
   ok(!!pc, '「기본 양식 고르기」 → 트리의 지난 프로젝트 카드');
@@ -283,11 +283,97 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   d.querySelector('#nr-text').value = '예시 레퍼런스'; d.querySelector('#nr-add').click();
   d.querySelector('#tree .rc[data-kind="new_ref"] [data-act="insert"]').click();
   const sel = d.querySelector('#pksel'); sel.value = String(PE.screens.findIndex(s => s.id === 'P2')); sel.dispatchEvent(new w.Event('change', {bubbles: true}));
-  Array.from(d.querySelectorAll('#pklist .opt')).find(x => x.dataset.target === 'aspect:P2.7.reference_use').click();
-  ok(PE.state.new_refs.length === 1 && PE.state.refs['aspect:P2.7.reference_use'][0].kind === 'new_ref', '새 메모 → 넣기(다른 화면)');
+  Array.from(d.querySelectorAll('#pklist .opt')).find(x => x.dataset.target === 'aspect:P2.4.density').click();
+  ok(PE.state.new_refs.length === 1 && PE.state.refs['aspect:P2.4.density'][0].kind === 'new_ref', '새 메모 → 넣기(다른 화면)');
   PE.tree.open('refs.history');
   ok(d.querySelectorAll('#tree .rc[data-kind="past"]').length === 1, '지난 답 내역 카드');
   ok(errors.length === 0, '오류 없음' + (errors.length ? ': ' + errors.join(' | ') : ''));
+}
+// 4-1) 1.3.0: 「레퍼런스 먼저」(1부 앞) · 「레퍼런스대로」 · 「제외」 · P2.6 움직임은 HTML·MP4·기타일 때만 · P2.7 은 2부에서 빠짐 · --prefill
+{
+  ok(!/나중에·해당 없음/.test(src), '「나중에·해당 없음」 문구가 페이지에 없음(→ 「제외」)');
+  const {w, d, errors} = open(fileA, false);
+  const PE = w.PE;
+  ok(PE.screens[1].id === 'R0' && PE.screens[1].kind === 'reffirst' && PE.screens[2].id === 'S1', '화면 순서: 첫 화면 → 레퍼런스 먼저 → 1부 자료 종류');
+  PE.go(1);
+  const links = d.querySelectorAll('#screen .reflink a[target="_blank"]');
+  ok(links.length === PE.store.design_refs.length && links.length >= 20, `레퍼런스 사이트 목록 ${links.length}개(새 탭 링크)`);
+  ok(d.querySelector('#refsend').disabled, '레퍼런스가 없으면 「레퍼런스만 먼저 보내기」는 꺼짐');
+  d.querySelector('#addref').click();
+  const inp = d.querySelector('#refs0 input.where');
+  inp.value = 'https://example.org/deck'; inp.dispatchEvent(new w.Event('input', {bubbles: true}));
+  ok(PE.state.references.length === 1 && PE.state.references[0].where === 'https://example.org/deck' && !d.querySelector('#refsend').disabled, '+ 레퍼런스 추가 → 주소 입력 → 보내기 단추 켜짐(다시 그리지 않음)');
+  const chip = lab => Array.from(d.querySelectorAll('#refs0 .refitem .chip')).find(c => c.textContent.startsWith(lab));
+  chip('디자인').click(); chip('글').click();
+  ok(PE.state.references[0].follow.join() === 'design,text' && chip('전체').getAttribute('aria-pressed') === 'false', '따를 것: 디자인 + 글 (전체 양식은 꺼짐)');
+  chip('전체').click();
+  ok(PE.state.references[0].follow.join() === 'all', '「전체 양식」을 누르면 전체 하나만');
+  PE.applyRef('ref0', PE.refObject('project', 'demo_expo'));
+  const fromProj = PE.state.references.find(r => r.from === 'project:demo_expo');
+  ok(!!fromProj && fromProj.where === 'https://example.org/demo', '서랍의 지난 프로젝트 카드 → 찾은 레퍼런스(결과물 주소)');
+  const pr = PE.payload('references');
+  ok(pr.stage === 'references' && pr.references.length === 2 && pr.references[0].follow.join() === 'all' && PE.payload().stage === 'full', '제출 JSON: stage(references/full) · references');
+  // 2부: 레퍼런스가 있으면 「레퍼런스대로」, 건너뛰기는 「제외」
+  PE.setDim('file_format', ['pptx']); PE.setDim('material_type', ['slides']);
+  PE.go(PE.screens.findIndex(s => s.id === 'P1'));
+  const card1 = d.querySelector('#screen [data-drop="aspect:P1.1.energy"]');
+  const bt = (card, c) => card.querySelector(`.row .btn[data-c="${c}"]`);
+  ok(bt(card1, 'ref') && bt(card1, 'skip').textContent === '제외', '취향 카드: 「레퍼런스대로」 · 「제외」 단추');
+  bt(card1, 'ref').click();
+  ok(PE.state.aspects['P1.1.energy'].choice === 'ref' && PE.state.aspects['P1.1.energy'].value == null && !!card1.querySelector('.refnote'), '「레퍼런스대로」 → choice ref, 값은 계획 단계에서(안내 표시)');
+  PE.setAspect('P1.1.humor', 'keep', 'none');
+  d.querySelector('#refall').click();
+  ok(PE.state.aspects['P1.1.humor'].choice === 'keep' && PE.state.aspects['P1.1.formality'].choice === 'ref', '「답 안 한 것 모두 레퍼런스대로」: 이미 고른 답은 그대로');
+  bt(d.querySelector('#screen [data-drop="aspect:P1.1.energy"]'), 'skip').click();
+  ok(PE.state.aspects['P1.1.energy'].choice === 'skip' && !PE.state.aspects['P1.1.energy'].from, '「제외」로 바꾸면 레퍼런스 표시가 빠짐');
+  // P2.6 · P2.7
+  ok(!PE.applicable('P2').some(a => a.startsWith('P2.7.')), 'P2.7 레퍼런스 질문은 2부에 없음(맨 앞으로 옮김)');
+  ok(!PE.applicable('P2').includes('P2.6.motion_strength'), 'PPT(X)만이면 P2.6 움직임 질문 숨김');
+  PE.setDim('file_format', ['pptx', 'html']);
+  ok(PE.applicable('P2').includes('P2.6.motion_strength'), 'HTML도 고르면 P2.6 움직임 질문이 나타남');
+  PE.setDim('file_format', ['mp4']); PE.setDim('material_type', ['video_promo']);
+  ok(PE.applicable('P2').includes('P2.6.motion_still'), 'MP4 영상이면 P2.6 질문(정지 화면 검수 포함)');
+  // 「이번엔 레퍼런스 없이」
+  PE.go(1);
+  d.querySelector('#refnone').click();
+  ok(PE.state.references.length === 0 && PE.state.ref_none && PE.screens[PE.index()].id === 'S1' && !Object.values(PE.state.aspects).some(s => s.choice === 'ref' && s.value == null), '「이번엔 레퍼런스 없이」 → 비우고 다음 화면, 값 없는 「레퍼런스대로」 답도 뺌');
+  PE.go(PE.screens.findIndex(s => s.id === 'P1'));
+  ok(!d.querySelector('#screen .btn[data-c="ref"]') && !d.querySelector('#refall'), '레퍼런스가 없으면 「레퍼런스대로」 단추 없음');
+  ok(PE.payload().ref_none === true, '제출 JSON: ref_none');
+  ok(errors.length === 0, '오류 없음' + (errors.length ? ': ' + errors.join(' | ') : ''));
+}
+// 4-2) --prefill: 레퍼런스를 분석해 채운 답 → 빈 칸만 채우고 「레퍼런스에서」 표시
+{
+  const pfF = path.join(tmp, '00_레퍼런스_채움.json');
+  writeJson(pfF, {id: 'pf1', source: 'materials/인터뷰/01_제작인터뷰_답변_레퍼런스.json', doc: 'materials/인터뷰/00_레퍼런스_기준표.md',
+    references: [{where: 'https://example.org/ref', note: '표 꼴이 좋음', follow: ['text']}],
+    dimensions: {file_format: ['pptx'], material_type: ['slides'], no_such_dim: 'x'},
+    aspects: {'P1.2.form': {value: 'outline', reason: '레퍼런스는 개조식'}, 'P1.1.energy': {value: 'calm', reason: '차분한 톤'}, 'P9.9.none': {value: 'x'}, 'P2.4.density': {value: 'no_such', reason: '없는 값'}}});
+  const fileP = path.join(tmp, 'out', '01_제작인터뷰_채움.html');
+  const r = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), '--lecture', 'demo', '--mode', 'interview', '--out', fileP, '--prefill', pfF], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  ok(r.status === 0 && /no_such_dim/.test(r.stderr) && /P9\.9\.none/.test(r.stderr) && /no_such/.test(r.stderr) && /취향 3개/.test(r.stderr), 'build --prefill: 없는 질문·값은 빼고 알림 (' + (r.stderr.match(/레퍼런스로 채운 답[^\n]*/) || [''])[0] + ')');
+  const {w, d, errors} = open(fileP, false);
+  const PE = w.PE;
+  const s = PE.state;
+  ok(s.aspects['P1.2.form'].choice === 'ref' && s.aspects['P1.2.form'].value === 'outline' && s.aspects['P1.2.form'].from === 'reference' && s.aspects['P2.4.density'].value == null, 'prefill: 취향 답 = 레퍼런스대로 + 분석 값(없는 값은 값 없이)');
+  ok(s.dimensions.file_format.join() === 'pptx' && s.dim_from.file_format === 'reference' && s.references.length === 1 && s.references[0].follow.join() === 'text', 'prefill: 1부 값 · 레퍼런스 목록');
+  PE.go(1);
+  ok(/큰 구분 2개 · 취향 3개/.test(d.querySelector('#screen .cur').textContent), '레퍼런스 먼저 화면: 채운 답 요약');
+  PE.go(PE.screens.findIndex(s2 => s2.id === 'S1'));
+  ok(/레퍼런스에서/.test(d.querySelector('#screen [data-drop="dim:file_format"]').textContent), '1부 카드: 「레퍼런스에서」 표시');
+  d.querySelector('#screen [data-drop="dim:file_format"] .opt[data-id="html"]').click();
+  ok(!PE.state.dim_from.file_format, '직접 고르면 「레퍼런스에서」 표시가 빠짐');
+  PE.go(PE.screens.findIndex(s2 => s2.id === 'P1'));
+  const fc = d.querySelector('#screen [data-drop="aspect:P1.2.form"]');
+  ok(/레퍼런스에서/.test(fc.textContent) && /개조식/.test(fc.querySelector('.refnote').textContent), '취향 카드: 「레퍼런스에서」 + 분석 근거');
+  PE.setAspect('P1.1.energy', 'change', 'lively');
+  const p = PE.payload();
+  ok(p.prefill && p.prefill.id === 'pf1' && p.prefill.aspects_kept.includes('P1.2.form') && !p.prefill.aspects_kept.includes('P1.1.energy'), '제출 JSON: prefill(판 · 그대로 둔 답)');
+  ok(errors.length === 0, '오류 없음' + (errors.length ? ': ' + errors.join(' | ') : ''));
+  // 같은 기기에서 다시 열어도 사용자가 바꾼 답을 덮지 않는다(같은 판)
+  const html = fs.readFileSync(fileP, 'utf8');
+  const dom2 = new JSDOM(html, {runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://localhost/', beforeParse(win) { win.scrollTo = () => {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); win.localStorage.setItem(k, w.localStorage.getItem(k)); } }});
+  ok(dom2.window.PE.state.aspects['P1.1.energy'].value === 'lively', '다시 열어도 바꾼 답 유지(prefill 은 한 번만)');
 }
 // 5) 빈 저장소(starter) — 처음 설치한 사람
 {
@@ -310,6 +396,14 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   ok(calls.add.length === 1 && calls.add[0].client === 'artifact', 'db: answers.add (client=artifact)');
   d.querySelector('#dl').click(); await wait(50);
   ok(calls.save.length === 1 && /01_제작인터뷰_답변\.json$/.test(calls.save[0].filename), 'downloads.save');
+  w.PE.go(1); // 「레퍼런스만 먼저 보내기」 → db 저장 · 내려받기(이름 _레퍼런스)
+  d.querySelector('#addref').click();
+  const ri = d.querySelector('#refs0 input.where'); ri.value = 'D:/자료/참고_발표자료.pdf'; ri.dispatchEvent(new w.Event('input', {bubbles: true}));
+  d.querySelector('#refsend').click();
+  ok(!d.querySelector('#refsendbox').hidden && /"stage": "references"/.test(d.querySelector('#rjson').textContent), '레퍼런스만 먼저 보내기 → 제출 상자(JSON 미리 보기)');
+  d.querySelector('#rsubmit').click(); await wait(50);
+  d.querySelector('#rdl').click(); await wait(50);
+  ok(calls.add.length === 2 && calls.add[1].stage === 'references' && calls.add[1].references[0].where === 'D:/자료/참고_발표자료.pdf' && calls.save.length === 2 && /01_제작인터뷰_답변_레퍼런스\.json$/.test(calls.save[1].filename), 'db · downloads: stage references, 파일 이름 _레퍼런스');
   const specR = path.join(tmp, 'review.json');
   writeJson(specR, {items: [{id: 's1', title: '장면 1'}, {id: 's2', title: '장면 2'}]});
   const fileR = path.join(tmp, 'out', '03_검토.html');

@@ -12,7 +12,8 @@ const HERE = __dirname;
 const argv = process.argv.slice(2);
 const gi = argv.indexOf('--gallery');
 const gallery = gi >= 0 ? argv[gi + 1] : null;
-const dir = path.resolve(argv.find((a, i) => !a.startsWith('--') && i !== gi + 1) || path.join(HERE, '..', 'starter', 'knowledge', 'demos'));
+// 폴더 인자: --gallery 의 값이 아닌 첫 인자. (1.2.0 에서는 --gallery 가 없을 때 gi + 1 = 0 이라 첫 인자를 늘 버려 엔진 기본 폴더만 검사했다 — 1.3.0 에서 고침)
+const dir = path.resolve(argv.find((a, i) => !a.startsWith('--') && (gi < 0 || i !== gi + 1)) || path.join(HERE, '..', 'starter', 'knowledge', 'demos'));
 const BASE = fs.readFileSync(path.join(HERE, '..', 'demo_base.css'), 'utf8');
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? 'OK   ' : 'FAIL ') + m); };
@@ -21,6 +22,17 @@ if (!fs.existsSync(idxPath)) { console.log('index.json 없음: ' + idxPath); pro
 const idx = JSON.parse(fs.readFileSync(idxPath, 'utf8'));
 const items = idx.items || {};
 let jsdom = null; try { jsdom = require('jsdom'); } catch (e) {}
+// Windows 에서 core.autocrlf=true 로 받은 작업 사본은 파일이 CRLF 다. git 에 LF 로 들어 있으면(i/lf) 받을 때 바뀐 것이라 오류가 아니다(1.3.0).
+// git 에 없는 새 파일(demos.py add 직후)이나 git 에도 CRLF 로 들어간 파일은 그대로 오류로 본다
+const indexEol = (() => {
+  try {
+    const r = require('child_process').spawnSync('git', ['-C', dir, 'ls-files', '--eol', '-z', '.'], {encoding: 'utf8'});
+    if (r.status !== 0) return {};
+    const m = {};
+    for (const rec of r.stdout.split('\0')) { const t = rec.indexOf('\t'); if (t > 0) m[rec.slice(t + 1)] = rec.slice(0, t).trim().split(/\s+/)[0]; }
+    return m;
+  } catch (e) { return {}; }
+})();
 const wrap = frag => '<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>' + BASE + '</style></head><body>' + frag + '</body></html>';
 const checkFile = (key, rel) => {
   const fp = path.join(dir, rel);
@@ -30,7 +42,7 @@ const checkFile = (key, rel) => {
   if (Buffer.byteLength(s) > 16 * 1024) errs.push(`크기 ${Buffer.byteLength(s)}B > 16KB`);
   if (/(src|href)\s*=\s*["']?\s*(https?:)?\/\//i.test(s) || /url\(\s*["']?(https?:)?\/\//i.test(s) || /@import/i.test(s)) errs.push('바깥 주소 참조');
   if (/<\/?(html|head|body)[\s>]/i.test(s)) errs.push('<html>/<head>/<body> 태그(조각만 쓴다)');
-  if (/\r/.test(s)) errs.push('CRLF 줄바꿈(LF 로)');
+  if (/\r/.test(s) && indexEol[rel.replace(/\\/g, '/')] !== 'i/lf') errs.push('CRLF 줄바꿈(LF 로)');
   for (const m of s.matchAll(/<script>([\s\S]*?)<\/script>/g)) { try { new Function(m[1]); } catch (e) { errs.push('스크립트 문법: ' + e.message); } }
   ok(!errs.length, `${key} (${rel})` + (errs.length ? ': ' + errs.join(' · ') : ''));
   return s;

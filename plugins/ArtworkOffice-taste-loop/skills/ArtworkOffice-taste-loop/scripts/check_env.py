@@ -37,10 +37,22 @@ TOOLS = [
 ]
 
 
+def decode(b):
+    """하위 프로세스 출력(바이트) → 글. UTF-8 을 먼저, 안 되면 이 PC 의 기본 인코딩(Windows 는 CP949).
+    text=True 로 받으면 Windows 에서 읽기 스레드가 UnicodeDecodeError 를 내고 stdout 이 None 이 된다."""
+    if not b:
+        return ''
+    try:
+        return b.decode('utf-8')
+    except UnicodeDecodeError:
+        import locale
+        return b.decode(locale.getpreferredencoding(False) or 'utf-8', 'replace')
+
+
 def version_of(cmd):
     try:
-        out = subprocess.run([cmd, '--version'], capture_output=True, text=True, timeout=8)
-        line = (out.stdout or out.stderr).strip().splitlines()
+        out = subprocess.run([cmd, '--version'], capture_output=True, timeout=8)
+        line = (decode(out.stdout) or decode(out.stderr)).strip().splitlines()
         return line[0][:40] if line else ''
     except Exception:  # noqa: BLE001
         return ''

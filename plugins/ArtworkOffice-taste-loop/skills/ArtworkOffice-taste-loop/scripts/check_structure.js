@@ -182,6 +182,22 @@ print(json.dumps({'dims':d,'qs':q,'problems':p,'vis':vis,'qs2':q2,'p2':len(p2)},
   ansSets.forEach((a, k) => { E.view('preview'); for (const key2 of Object.keys(E.previewAnswers())) E.preview(key2, null); for (const [kk, vv] of Object.entries(a)) E.preview(kk, vv);
     const js = E.model().dims.dimensions.map(x => E.shown.dim(x.id)); if (JSON.stringify(js) !== JSON.stringify(PYR.vis[k])) { same = false; console.log('  다름', k, JSON.stringify(js), JSON.stringify(PYR.vis[k])); } });
   ok(same, '조건 판정(질문 보임/숨음) 파이썬 = JS — 답 3가지');
+  // 3-1) 손으로 쓴 「추가」 기록(1.3.0): 새 id 를 data.id 에만 두어도 받고, node.id 와 다르면 · 둘 다 없으면 거절하며 고칠 곳을 알린다
+  const hand = {
+    data_only: [{op: 'add', node: {t: 'value', dim: 'd_test'}, parent: 'd_test', data: {id: 'via_data', label: 'data에만 id'}}],
+    mismatch: [{op: 'add', node: {t: 'value', dim: 'd_test', id: 'a1'}, parent: 'd_test', data: {id: 'b1', label: '다름'}}],
+    no_id: [{op: 'add', node: {t: 'value', dim: 'd_test'}, parent: 'd_test', data: {label: 'id 없음'}}],
+  };
+  const handF = path.join(tmp, 'hand.json'); fs.writeFileSync(handF, JSON.stringify(hand));
+  const pyHand = `import json,sys\nsys.path.insert(0, ${JSON.stringify(HERE)})\nimport structure as SX\nb=json.load(open(${JSON.stringify(baseF)},encoding='utf-8'))\nops=json.load(open(${JSON.stringify(opsF)},encoding='utf-8'))\nh=json.load(open(${JSON.stringify(handF)},encoding='utf-8'))\nout={}\nfor k,v in h.items():\n    d,q,p=SX.replay(b['dims'],b['qs'],ops+v)\n    out[k]={'dims':d,'problems':p}\nprint(json.dumps(out,ensure_ascii=False))`;
+  const rh = py(['-c', pyHand]);
+  if (rh.status !== 0) console.log(rh.stderr);
+  const PH = JSON.parse(rh.stdout);
+  const JH = Object.fromEntries(Object.entries(hand).map(([k, v]) => [k, E.replay(E.ops.concat(v))]));
+  const vt = r0 => ((r0.dims || r0.m.dims).dimensions.find(x => x.id === 'd_test') || {values: []}).values.map(v => v.id).join(',');
+  ok(PH.data_only.problems.length === 0 && JH.data_only.problems.length === 0 && /via_data/.test(vt(PH.data_only)) && vt(PH.data_only) === vt(JH.data_only), '손으로 쓴 추가: data.id 만 있어도 두 쪽 모두 받음 (' + vt(PH.data_only) + ')');
+  ok(PH.mismatch.problems.length === 1 && JH.mismatch.problems.length === 1 && /두 곳에서 다름/.test(PH.mismatch.problems[0]) && /두 곳에서 다름/.test(JH.mismatch.problems[0].msg), 'node.id ≠ data.id → 두 쪽 모두 거절');
+  ok(PH.no_id.problems.length === 1 && JH.no_id.problems.length === 1 && /node 안에/.test(PH.no_id.problems[0]) && /node 안에/.test(JH.no_id.problems[0].msg) && /"t": "value"/.test(PH.no_id.problems[0]), 'id 가 없으면 → 두 쪽 모두 거절, 새 id 자리를 예시로 알림');
 
   // 4) 기록 모음: add → 대기 편집이 인터뷰·편집기에 메모리로 보임 → preview → apply --yes
   const expF = path.join(tmp, 'out', '05_구조편집.json');

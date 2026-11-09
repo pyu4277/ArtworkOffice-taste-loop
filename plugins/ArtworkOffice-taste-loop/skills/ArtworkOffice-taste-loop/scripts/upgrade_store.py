@@ -23,7 +23,14 @@
       - P2.4.layout 질문 글 「화면 배치는?」 → 「장면 안 배치는?」(HTML 화면 틀 질문과 구분)
       - P4.1.method_slides·method_doc: 고른 파일 형식에 맞는 방법만 보인다
     knowledge/projects/*.json: 옛 format 값에서 file_format · orientation · format 을 채운다
+  questions.json 2 → 3 (2026-11-09, 엔진 1.3.0, 사용자 요청)
+    - P2.6 움직임 질문(세기 · 장식용 · 정지 화면): 파일 형식에 HTML · MP4 · 기타가 있을 때만 묻는다(PPT(X) · 문서만이면 숨김).
+      옛 applies_when(콘텐츠 형태)은 when 으로 옮기고 파일 형식 조건을 더한다. MP4 · 기타에서도 묻는 것은 사용자 확인(2026-11-09: 영상에도 움직임이 있다 · 기타는 모름 → 물음)
+    - P2.7 디자인 레퍼런스 질문 2개: 2부에서 뺀다(retired). 레퍼런스는 인터뷰 맨 앞 「레퍼런스 먼저」 화면에서 둘러보고 넣는다
+      (GUI-Interview.html 1.3.0). 취향 항목은 그대로 남아 계획에 적용된다
   id 는 그대로 두므로(콘텐츠 형태 material_type 등) 취향 항목의 범위(scope)·질문 조건은 그대로 맞는다.
+  dimensions.json 과 questions.json 은 버전을 따로 센다(LATEST_DIMS · LATEST_QS).
+  파일을 바꾸면 knowledge/02_변경이력.md 에 한 줄 남긴다.
 build_interview.py · check_store.py · structure_edits.py 는 옛 구조를 읽을 때 메모리에서 올려 쓴다(파일은 안 바꿈).
 """
 import copy
@@ -35,7 +42,16 @@ sys.dont_write_bytecode = True  # 설치 폴더(플러그인 캐시)에 __pycach
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-LATEST = 2
+LATEST_DIMS = 2
+LATEST_QS = 3
+LATEST = LATEST_DIMS  # 옛 이름(dimensions.json 기준) — 밖에서 쓰던 코드를 위해 남긴다
+MOTION_FF = ['html', 'mp4', 'other']  # 움직임이 있는 파일 형식(HTML · 영상) + 기타(모름 → 물음). MP4 · 기타는 사용자 확인 2026-11-09
+NOTES = {  # 올린 버전마다 변경이력 한 줄에 적을 말
+    ('dimensions.json', 2): '구조 v2: 1부 「자료 종류」(파일 형식 · PDF 변환본 · 콘텐츠 형태 · 활용 목적) · 「화면·지면 규격」 · 「HTML 화면 구성」',
+    ('questions.json', 2): '질문 은행 v2: P2.4 바탕색은 HTML이면 묻고, P4.1 제작 방법 선택지에 파일 형식 조건',
+    ('questions.json', 3): '질문 은행 v3(엔진 1.3.0): P2.6 움직임 질문은 파일 형식에 HTML · MP4 · 기타가 있을 때만(MP4 · 기타는 사용자 확인) · '
+                           'P2.7 레퍼런스 질문 2개는 2부에서 뺌 — 인터뷰 맨 앞 「레퍼런스 먼저」 화면으로 옮김(취향 항목은 그대로)',
+}
 INF = '추론'
 TODAY_SRC = '사용자 2026-11-07'
 ALL_VISUAL = ['html', 'pptx', 'docx', 'hwpx', 'xlsx', 'mp4', 'other']
@@ -169,7 +185,7 @@ def _by(lst):
 def migrate_dims(dims):
     """dimensions.json 내용을 최신 구조로. 바뀌었으면 (새 내용, True)."""
     d = copy.deepcopy(dims)
-    if int(d.get('version', 1)) >= LATEST:
+    if int(d.get('version', 1)) >= LATEST_DIMS:
         return d, False
     D = d.setdefault('dimensions', [])
     by = _by(D)
@@ -243,15 +259,46 @@ def migrate_dims(dims):
         scr.insert(pos, {'id': 'SF', 'title': '화면·지면 규격', 'dimensions': ['orientation', 'format']})
     if 'SH' not in ids:
         scr.insert(pos + 1, {'id': 'SH', 'title': 'HTML 화면 구성', 'when': {'file_format': ['html']}, 'dimensions': [x['id'] for x in SH_DIMS]})
-    d['version'] = LATEST
+    d['version'] = LATEST_DIMS
     return d, True
 
 
 def migrate_qs(qs):
-    """questions.json 내용을 최신 구조로. 바뀌었으면 (새 내용, True)."""
+    """questions.json 내용을 최신 구조로(한 단계씩). 바뀌었으면 (새 내용, True)."""
     q = copy.deepcopy(qs)
-    if int(q.get('version', 1)) >= LATEST:
+    v = int(q.get('version', 1))
+    if v >= LATEST_QS:
         return q, False
+    if v < 2:
+        _qs_1_to_2(q)
+    if v < 3:
+        _qs_2_to_3(q)
+    q['version'] = LATEST_QS
+    return q, True
+
+
+def _with_ff(cond):
+    """보이는 조건에 「파일 형식 ∈ MOTION_FF」를 더한다(이미 파일 형식 조건이 있으면 그대로)."""
+    if isinstance(cond, list):
+        return [_with_ff(c) for c in cond] if cond else [{'file_format': list(MOTION_FF)}]
+    c = dict(cond or {})
+    c.setdefault('file_format', list(MOTION_FF))
+    return c
+
+
+def _qs_2_to_3(q):
+    for a in q.get('aspects', []):
+        sub = a.get('sub') or ''
+        if sub == 'P2.6':
+            base = a.get('when') if a.get('when') else a.get('applies_when')
+            a['when'] = _with_ff(base)
+            for k in ('applies_when', 'ask_when', 'ask_strict'):
+                a.pop(k, None)
+        elif sub == 'P2.7' and 'retired' not in a:
+            a['retired'] = True
+
+
+def _qs_1_to_2(q):
     A = _by(q.get('aspects', []))
     a = A.get('P2.4.theme')
     if a and isinstance(a.get('applies_when'), dict) and 'file_format' not in a['applies_when']:
@@ -268,8 +315,7 @@ def migrate_qs(qs):
         for o in a.get('options', []):
             if o['id'] in m and not o.get('when'):
                 o['when'] = {'file_format': m[o['id']]}
-    q['version'] = LATEST
-    return q, True
+    q['version'] = 2
 
 
 def _old_format(dv):
@@ -310,13 +356,15 @@ def migrate_answers_dims(dv):
 
 def upgrade(store, check_only=False):
     store = pathlib.Path(store)
-    changed = []
+    changed, notes = [], []
     for name, fn in (('dimensions.json', migrate_dims), ('questions.json', migrate_qs)):
         p = store / name
         if p.exists():
-            new, ch = fn(json.loads(p.read_text(encoding='utf-8')))
+            old = json.loads(p.read_text(encoding='utf-8'))
+            new, ch = fn(old)
             if ch:
                 changed.append(name)
+                notes += [NOTES[(name, v)] for v in range(int(old.get('version', 1)) + 1, int(new.get('version', 1)) + 1) if (name, v) in NOTES]
                 if not check_only:  # 줄바꿈 LF 고정: Windows 의 write_text 는 CRLF 로 쓴다(실수 기록 E22)
                     p.write_bytes((json.dumps(new, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
     pj = store / 'knowledge' / 'projects'
@@ -326,6 +374,13 @@ def upgrade(store, check_only=False):
             changed.append(f'knowledge/projects/{f.name}')
             if not check_only:  # 줄바꿈 LF 고정(E22)
                 f.write_bytes((json.dumps(new, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
+    hist = store / 'knowledge' / '02_변경이력.md'
+    if changed and not check_only and hist.exists():
+        import datetime
+        row = (f"| {datetime.date.today().isoformat()} | (엔진 업데이트) | {', '.join(changed)} | 구조 올림(upgrade_store.py, 기록은 지우지 않음) | "
+               f"{' / '.join(notes) if notes else '엔진의 새 구조'} | 엔진 |".replace('\n', ' '))
+        text = hist.read_bytes().decode('utf-8').replace('\r\n', '\n')
+        hist.write_bytes((text.rstrip('\n') + '\n' + row + '\n').encode('utf-8'))
     return changed
 
 

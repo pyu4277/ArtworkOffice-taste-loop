@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "updated": "2026-11-07",
   "note": "B층 질문 은행 — 취향 하위 항목(aspect)마다 질문·선택지·적용 조건. preferences.json의 entry.aspect / entry.value는 여기 id와 맞아야 한다(check_store.py가 대조). applies_when은 dimensions.json의 차원 id와 값 id로 쓴다. 선택지는 「등등」 규칙으로 채웠고 '기타'는 자유 입력이다. (starter 기본값 — 설치하면 init_store.py가 데이터 폴더로 복사하고, 그 뒤에는 데이터 폴더 쪽을 고친다.)",
   "categories": [
@@ -780,16 +780,6 @@
       "sub": "P2.6",
       "text": "움직임의 세기는?",
       "type": "single",
-      "applies_when": {
-        "material_type": [
-          "slides",
-          "video_explainer",
-          "video_promo",
-          "video_tutorial",
-          "video_lecture",
-          "interactive"
-        ]
-      },
       "options": [
         {
           "id": "bold",
@@ -803,14 +793,8 @@
           "id": "subtle",
           "label": "절제"
         }
-      ]
-    },
-    {
-      "id": "P2.6.motion_purpose",
-      "sub": "P2.6",
-      "text": "장식용 움직임은?",
-      "type": "single",
-      "applies_when": {
+      ],
+      "when": {
         "material_type": [
           "slides",
           "video_explainer",
@@ -818,8 +802,19 @@
           "video_tutorial",
           "video_lecture",
           "interactive"
+        ],
+        "file_format": [
+          "html",
+          "mp4",
+          "other"
         ]
-      },
+      }
+    },
+    {
+      "id": "P2.6.motion_purpose",
+      "sub": "P2.6",
+      "text": "장식용 움직임은?",
+      "type": "single",
       "options": [
         {
           "id": "forbid",
@@ -829,21 +824,28 @@
           "id": "allow_some",
           "label": "조금 허용"
         }
-      ]
+      ],
+      "when": {
+        "material_type": [
+          "slides",
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture",
+          "interactive"
+        ],
+        "file_format": [
+          "html",
+          "mp4",
+          "other"
+        ]
+      }
     },
     {
       "id": "P2.6.motion_still",
       "sub": "P2.6",
       "text": "정지 화면에서도 효과가 보이게 하나요?",
       "type": "single",
-      "applies_when": {
-        "material_type": [
-          "video_explainer",
-          "video_promo",
-          "video_tutorial",
-          "video_lecture"
-        ]
-      },
       "options": [
         {
           "id": "yes",
@@ -853,7 +855,20 @@
           "id": "no",
           "label": "아니오"
         }
-      ]
+      ],
+      "when": {
+        "material_type": [
+          "video_explainer",
+          "video_promo",
+          "video_tutorial",
+          "video_lecture"
+        ],
+        "file_format": [
+          "html",
+          "mp4",
+          "other"
+        ]
+      }
     },
     {
       "id": "P2.7.reference_use",
@@ -873,13 +888,15 @@
           "id": "none",
           "label": "쓰지 않음"
         }
-      ]
+      ],
+      "retired": true
     },
     {
       "id": "P2.7.reference_board",
       "sub": "P2.7",
       "text": "좋아한·싫어한 레퍼런스 메모",
-      "type": "text"
+      "type": "text",
+      "retired": true
     },
     {
       "id": "P3.1.video_gen",
