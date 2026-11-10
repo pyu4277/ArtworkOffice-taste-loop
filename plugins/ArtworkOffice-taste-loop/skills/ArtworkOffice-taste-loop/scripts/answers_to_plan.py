@@ -28,7 +28,14 @@ REPO = ST.project_root()
 
 BEGIN, END = '<!-- taste-loop:begin -->', '<!-- taste-loop:end -->'
 OLD_MARKS = ('<!-- preference-evolution:begin -->', '<!-- preference-evolution:end -->')
-EXT = {'html169': 'html', 'mp4_916': 'mp4', 'mp4_169': 'mp4', 'pdf': 'pdf', 'hwpx': 'hwpx', 'docx': 'docx', 'pptx': 'pptx', 'print_a4': 'pdf', 'audio_file': 'mp3'}
+
+
+def mark_lines(text, mark):
+    """표시가 한 줄 전체(앞뒤 공백만 허용)로 있는 자리들. 글 속에 섞인 같은 글자는 표시가 아니다."""
+    return list(re.finditer(r'(?m)^[ \t]*' + re.escape(mark) + r'[ \t]*$', text))
+
+
+EXT ={'html169': 'html', 'mp4_916': 'mp4', 'mp4_169': 'mp4', 'pdf': 'pdf', 'hwpx': 'hwpx', 'docx': 'docx', 'pptx': 'pptx', 'print_a4': 'pdf', 'audio_file': 'mp3'}
 CHOICE = {'keep': '그대로', 'change': '이번엔 다르게', 'new': '처음 정함', 'skip': '제외', 'ref': '레퍼런스대로'}
 FOLLOW = {'all': '전체 양식', 'text': '글(톤 · 양식 · 밀도)', 'design': '디자인(색 · 글꼴 · 배치)', 'structure': '구성 · 흐름', 'motion': '움직임 · 영상'}
 # 질문 메모 · 기타 의견에 적은 참고 자료(파일 경로 · 주소). 예: 「"E:\…\자료집.pdf" 해당 자료 참고」 (한 프로젝트 인터뷰에서 메모 10곳)
@@ -352,7 +359,8 @@ def main(argv):
         L.append(f'- {q["text"]}: {v}' + (f' (기타 의견: {opinions["pq:" + qid]})' if opinions.get('pq:' + qid) else ''))
     rp = pr.get('review_plan') or ['structure', 'first', 'mid', 'final']
     lab = {o['id']: o['label'] for o in pq.get('review_plan', {}).get('options', [])}
-    L += ['', '## 검토 일정 (스킬 4절)', ''] + [f'- [ ] {lab.get(x, x)} — 검토 페이지: materials/인터뷰/03_검토_v?.html' for x in rp]
+    # 검토 페이지(👍/👎 양식)는 여럿 중 고를 때만 만든다 — 검토 의견은 대화 · 화면 캡처로 오는 일이 많다(스킬 4절 3, 1.4.2)
+    L += ['', '## 검토 일정 (스킬 4절)', ''] + [f'- [ ] {lab.get(x, x)} — 결과물을 내놓고 의견 받기(여럿 중 고를 때만 검토 페이지 materials/인터뷰/03_검토_v?.html)' for x in rp]
     dv2 = dv
     ff = [x for x in (dv2.get('file_format') or []) if x != 'other'] if isinstance(dv2.get('file_format'), list) else ([dv2['file_format']] if dv2.get('file_format') else [])
     if not ff:
@@ -388,12 +396,23 @@ def main(argv):
     block = '\n'.join(L)
     if out.exists():
         s = out.read_text(encoding='utf-8')
-        if OLD_MARKS[0] in s and OLD_MARKS[1] in s and BEGIN not in s:
-            s = s.replace(OLD_MARKS[0], BEGIN).replace(OLD_MARKS[1], END)
-        if BEGIN in s and END in s:
-            s = s[:s.index(BEGIN)] + block + s[s.index(END) + len(END):]
-        else:
+        # 표시는 한 줄 전체일 때만 표시다. 본문 글 속 같은 글자를 표시로 보면 그 자리부터 블록 끝까지 덮어쓴다(실수 기록 E49, 1.4.2)
+        b, e = mark_lines(s, BEGIN), mark_lines(s, END)
+        if not b and not e:
+            ob, oe = mark_lines(s, OLD_MARKS[0]), mark_lines(s, OLD_MARKS[1])
+            if len(ob) == 1 and len(oe) == 1 and ob[0].start() < oe[0].start():
+                s = s[:ob[0].start()] + BEGIN + s[ob[0].end():oe[0].start()] + END + s[oe[0].end():]
+                b, e = mark_lines(s, BEGIN), mark_lines(s, END)
+            elif ob or oe:
+                b, e = ob, oe  # 예전 표식이 한 쌍이 아니면 아래에서 멈춘다
+        if len(b) == 1 and len(e) == 1 and b[0].start() < e[0].start():
+            s = s[:b[0].start()] + block + s[e[0].end():]
+        elif not b and not e:
             s = s.rstrip('\n') + '\n\n' + block + '\n'
+        else:
+            print(f'멈춤: {out} 의 표시 블록 줄이 시작 {len(b)}개 · 끝 {len(e)}개입니다(시작 1 · 끝 1, 시작이 앞이어야 함). '
+                  '문서를 고치지 않았습니다 — 표시 줄을 확인한 뒤 다시 실행하세요(실수 기록 E49).', file=sys.stderr)
+            return 1
         out.write_bytes(s.encode('utf-8'))  # 줄바꿈을 LF 로 고정: Windows 에서 만들어도 클라우드와 같은 파일이 된다
         print('갱신:', out)
     else:

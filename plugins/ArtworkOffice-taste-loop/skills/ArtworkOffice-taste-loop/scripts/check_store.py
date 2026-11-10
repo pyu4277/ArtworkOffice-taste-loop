@@ -319,11 +319,12 @@ def write_summary(data, subs, entries, info, choices=None):
         lines.append('## 범위가 겹치는 항목 (좁은 범위가 우선)')
         lines += [f'- {x}' for x in info]
         lines.append('')
-    text = '\n'.join(lines)
-    old = SUMMARY.read_text(encoding='utf-8') if SUMMARY.exists() else None
-    if old is None or old.split('\n', 3)[3:] != text.split('\n', 3)[3:]:  # 생성 날짜 줄만 다르면 다시 쓰지 않음
+    text = '\n'.join(lines) + '\n'  # 파일에 쓰는 모양 그대로 견준다
+    old = SUMMARY.read_text(encoding='utf-8') if SUMMARY.exists() else None  # read_text 는 CRLF 도 LF 로 읽는다
+    # 생성 날짜 줄만 다르면 다시 쓰지 않음. 1.4.1 까지는 끝 줄바꿈 하나 차이로 늘 달라 실행마다 다시 썼다(Windows 에서 git status 에 M — 1.4.2 에서 고침)
+    if old is None or old.split('\n', 3)[3:] != text.split('\n', 3)[3:]:
         SUMMARY.parent.mkdir(parents=True, exist_ok=True)
-        SUMMARY.write_bytes((text + '\n').encode('utf-8'))  # 줄바꿈 LF 고정(Windows 에서도 클라우드와 같은 파일)
+        SUMMARY.write_bytes(text.encode('utf-8'))  # 줄바꿈 LF 고정(Windows 에서도 클라우드와 같은 파일)
         return True
     return False
 

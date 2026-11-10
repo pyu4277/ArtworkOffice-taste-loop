@@ -7,6 +7,18 @@ $ErrorActionPreference = 'Continue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 function Test-Command([string]$Name) { [bool](Get-Command $Name -ErrorAction SilentlyContinue) }
+# 파이썬은 이름만 보지 않고 실제로 실행해 3.8 이상인지 본다. Windows 의 python · python3 는 스토어 바로가기(실행하면 안내만 하고 실패)일 수 있다
+# (check_env.py 와 같은 규칙 — 1.4.2). python3 는 부르지 않는다(Windows 에서는 대개 스토어 바로가기).
+function Find-Python {
+    foreach ($n in 'python', 'py') {
+        if (-not (Test-Command $n)) { continue }
+        try {
+            $out = @(& $n -c "import sys; print('%d.%d.%d' % sys.version_info[:3]); sys.exit(0 if sys.version_info >= (3, 8) else 1)" 2>$null)
+            if ($LASTEXITCODE -eq 0 -and $out.Count) { return @{ name = $n; ver = [string]$out[0] } }
+        } catch {}
+    }
+    return $null
+}
 function Get-Ver([string]$Name) {
     try { $v = (& $Name --version 2>&1 | Select-Object -First 1); if ($v) { return ([string]$v).Substring(0, [Math]::Min(40, ([string]$v).Length)) } } catch {}
     return ''
@@ -31,8 +43,14 @@ Write-Host "PC 이름: $env:COMPUTERNAME · OS: $([System.Environment]::OSVersio
 Write-Host '| 도구 | 용도 | 중요도 | 판정 | 비고 |'
 Write-Host '|---|---|---|---|---|'
 foreach ($t in $tools) {
+    if ($t.cmd -eq 'python') {
+        $py = Find-Python
+        $status = if ($py) { '가능' } else { '설치 필요' }
+        $note = if ($py) { "$($py.name) $($py.ver)" } else { '실행되는 python · py 없음(스토어 바로가기는 제외) — docs/setup.md · scripts\setup-local.ps1' }
+        Write-Host "| python | $($t.use) | $($t.level) | $status | $note |"
+        continue
+    }
     $has = Test-Command $t.cmd
-    if (-not $has -and $t.cmd -eq 'python') { $has = Test-Command 'py' }
     $status = if ($has) { '가능' } else { '설치 필요' }
     $note = if ($has) { Get-Ver $t.cmd } else { 'docs/setup.md · scripts\setup-local.ps1' }
     Write-Host "| $($t.cmd) | $($t.use) | $($t.level) | $status | $note |"

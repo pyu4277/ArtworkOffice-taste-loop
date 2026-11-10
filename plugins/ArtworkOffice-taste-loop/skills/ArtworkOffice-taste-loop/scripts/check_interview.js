@@ -41,7 +41,8 @@ ch.choices = {'P1.1.formality|slogan': {aspect: 'P1.1.formality', option: 'sloga
 writeJson(path.join(store, 'knowledge', 'choices.json'), ch);
 const k05 = path.join(store, 'knowledge', '05_실수_기록.md');
 // 번호 칸 세 형식: 「E1」 · 합칠 때 번호를 바꾼 줄 「E2 (옛 E?-demo-1)」 · 작업 공간 임시 번호 「E?-demo-2」
-fs.writeFileSync(k05, fs.readFileSync(k05, 'utf8').replace(/^(\|---.*)$/m, '$1\n| E1 | 2026-01-01 · demo | 누락 | 예시 증상 | 예시 원인 | 예시 방법 | 1회 |'
+// E1 의 방법 칸에는 칸 속 글자 `\|` 를 넣는다(칸 구분이 아님 — 1.4.2)
+fs.writeFileSync(k05, fs.readFileSync(k05, 'utf8').replace(/^(\|---.*)$/m, '$1\n| E1 | 2026-01-01 · demo | 누락 | 예시 증상 | 예시 원인 | 명령 위치(줄 머리 · `\\|` 뒤)만 본다 | 1회 |'
   + '\n| E2 (옛 E?-demo-1) | 2026-01-02 · demo | 절차 | 번호를 바꾼 예시 | 예시 원인 | 예시 방법 | 1회 |'
   + '\n| E?-demo-2 | 2026-01-03 · demo | 버그 | 임시 번호 예시 | 예시 원인 | 예시 방법 | 1회 |'));
 fs.appendFileSync(path.join(store, 'knowledge', '01_교훈_기록.md'), '\n### 2026-01-01 — demo_expo / 예시\n- 예시 교훈\n');
@@ -80,6 +81,9 @@ const mouse = (w, type, x, y) => new w.MouseEvent(type, {bubbles: true, cancelab
 {
   const r = spawnSync(PY, [...PYARGS, path.join(HERE, 'check_store.py')], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
   ok(r.status === 0 && /문제 없음 · 항목 5개 · 선택 기록 1개/.test(r.stdout), '가짜 저장소 검증 통과 (항목 5 · 선택 기록 1)');
+  // 요약 파일은 내용이 그대로면 다시 쓰지 않는다(1.4.2 — 전에는 끝 줄바꿈 하나 차이로 실행마다 다시 써서 Windows git status 에 M)
+  const r2 = spawnSync(PY, [...PYARGS, path.join(HERE, 'check_store.py')], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  ok(r2.status === 0 && /00_취향_요약\.md 변경 없음/.test(r2.stdout), '요약 파일: 두 번째 실행은 다시 쓰지 않음 (' + ((r2.stdout.match(/00_취향_요약\.md [^·\n]*/) || [''])[0]).trim() + ')');
 }
 // 1) 빌드·문법
 // 선택지 예시: 데이터 폴더는 엔진 기본 예시를 복사하지 않는다(init_store 와 같게). 「내 예시」로 왼쪽 사이드바 v2 를 올려 본다
@@ -105,6 +109,8 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   const ids = PE.store.mistakes.map(m => m.id).join(',');
   const e2 = PE.store.mistakes.find(m => m.id === 'E2');
   ok(ids === 'E1,E2,E?-demo-2' && !!e2 && e2.old === '옛 E?-demo-1' && e2.symptom === '번호를 바꾼 예시', `실수 표 번호 칸 세 형식: ${ids} · E2 옛 표기 ${e2 && e2.old}`);
+  const e1 = PE.store.mistakes.find(m => m.id === 'E1');
+  ok(!!e1 && e1.fix === '명령 위치(줄 머리 · | 뒤)만 본다' && e1.confirm === '1회', `칸 속 \\| 는 글자 | (칸이 밀리지 않음): 방법 「${e1 && e1.fix}」 · 확인 ${e1 && e1.confirm}`);
   PE.view('store', 'mistakes');
   ok(d.querySelectorAll('#screen .rc[data-kind="mistake"]').length === 3, '저장소 → 실수 카드 3개');
   d.querySelector('#storeq').value = 'demo-1'; d.querySelector('#storeq').dispatchEvent(new w.Event('input', {bubbles: true}));
@@ -451,6 +457,19 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   const ap = spawnSync(PY, [...PYARGS, path.join(HERE, 'answers_to_plan.py'), '--lecture', 'demo', '--answers', ansF, '--out', planF], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
   const plan = ap.status === 0 ? fs.readFileSync(planF, 'utf8') : '';
   ok(/## 대화 추천/.test(plan) && /추천 5칸 중 그대로 3 · 바꿈 2 · 지움 0 → 적중률 60%/.test(plan) && /`asp\.P2\.4\.theme` \| "dark" \| "light"/.test(plan), '계획 문서: 「대화 추천」 절(적중률 · 바꾼 칸 표)' + (ap.status ? ': ' + ap.stderr : ''));
+  // 표시 블록은 한 줄 전체일 때만 표시다(1.4.2, 실수 기록 E49): 다시 돌려도 블록 하나 · 글 속 표시 글자는 그대로 · 시작 줄이 둘이면 멈추고 안 고침
+  const MARK = '<!-- taste-loop:begin -->';
+  const AP = () => spawnSync(PY, [...PYARGS, path.join(HERE, 'answers_to_plan.py'), '--lecture', 'demo', '--answers', ansF, '--out', planF], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  const prose = `설명 글: 표시 ${MARK} 를 글 속에 적어도 표시가 아니다.`;
+  fs.writeFileSync(planF, plan.replace(/^(# .*)$/m, `$1\n\n${prose}`));
+  const ap2 = AP();
+  const plan2 = fs.readFileSync(planF, 'utf8');
+  const begins = plan2.split('\n').filter(l => l.trim() === MARK).length;
+  ok(ap2.status === 0 && begins === 1 && plan2.includes(prose) && /## 대화 추천/.test(plan2), `계획 문서 다시 쓰기: 표시 블록 하나 · 글 속 표시 글자 그대로 (시작 줄 ${begins})` + (ap2.status ? ': ' + ap2.stderr : ''));
+  const dup = plan2.replace(MARK + '\n', MARK + '\n' + MARK + '\n');
+  fs.writeFileSync(planF, dup);
+  const ap3 = AP();
+  ok(ap3.status === 1 && fs.readFileSync(planF, 'utf8') === dup && /멈춤/.test(ap3.stderr), '표시 시작 줄이 둘 → 멈추고 문서를 고치지 않음(반대 시험)');
   const rec2 = RC(['record', ansF]);
   ok(rec2.status === 0 && /이미 기록한 제출/.test(rec2.stdout), 'record 두 번 → 이중 기록 막음');
   const bad = RC(['correct', '--project', 'demo', '--key', 'asp.P2.4.theme', '--value', '"purple"', '--said', '보라로']);
