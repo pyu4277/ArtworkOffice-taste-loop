@@ -28,6 +28,9 @@
       옛 applies_when(콘텐츠 형태)은 when 으로 옮기고 파일 형식 조건을 더한다. MP4 · 기타에서도 묻는 것은 사용자 확인(2026-11-09: 영상에도 움직임이 있다 · 기타는 모름 → 물음)
     - P2.7 디자인 레퍼런스 질문 2개: 2부에서 뺀다(retired). 레퍼런스는 인터뷰 맨 앞 「레퍼런스 먼저」 화면에서 둘러보고 넣는다
       (GUI-Interview.html 1.3.0). 취향 항목은 그대로 남아 계획에 적용된다
+  questions.json 3 → 4 (2026-11-09, 엔진 1.4.0, 사용자 결정 「숨기지 않음으로 되돌리기」)
+    - P2.6 움직임 질문의 파일 형식 조건(v3)을 뺀다 — 파일 형식과 상관없이 묻는다. 콘텐츠 형태 조건은 v3 전처럼
+      applies_when(답하지 않았으면 보여 줌)으로 되돌린다. 사용자가 구조 편집으로 따로 단 파일 형식 조건(MOTION_FF 와 다른 목록)은 그대로 둔다
   id 는 그대로 두므로(콘텐츠 형태 material_type 등) 취향 항목의 범위(scope)·질문 조건은 그대로 맞는다.
   dimensions.json 과 questions.json 은 버전을 따로 센다(LATEST_DIMS · LATEST_QS).
   파일을 바꾸면 knowledge/02_변경이력.md 에 한 줄 남긴다.
@@ -43,7 +46,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 LATEST_DIMS = 2
-LATEST_QS = 3
+LATEST_QS = 4
 LATEST = LATEST_DIMS  # 옛 이름(dimensions.json 기준) — 밖에서 쓰던 코드를 위해 남긴다
 MOTION_FF = ['html', 'mp4', 'other']  # 움직임이 있는 파일 형식(HTML · 영상) + 기타(모름 → 물음). MP4 · 기타는 사용자 확인 2026-11-09
 NOTES = {  # 올린 버전마다 변경이력 한 줄에 적을 말
@@ -51,6 +54,7 @@ NOTES = {  # 올린 버전마다 변경이력 한 줄에 적을 말
     ('questions.json', 2): '질문 은행 v2: P2.4 바탕색은 HTML이면 묻고, P4.1 제작 방법 선택지에 파일 형식 조건',
     ('questions.json', 3): '질문 은행 v3(엔진 1.3.0): P2.6 움직임 질문은 파일 형식에 HTML · MP4 · 기타가 있을 때만(MP4 · 기타는 사용자 확인) · '
                            'P2.7 레퍼런스 질문 2개는 2부에서 뺌 — 인터뷰 맨 앞 「레퍼런스 먼저」 화면으로 옮김(취향 항목은 그대로)',
+    ('questions.json', 4): '질문 은행 v4(엔진 1.4.0): P2.6 움직임 질문의 파일 형식 조건을 뺌 — 파일 형식과 상관없이 묻는다(사용자 결정 2026-11-09 「숨기지 않음으로 되돌리기」)',
 }
 INF = '추론'
 TODAY_SRC = '사용자 2026-11-07'
@@ -273,6 +277,8 @@ def migrate_qs(qs):
         _qs_1_to_2(q)
     if v < 3:
         _qs_2_to_3(q)
+    if v < 4:
+        _qs_3_to_4(q)
     q['version'] = LATEST_QS
     return q, True
 
@@ -284,6 +290,29 @@ def _with_ff(cond):
     c = dict(cond or {})
     c.setdefault('file_format', list(MOTION_FF))
     return c
+
+
+def _without_ff(cond):
+    """v3 이 더한 「파일 형식 ∈ MOTION_FF」만 뺀다. 남은 조건이 없으면 None."""
+    if isinstance(cond, list):
+        out = [c for c in (_without_ff(x) for x in cond) if c]
+        return out or None
+    c = dict(cond or {})
+    if sorted(c.get('file_format') or []) == sorted(MOTION_FF):
+        c.pop('file_format')
+    return c or None
+
+
+def _qs_3_to_4(q):
+    for a in q.get('aspects', []):
+        if (a.get('sub') or '') != 'P2.6' or not a.get('when'):
+            continue
+        rest = _without_ff(a['when'])
+        if rest == a['when']:
+            continue  # v3 이 더한 조건이 없다 — 사용자가 따로 단 조건은 그대로
+        a.pop('when')
+        if rest:
+            a['applies_when'] = rest  # v3 전처럼 「답하지 않았으면 보여 줌」
 
 
 def _qs_2_to_3(q):
@@ -375,7 +404,9 @@ def upgrade(store, check_only=False):
             if not check_only:  # 줄바꿈 LF 고정(E22)
                 f.write_bytes((json.dumps(new, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
     hist = store / 'knowledge' / '02_변경이력.md'
-    if changed and not check_only and hist.exists():
+    # 엔진의 starter(빈 저장소 — 배포본)를 올릴 때는 변경이력을 쓰지 않는다: 새 사용자의 빈 기록에 엔진 일이 남지 않게(1.4.0)
+    is_starter = store.resolve() == (HERE.parent / 'starter').resolve()
+    if changed and not check_only and hist.exists() and not is_starter:
         import datetime
         row = (f"| {datetime.date.today().isoformat()} | (엔진 업데이트) | {', '.join(changed)} | 구조 올림(upgrade_store.py, 기록은 지우지 않음) | "
                f"{' / '.join(notes) if notes else '엔진의 새 구조'} | 엔진 |".replace('\n', ' '))

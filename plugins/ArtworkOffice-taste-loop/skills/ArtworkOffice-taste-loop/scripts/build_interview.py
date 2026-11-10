@@ -3,7 +3,7 @@
 
 사용법:
   python3 build_interview.py --lecture <강의폴더> --mode interview --out <출력.html> [--artifact]
-      [--like <강의폴더>] [--answers <이전 답변.json>] [--prefill <레퍼런스로 채운 답.json>] [--topic <낱말>]... [--title <제목>] [--intro <안내문>]
+      [--like <강의폴더>] [--answers <이전 답변.json>] [--prefill <레퍼런스로 채운 답.json>] [--recommend <00_추천.json>] [--topic <낱말>]... [--title <제목>] [--intro <안내문>]
   python3 build_interview.py --lecture <강의폴더> --mode structure --spec <구성안.json> --out <출력.html>
   python3 build_interview.py --lecture <강의폴더> --mode review --spec <항목.json> --out <출력.html>
   python3 build_interview.py --lecture <강의폴더> --mode approve --spec <제안.json> --out <출력.html>
@@ -21,6 +21,10 @@
         「레퍼런스에서」로 표시한다. 형식: {"id": "<판 이름>", "source": "<답변 JSON>", "doc": "<기준표 문서>",
         "references": [{"where", "note", "follow"}], "dimensions": {"<질문>": 값}, "aspects": {"<취향 질문>": {"value": 값, "reason": "<근거>"}}}
         질문 은행에 없는 질문·선택지는 빼고 알린다.
+--recommend <JSON>(interview, 1.4.0): 대화로 알아본 뒤 Claude가 쓴 추천(00_추천.json — 형식은 recommend.py).
+        추천한 답이 골라진 채로 열린다(아직 답하지 않은 칸만, 레퍼런스 채움 다음·지난 프로젝트 기본값 앞).
+        카드마다 「대화 추천」 표시와 한 줄 이유, 바꾸면 「추천 → 바꿈」, 화면 위 요약판(추천 N · 그대로 · 바꿈).
+        제출 JSON 의 recommend.items 로 추천과 최종 답의 차이가 돌아오고 recommend.py record 가 기록·학습한다.
 --spec(structure/review/approve): {"items":[{"id","title","desc","url","chapters":[...]}], "items_title", "items_question"}
 
 페이지는 사이트형 앱이다: 메뉴 줄(대시보드·인터뷰·저장소·도움말) · 리본 · 왼쪽 「참고 서랍」 · 본문.
@@ -89,6 +93,9 @@ def md_tables(text):
     return tables
 
 
+MISTAKE_ID = re.compile(r'(E\d+|E\?-[^\s()|]+)\s*(?:\((.*)\))?')
+
+
 def rows_as(text, keys, pick=None):
     out = []
     for header, rows in md_tables(text):
@@ -140,9 +147,26 @@ def load_store():
             continue
         title, _, rest = block[4:].partition('\n')
         store['lessons'].append({'title': title.strip(), 'date': title[:10] if re.match(r'\d{4}-\d{2}-\d{2}', title) else '', 'body': rest.strip()})
-    # 05 실수 표 + 점검표
+    # 대화 추천 적중률·규칙 수(recommend_rules.json — recommend.py 가 만든다)
+    store['reco'] = None
+    if (KNOW / 'recommend_rules.json').exists():
+        try:
+            r = load_json(KNOW / 'recommend_rules.json')
+            store['reco'] = {'stats': r.get('stats') or {}, 'rules': len(r.get('rules') or []), 'shaky': [x.get('note') for x in (r.get('shaky') or [])][:20], 'updated': r.get('updated')}
+        except ValueError:
+            pass
+    # 05 실수 표 + 점검표. 번호 칸: 「E12」 · 작업 공간 임시 번호 「E?-<작업 공간>-<순번>」 · 합칠 때 번호를 바꾼 줄 「E12 (옛 E?-<작업 공간>-1)」
+    # — 괄호 속 옛 표기는 old 로 떼어 id 는 번호만 남긴다(1.4.1: 전에는 괄호가 붙은 줄을 통째로 빠뜨렸다)
     text = read(KNOW / '05_실수_기록.md')
-    store['mistakes'] = rows_as(text, ('id', 'when', 'kind', 'symptom', 'cause', 'fix', 'confirm'), lambda r: re.fullmatch(r'E\d+', r[0]))
+    store['mistakes'] = []
+    for r in rows_as(text, ('id', 'when', 'kind', 'symptom', 'cause', 'fix', 'confirm')):
+        m = MISTAKE_ID.fullmatch(r['id'])
+        if not m:
+            continue
+        r['id'] = m.group(1)
+        if m.group(2) and m.group(2).strip():
+            r['old'] = m.group(2).strip()
+        store['mistakes'].append(r)
     tail = text.split('## 시작 전 점검표', 1)[1] if '## 시작 전 점검표' in text else ''
     store['checklist'] = [m.group(1).strip() for m in re.finditer(r'^\d+\.\s+(.+)$', tail, re.M)]
     # 03 디자인 레퍼런스 서비스 표(주소 칸이 http로 시작하는 행)
@@ -165,7 +189,7 @@ def parse(argv):
             a['no_pending'] = True; i += 1; continue
         if k == '--topic':
             a['topics'].append(argv[i + 1]); i += 2; continue
-        if k in ('--lecture', '--mode', '--out', '--like', '--answers', '--spec', '--title', '--intro', '--pc', '--prefill'):
+        if k in ('--lecture', '--mode', '--out', '--like', '--answers', '--spec', '--title', '--intro', '--pc', '--prefill', '--recommend'):
             a[k[2:]] = argv[i + 1]; i += 2; continue
         print(__doc__, file=sys.stderr); sys.exit(2)
     if not a.get('lecture') or not a.get('out'):
@@ -302,9 +326,27 @@ def main(argv):
                 pf.setdefault('id', pathlib.Path(a['prefill']).stem)
                 spec['prefill'] = pf
                 print(f"레퍼런스로 채운 답: 1부 {len(pf['dimensions'])}개 · 취향 {len(pf['aspects'])}개 · 레퍼런스 {len(pf['references'])}개 (아직 답하지 않은 칸만 채움)", file=sys.stderr)
+        if a.get('recommend'):
+            import recommend as RC
+            rc, notes = RC.clean_reco(load_json(a['recommend']), ({d['id']: d for d in dims['dimensions']}, {x['id']: x for x in qs['aspects']}, {x['id']: x for x in qs.get('project_questions', [])}))
+            for n in notes:
+                print('알림: ' + n, file=sys.stderr)
+            if rc:
+                rc.setdefault('id', pathlib.Path(a['recommend']).stem)
+                # 작업 여건(ctx:) 규칙은 페이지가 열릴 때 그 자리의 여건(기기·시간대·요일·여는 방식)으로 판정한다
+                rp = KNOW / 'recommend_rules.json'
+                if rp.exists():
+                    try:
+                        B = ({d['id']: d for d in dims['dimensions']}, {x['id']: x for x in qs['aspects']}, {x['id']: x for x in qs.get('project_questions', [])})
+                        rc['ctx_rules'] = [x for x in RC.ctx_rules(RC.reco_signals(rc), load_json(rp).get('rules') or [])
+                                           if RC.item_of(x['key'], B) and (x['no_preselect'] or not RC.check_value(x['key'], x['value'], B)[1])]
+                    except ValueError:
+                        print('알림: recommend_rules.json 을 읽지 못해 작업 여건 규칙은 빼고 만듭니다', file=sys.stderr)
+                spec['recommend'] = rc
+                print(f"대화 추천: 1부 {len(rc['dimensions'])}개 · 취향 {len(rc['aspects'])}개 · 3부 {len(rc['project'])}개 · 신호 {len(rc['signals'])}개 · 작업 여건 규칙 {len(rc.get('ctx_rules') or [])}개 (아직 답하지 않은 칸만 골라 둠)", file=sys.stderr)
     else:
-        if a.get('prefill'):
-            print('--prefill 은 interview 모드에서만 씁니다', file=sys.stderr); return 2
+        if a.get('prefill') or a.get('recommend'):
+            print('--prefill · --recommend 는 interview 모드에서만 씁니다', file=sys.stderr); return 2
         if not a.get('spec'):
             print('structure/review/approve 모드는 --spec <json> 이 필요합니다', file=sys.stderr); return 2
         extra = load_json(a['spec'])

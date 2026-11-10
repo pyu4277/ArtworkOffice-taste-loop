@@ -9,6 +9,12 @@
 
 판정 낱말: 가능 / 설치 필요 / 원칙상 불가 (knowledge/06_환경_점검_기준.md)
 커넥터·MCP(Higgsfield·Figma)는 스크립트가 볼 수 없다. Claude가 도구 목록에서 확인해 표에 보탠다.
+
+프로젝트 필수 도구(1.3.1): 데이터 폴더의 env_tools.json 에 적은 도구를 엔진 기본 목록에 더해 판정한다.
+  {"tools": [{"name", "use", "where": "all|pc", "level": "required|optional|agent", "install": "<설치 안내>",
+              "check": {"command": "<명령>", "args": [...]}                       ← 실행해서 종료 코드 0 이면 가능
+                    | {"path_record": "<PC별 설치 기록 json>", "key": "<도구>", "cloud_path": "<클라우드 경로>", "needs": ["<있어야 할 파일>"]}}]}
+  --brief 는 이 세션에 해당하는 필수 도구 가운데 없는 것을 「필수 중 없음」으로 알린다(세션 시작 훅).
 """
 import json
 import os
@@ -45,8 +51,16 @@ def decode(b):
     try:
         return b.decode('utf-8')
     except UnicodeDecodeError:
-        import locale
-        return b.decode(locale.getpreferredencoding(False) or 'utf-8', 'replace')
+        pass
+    # Windows 명령의 오류문은 OEM(콘솔) · ANSI 코드 페이지(한국어 CP949). -X utf8 에서는 locale 이 utf-8 이라 직접 고른다
+    for enc in (('oem', 'mbcs') if os.name == 'nt' else ()):
+        try:
+            return b.decode(enc)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    import locale
+    enc = locale.getencoding() if hasattr(locale, 'getencoding') else locale.getpreferredencoding(False)
+    return b.decode(enc or 'utf-8', 'replace')
 
 
 def version_of(cmd):
@@ -81,6 +95,83 @@ def python_cmd():
     return ''
 
 
+def _store():
+    """데이터 폴더 모듈(store.py) — check_env 는 -I 로 돌아 스크립트 폴더가 sys.path 에 없어 직접 넣는다."""
+    try:
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+        import store as ST  # noqa: E402
+        return ST
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def resolve_cmd(name):
+    """`orca` 는 Linux 에서 GNOME 화면 낭독기와 이름이 같다 — Orca 가 알려 준 명령(ORCA_CLI_COMMAND)이나 orca-ide 를 쓴다."""
+    if name == 'orca':
+        return os.environ.get('ORCA_CLI_COMMAND') or ('orca-ide' if sys.platform.startswith('linux') else 'orca')
+    return name
+
+
+def check_project_tool(t, cloud, ST):
+    """env_tools.json 의 도구 하나 → (판정, 비고). check 는 command(실행해서 종료 코드 0) 또는 path_record(PC별 설치 기록)."""
+    c = t.get('check') or {}
+    install = t.get('install') or 'docs/setup.md'
+    if cloud and t.get('where', 'all') == 'pc':
+        return '원칙상 불가', '클라우드에서는 쓰지 않음 → 「PC에서 할 일」'
+    if c.get('command'):
+        exe = shutil.which(resolve_cmd(c['command']))
+        if not exe:
+            return '설치 필요', install
+        try:
+            r = subprocess.run([exe, *c.get('args', ['--version'])], capture_output=True, timeout=float(c.get('timeout', 10)))
+        except Exception as e:  # noqa: BLE001
+            return '설치 필요', f'실행 실패({str(e)[:60]}) — {install}'
+        lines = (decode(r.stdout) or decode(r.stderr)).strip().splitlines()
+        if r.returncode == 0:
+            return '가능', (lines[0][:60] if lines and not lines[0].startswith('{') else 'ok')
+        return '설치 필요', f'종료 코드 {r.returncode}' + (f': {lines[-1][:60]}' if lines else '') + f' — {install}'
+    path = None
+    if cloud and c.get('cloud_path'):
+        path = pathlib.Path(c['cloud_path'])
+    elif c.get('path_record'):
+        root = ST.project_root() if ST else pathlib.Path.cwd()
+        try:
+            rec = json.loads((root / c['path_record']).read_text(encoding='utf-8'))
+            me = platform.node().upper()
+            hit = next((e for e in (rec.get(c.get('key'), {}) or {}).get('installs', []) if str(e.get('computer') or '').upper() == me), None)
+            path = pathlib.Path(hit['path']) if hit and hit.get('path') else None
+        except (OSError, ValueError):
+            return '설치 필요', f"기록 파일을 읽을 수 없음({c['path_record']}) — {install}"
+        if path is None:
+            return '설치 필요', f'이 PC({platform.node()}) 기록 없음 — {install}'
+    if path is None:
+        return '설치 필요', f'점검 방법(check)이 없음 — env_tools.json'
+    missing = [n for n in c.get('needs', []) if not (path / n).exists()]
+    if not path.exists() or missing:
+        return '설치 필요', f"{path} 에 {', '.join(missing) or '폴더'} 없음 — {install}"
+    return '가능', str(path)
+
+
+def project_rows(cloud):
+    """데이터 폴더의 env_tools.json — 이 프로젝트에서 꼭 있어야 하는 도구(엔진 기본 목록에 더한다)."""
+    ST = _store()
+    if not ST:
+        return []
+    p = ST.path('env_tools.json')
+    if not p.exists():
+        return []
+    try:
+        spec = json.loads(p.read_text(encoding='utf-8'))
+    except ValueError as e:
+        return [{'tool': 'env_tools.json', 'use': '프로젝트 필수 도구 목록', 'where': 'all', 'level': 'required', 'status': '설치 필요', 'hint': f'읽기 실패: {e}'[:80]}]
+    rows = []
+    for t in spec.get('tools', []):
+        status, hint = check_project_tool(t, cloud, ST)
+        rows.append({'tool': t.get('name', '?'), 'use': t.get('use', ''), 'where': t.get('where', 'all'), 'level': t.get('level', 'required'),
+                     'status': status, 'hint': hint, 'project': True})
+    return rows
+
+
 def collect():
     cloud = os.environ.get('CLAUDE_CODE_REMOTE') == 'true'
     rows = []
@@ -106,6 +197,7 @@ def collect():
     jp = jsdom_path()
     rows.append({'tool': 'jsdom', 'use': 'HTML 검증', 'where': 'all', 'level': 'optional',
                  'status': '가능' if jp else '설치 필요', 'hint': jp or 'npm install --prefix /tmp/slidecheck jsdom@24.1.3'})
+    rows += project_rows(cloud)
     env = {
         'session': '클라우드' if cloud else '로컬',
         'os': f'{platform.system()} {platform.release()}',
@@ -127,8 +219,11 @@ def main(argv):
         ok = [r['tool'] for r in rows if r['status'] == '가능']
         need = [r['tool'] for r in rows if r['status'] == '설치 필요']
         no = [r['tool'] for r in rows if r['status'] == '원칙상 불가']
+        # 이 세션에 해당하는 필수 도구(클라우드면 「모두」만, PC면 PC 전용까지) 가운데 없는 것 — 시작 전에 설치한다
+        must = [r['tool'] for r in rows if r['level'] == 'required' and r['status'] == '설치 필요' and (r['where'] == 'all' or env['session'] == '로컬')]
         print(f"환경: {env['session']} ({env['os']}). 가능: {', '.join(ok) or '없음'}. 설치 필요: {', '.join(need) or '없음'}. "
-              f"이 환경에서 원칙상 불가: {', '.join(no) or '없음'}. 커넥터(Higgsfield·Figma)는 도구 목록에서 확인.")
+              f"이 환경에서 원칙상 불가: {', '.join(no) or '없음'}. 커넥터(Higgsfield·Figma)는 도구 목록에서 확인."
+              + (f" 필수 중 없음: {', '.join(must)} — 작업 전에 설치(docs/setup.md · env_tools.json 의 install)." if must else ''))
     else:
         print(f"세션: {env['session']} · OS: {env['os']} · Python {env['python']} · PC 이름: {env['computer']}")
         print('| 도구 | 용도 | 어디서 | 중요도 | 판정 | 비고 |')

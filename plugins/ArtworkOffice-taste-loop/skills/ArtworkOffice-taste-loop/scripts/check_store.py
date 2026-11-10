@@ -11,6 +11,7 @@
   - entry의 aspect·value가 질문 은행의 선택지와 맞는지, scope 키·값이 차원에 있는지
   - strength 1~5, status, 날짜 형식, conflicts 참조
   - 같은 aspect에서 범위가 겹치는데 값이 다른 항목(충돌): 구체성이 같으면 오류, 다르면 정보
+  - knowledge/recommend_log.json · recommend_rules.json(대화 추천 기록·규칙, 1.4.0): 키·신호·가중치 형식, 같은 제출 두 번, 규칙 파일이 기록보다 옛것인지
   - knowledge/choices.json(선택별 진화 기록): 키 '<aspect>|<option>'이 질문 은행과 맞는지, version·how·history·source
 종료 코드: 0 문제 없음(경고 가능) · 1 오류 있음
 """
@@ -360,6 +361,13 @@ def main(argv):
                     pre_info.append(f"반영 대기 구조 편집 {len(pend)}묶음 · {sum(len(b.get('ops', [])) for b in pend)}건 (마무리 때 structure_edits.py apply)")
             except Exception as e:  # noqa: BLE001
                 errors.append(f'knowledge/structure_edits.json 읽기 실패: {e}')
+        try:  # 대화 추천 기록·규칙(recommend.py — 엔진 1.4.0)
+            import recommend as RC
+            re_, ri = RC.validate(ST.KNOW)
+            errors += re_
+            pre_info += [x for x in ri if not x.startswith('recommend_log.json 없음')]
+        except Exception as e:  # noqa: BLE001
+            errors.append(f'대화 추천 기록을 읽지 못함: {e}')
         entries, info = check_preferences(data['preferences'], dim_values, extra, subs, aspects, errors, warnings)
         info += pre_info
         choices = check_choices(aspects, errors)

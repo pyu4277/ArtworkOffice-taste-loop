@@ -175,6 +175,11 @@ textarea{min-height:76px;resize:vertical}
 .badge.warn{background:transparent;border:1px solid var(--warn);color:var(--warn)}
 .badge.bad{background:transparent;border:1px solid var(--bad);color:var(--bad)}
 .badge.dim{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.badge.reco{background:transparent;border:1px solid var(--accent);color:var(--accent);font-weight:600}
+.recoline{margin:-2px 0 8px;font-size:.9rem;color:var(--muted)}
+.recoline.changed{border-left:4px solid var(--warn);padding:4px 8px;border-radius:0 8px 8px 0;color:var(--fg)}
+.recopanel{border-left:4px solid var(--accent)}
+.recopanel ul{margin:6px 0 0;padding-left:18px;font-size:.9rem}
 .cur{margin:6px 0 10px;padding:10px 12px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;font-size:.98rem}
 .cur small{display:block;color:var(--muted);font-size:.82rem;margin-top:4px}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
@@ -303,10 +308,11 @@ if (!Array.isArray(state.new_refs)) state.new_refs = [];
 if (!Array.isArray(state.references)) state.references = []; // 「레퍼런스 먼저」에서 넣은 레퍼런스: {id, where, note, follow:[…], from}
 if (!state.dim_from || typeof state.dim_from !== 'object') state.dim_from = {}; // 레퍼런스 분석으로 채운 1부 답 표시
 if (!state.opinions || typeof state.opinions !== 'object') state.opinions = {}; // 질문별 기타 의견: 'dim:<id>' · 'pq:<id>' (취향 질문은 aspects[id].note)
-if (SPEC.defaults && SPEC.defaults.dimensions) {
-  for (const [k, v] of Object.entries(SPEC.defaults.dimensions)) if (state.dimensions[k] == null) state.dimensions[k] = clone(v);
+function fillDefaults() { // 지난 프로젝트 기본값 — 레퍼런스 채움·대화 추천 다음(그 둘이 정하지 않은 칸만)
+  if (SPEC.defaults && SPEC.defaults.dimensions) for (const [k, v] of Object.entries(SPEC.defaults.dimensions)) if (state.dimensions[k] == null) state.dimensions[k] = clone(v);
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+let recoHook = null; // 대화 추천 요약판 새로 그리기(답이 바뀔 때마다)
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} if (recoHook) recoHook(); }
 // ---------- 상태 (화면) ----------
 const ui = {view: 'flow', storeTab: 'entries', sideOpen: !isNarrow(), q: '', storeQ: '', open: {}, detail: {}, gallery: [], popOpen: false, filter: null};
 try { const u = JSON.parse(sessionStorage.getItem(KEY + ':ui') || 'null'); if (u) Object.assign(ui, u); } catch (e) {}
@@ -401,9 +407,50 @@ const newRefItem = (where, from, note) => ({id: 'r' + Date.now().toString(36) + 
 const refItems = () => state.references.filter(r => String(r.where || '').trim() || String(r.note || '').trim());
 const hasRefs = () => refItems().length > 0 || !!PREFILL;
 const prefillOf = aid => (PREFILL && PREFILL.aspects && PREFILL.aspects[aid]) || null;
-if (PREFILL && state.prefill_applied !== prefillKey) { // 이미 답한 칸은 건드리지 않는다
-  const emptyV = v => v == null || v === '' || (Array.isArray(v) && !v.length);
-  for (const [k, v] of Object.entries(PREFILL.dimensions || {})) if (dimById[k.replace(/_(other|primary)$/, '')] && emptyV(state.dimensions[k])) { state.dimensions[k] = clone(v); state.dim_from[k] = 'reference'; }
+const emptyV = v => v == null || v === '' || (Array.isArray(v) && !v.length);
+// ---------- 대화 추천 (1.4.0, 사용자 결정 2026-11-09) ----------
+// Claude가 대화로 「무엇을·누구에게·왜·어떻게」를 알아본 뒤 쓴 추천(00_추천.json → --recommend)으로 답을 미리 골라 둔다.
+// 아직 답하지 않은 칸만. 순서: 레퍼런스 채움 → 대화 추천 → 지난 프로젝트 기본값. 제출 JSON 의 recommend.items 로 추천과 최종 답의 차이가 돌아가
+// recommend.py record 가 기록·학습한다(확인 질문 없이 스스로 진화).
+const RECO = (mode === 'interview' && SPEC.recommend) || null;
+const recoKey = RECO ? String(RECO.id || 'reco') : '';
+const RECO_SEC = {dim: 'dimensions', asp: 'aspects', pq: 'project'};
+// 작업 여건(사용자 결정 2026-11-09: 같은 상황인데 다르게 고른 까닭이 기분인지 여건 차이인지 가려낸다) — 제출 때 함께 보내고(recommend.py 가 ctx: 신호로 배운다),
+// 여기서는 열린 자리의 여건에 맞는 「여건 규칙」(build_interview.py 가 recommend_rules.json 에서 골라 넣은 ctx_rules)을 적용한다
+function workContext() {
+  const d = new Date();
+  return {device: isNarrow() ? '휴대폰' : '넓은화면', local_hour: d.getHours(), weekday: d.getDay(), client: (window.claude && typeof window.claude.use === 'function') ? 'artifact' : 'file'};
+}
+function ctxSignals(cx) {
+  const h = cx.local_hour, out = new Set(['ctx:기기=' + cx.device, 'ctx:요일=' + (cx.weekday === 0 || cx.weekday === 6 ? '주말' : '주중'), 'ctx:열기=' + (cx.client === 'artifact' ? '게시페이지' : '파일')]);
+  out.add('ctx:시간대=' + (h < 6 ? '새벽' : h < 12 ? '오전' : h < 18 ? '오후' : '저녁'));
+  return out;
+}
+if (RECO && Array.isArray(RECO.ctx_rules) && RECO.ctx_rules.length) {
+  const sig = ctxSignals(workContext());
+  const fits = r => (r.when || []).every(w => w.startsWith('!') ? !sig.has(w.slice(1)) : sig.has(w));
+  const cmp = (a, b) => { for (let i = 0; i < 4; i++) { const d = ((a.rank || [])[i] || 0) - ((b.rank || [])[i] || 0); if (d) return d; } return 0; };
+  const best = {};
+  for (const r of RECO.ctx_rules) if (fits(r) && (!best[r.key] || cmp(r, best[r.key]) > 0)) best[r.key] = r;
+  for (const [key, r] of Object.entries(best)) {
+    const kind = key.slice(0, key.indexOf('.')), id = key.slice(key.indexOf('.') + 1), sec = RECO_SEC[kind];
+    if (!sec) continue;
+    RECO[sec] = RECO[sec] || {};
+    const cur = RECO[sec][id];
+    if (cur && cur.basis === 'said') continue; // 대화에서 직접 말한 값은 규칙이 바꾸지 않는다
+    if (r.no_preselect) { delete RECO[sec][id]; continue; }
+    RECO[sec][id] = {value: clone(r.value), reason: '작업 여건: ' + r.reason, basis: 'rule:' + r.id};
+  }
+}
+const RECO_ITEMS = [];
+if (RECO) for (const kind of ['dim', 'asp', 'pq']) for (const [id, r] of Object.entries(RECO[RECO_SEC[kind]] || {})) if (!/_(other|primary)$/.test(id) && r) RECO_ITEMS.push({key: kind + '.' + id, kind, id, r});
+const recOf = (kind, id) => (RECO && (RECO[RECO_SEC[kind]] || {})[id]) || null;
+const doPrefill = !!(PREFILL && state.prefill_applied !== prefillKey);
+const doReco = !!(RECO && state.reco_applied !== recoKey);
+if (doPrefill) for (const [k, v] of Object.entries(PREFILL.dimensions || {})) if (dimById[k.replace(/_(other|primary)$/, '')] && emptyV(state.dimensions[k])) { state.dimensions[k] = clone(v); state.dim_from[k] = 'reference'; }
+if (doReco) for (const [k, r] of Object.entries(RECO.dimensions || {})) { const b = k.replace(/_(other|primary)$/, ''); if (dimById[b] && r && emptyV(state.dimensions[k])) { state.dimensions[k] = clone(r.value); if (b === k) state.dim_from[k] = 'reco'; } }
+fillDefaults();
+if (doPrefill) { // 이미 답한 칸은 건드리지 않는다
   for (const [aid, s] of Object.entries(PREFILL.aspects || {})) {
     if (!aspectById[aid] || !s || aspectAnswered(aid)) continue;
     state.aspects[aid] = {choice: 'ref', value: s.value == null ? null : clone(s.value), reason: s.reason || '', from: 'reference', winner: ((matchAspect(aid) || {}).winner || {}).id || null};
@@ -412,6 +459,78 @@ if (PREFILL && state.prefill_applied !== prefillKey) { // 이미 답한 칸은 �
   if (state.references.length) state.ref_none = false;
   state.prefill_applied = prefillKey;
   save();
+}
+if (doReco) {
+  for (const [aid, r] of Object.entries(RECO.aspects || {})) {
+    if (!aspectById[aid] || !r || aspectAnswered(aid)) continue;
+    const m = matchAspect(aid);
+    const same = m && !m.conflict && norm(m.winner.value) === norm(r.value); // 추론(세기 5) 항목도 추천과 같으면 「그대로」 — 확인 질문 없이 쓴다(자율 진화)
+    state.aspects[aid] = {choice: same ? 'keep' : (m ? 'change' : 'new'), value: clone(r.value), winner: m ? m.winner.id : null, from: 'reco'};
+  }
+  for (const [qid, r] of Object.entries(RECO.project || {})) if (r && projectQs.some(q => q.id === qid) && emptyV(state.project[qid])) state.project[qid] = clone(r.value);
+  state.reco_applied = recoKey;
+  save();
+}
+function recoCur(kind, id) { // 지금 답(비교용)
+  if (kind === 'dim') return state.dimensions[id];
+  if (kind === 'pq') return state.project[id];
+  const s = state.aspects[id];
+  if (!s || !s.choice || s.choice === 'skip') return null;
+  if (s.choice === 'keep' && s.value == null) { const m = matchAspect(id); return m ? m.winner.value : null; }
+  return s.value;
+}
+function recoHidden(kind, id) { // 지금 고른 답으로는 숨은 질문 — 배우지 않는다
+  if (kind === 'dim') { const d = dimById[id]; return !d || !dimShown(d); }
+  if (kind === 'asp') { const a = aspectById[id]; const c = a && cats.find(x => a.sub && a.sub.startsWith(x.id + '.')); return !a || !aspShown(a) || !!(c && !whenOk(c)); }
+  const q = projectQs.find(x => x.id === id); return !q || !whenOk(q);
+}
+function recoStatus(kind, id) { // kept 그대로 · changed 바꿈 · cleared 지움(제외) · hidden 숨음
+  if (!recOf(kind, id)) return null;
+  if (recoHidden(kind, id)) return 'hidden';
+  const v = recoCur(kind, id);
+  if (emptyV(v)) return 'cleared';
+  return norm(v) === norm(recOf(kind, id).value) ? 'kept' : 'changed';
+}
+function recoValText(kind, id, v) {
+  if (emptyV(v)) return '(비움)';
+  if (kind === 'dim') return dimText(id, v);
+  if (kind === 'asp') return optionLabel(aspectById[id], v);
+  return optionLabel(projectQs.find(q => q.id === id), v);
+}
+function recoName(it) { return it.kind === 'dim' ? ((dimById[it.id] || {}).name || it.id) : it.kind === 'asp' ? ((aspectById[it.id] || {}).text || it.id) : ((projectQs.find(q => q.id === it.id) || {}).text || it.id); }
+function recoMark(kind, id) { // 카드 머리: 「대화 추천」 + 한 줄 이유, 바꾸면 「추천 → 바꿈」
+  const r = recOf(kind, id); if (!r) return '';
+  const st = recoStatus(kind, id);
+  const basis = String(r.basis || '').startsWith('rule:') ? (/^작업 여건/.test(r.reason || '') ? '지난 기록 · 지금 작업 여건' : /그때그때/.test(r.reason || '') ? '그때그때 취향 — 기우는 쪽' : '지난 기록에서 배움') : r.basis === 'said' ? '대화에서 직접 말함' : '대화에서 짐작';
+  const why = (r.reason ? esc(r.reason) + ' · ' : '') + `<span class="small">${basis}</span>`;
+  if (st === 'kept') return `<p class="recoline" data-reco="${esc(kind + '.' + id)}" data-st="kept"><span class="badge reco">대화 추천</span>${why}</p>`;
+  if (st === 'changed' || st === 'cleared') return `<p class="recoline changed" data-reco="${esc(kind + '.' + id)}" data-st="${st}"><span class="badge warn">추천 → 바꿈</span>추천 <b>${esc(recoValText(kind, id, r.value))}</b> → 지금 <b>${esc(recoValText(kind, id, recoCur(kind, id)))}</b><br><span class="small">추천 이유: ${r.reason ? esc(r.reason) : '(없음)'} · ${basis}</span></p>`;
+  return '';
+}
+function recoTally() { const t = {total: 0, kept: 0, changed: 0, cleared: 0, hidden: 0}; for (const it of RECO_ITEMS) { t.total++; t[recoStatus(it.kind, it.id)]++; } return t; }
+function recoPanel() {
+  const t = recoTally();
+  const c = document.createElement('div'); c.className = 'card recopanel'; c.id = 'recopanel';
+  const ch = RECO_ITEMS.filter(it => ['changed', 'cleared'].includes(recoStatus(it.kind, it.id)));
+  c.innerHTML = `<p class="q">대화 추천 <span class="badge reco">${t.total - t.hidden}</span> 그대로 <b data-n="kept">${t.kept}</b> · 바꿈 <b data-n="changed">${t.changed + t.cleared}</b>${t.hidden ? ` · <span class="small">지금 답으로는 숨은 질문 ${t.hidden}</span>` : ''}</p>`
+    + `<p class="hint">대화에서 알아본 내용으로 미리 골라 두었습니다. 다르면 그냥 바꾸세요 — 바꾼 것은 기록되어 다음 추천이 알아서 고쳐집니다.${RECO.summary ? ' 대화 요약: ' + esc(RECO.summary) : ''}</p>`
+    + (ch.length ? `<details><summary>바꾼 것 ${ch.length}개</summary><ul>${ch.map(it => `<li>${esc(recoName(it))}: ${esc(recoValText(it.kind, it.id, it.r.value))} → ${esc(recoValText(it.kind, it.id, recoCur(it.kind, it.id)))}</li>`).join('')}</ul></details>` : '');
+  return c;
+}
+if (RECO) recoHook = () => { const old = document.getElementById('recopanel'); if (old && old.parentNode) old.parentNode.replaceChild(recoPanel(), old); };
+function recoPayload(c) { // 추천과 최종 답의 차이 → recommend.py record
+  const items = RECO_ITEMS.map(it => {
+    const out = recoStatus(it.kind, it.id);
+    let fin = null;
+    if (out !== 'hidden') {
+      if (it.kind === 'dim') fin = c.dimensions[it.id];
+      else if (it.kind === 'pq') fin = c.project[it.id];
+      else { const s = c.aspects[it.id]; fin = !s || !s.choice || s.choice === 'skip' ? null : (s.value == null && s.choice === 'keep' ? recoCur('asp', it.id) : s.value); }
+    }
+    return {key: it.key, recommended: clone(it.r.value), final: fin == null ? null : clone(fin), outcome: out, reason: it.r.reason || '', basis: it.r.basis || ''};
+  });
+  const t = recoTally();
+  return {id: recoKey, source: RECO.source || 'conversation', summary: RECO.summary || '', signals: RECO.signals || [], items, stats: {recommended: t.total - t.hidden, kept: t.kept, changed: t.changed, cleared: t.cleared, hidden: t.hidden}};
 }
 
 // ---------- 화면 목록 (인터뷰 흐름) ----------
@@ -691,7 +810,7 @@ function pastCard(a, aid) {
 }
 function decisionCard(p, i) { const ref = refObject('decision', p.lecture + '#' + i); return ref ? card(ref, {title: p.decisions[i], chips: badge('결정', 'dim'), meta: `${esc(p.title || p.lecture)} · ${esc(shortDate(p.created))}`}) : null; }
 function lessonCard(l, i) { const ref = refObject('lesson', i); return ref ? card(ref, {title: l.title, chips: badge('교훈', 'dim'), body: short(l.body, 140), more: esc(l.body)}) : null; }
-function mistakeCard(m) { const ref = refObject('mistake', m.id); return ref ? card(ref, {title: `${m.id} · ${m.symptom}`, chips: badge(m.kind, m.kind === '오류' || m.kind === '버그' ? 'bad' : 'warn'), meta: `${esc(m.when)} · 확인 ${esc(m.confirm)}`, body: '원인: ' + m.cause, more: `<b>바람직한 방법</b> ${esc(m.fix)}`}) : null; }
+function mistakeCard(m) { const ref = refObject('mistake', m.id); return ref ? card(ref, {title: `${m.id} · ${m.symptom}`, chips: badge(m.kind, m.kind === '오류' || m.kind === '버그' ? 'bad' : 'warn'), meta: `${esc(m.when)} · 확인 ${esc(m.confirm)}` + (m.old ? ` · ${esc(m.old)}` : ''), body: '원인: ' + m.cause, more: `<b>바람직한 방법</b> ${esc(m.fix)}`}) : null; }
 function designRefCard(r) { const ref = refObject('design_ref', r.service); return ref ? card(ref, {title: r.service, chips: badge(r.type, 'dim') + (r.access && r.access !== '미확인' ? badge('클라우드: ' + r.access, /차단/.test(r.access) ? 'bad' : '') : ''), meta: esc(r.url), body: r.what, more: `<b>라이선스·주의</b> ${esc(r.license)}`, link: /^https?:\/\//.test(r.url) ? r.url : null}) : null; }
 function templateCard(t) { const ref = refObject('template', t.name); return ref ? card(ref, {title: t.name, chips: badge(t.type, 'dim'), meta: esc(t.location), body: t.usage, more: `<b>단일 파일 공유본</b> ${esc(t.single)}`}) : null; }
 function newRefCard(n) {
@@ -727,7 +846,7 @@ function refCards(gid, q) { // 참고 서랍 묶음 → 카드 목록
     const cid = gid.slice(13);
     for (const e of entries) if (e.sub && e.sub.startsWith(cid + '.') && hit(q, e.statement, e.id, e.sub, subName[e.sub], optionLabel(aspectById[e.aspect], e.value), scopeText(e.scope), e.status)) push(entryCard(e));
   } else if (gid === 'refs.lessons') { lessons.forEach((l, i) => { if (hit(q, l.title, l.body)) push(lessonCard(l, i)); }); }
-  else if (gid === 'refs.mistakes') { for (const m of mistakes) if (hit(q, m.id, m.kind, m.symptom, m.cause, m.fix, m.when)) push(mistakeCard(m)); }
+  else if (gid === 'refs.mistakes') { for (const m of mistakes) if (hit(q, m.id, m.old, m.kind, m.symptom, m.cause, m.fix, m.when)) push(mistakeCard(m)); }
   else if (gid.startsWith('refs.design.')) { const t = gid.slice(12); for (const r of designRefs) if (r.type === t && hit(q, r.type, r.service, r.what, r.license, r.url)) push(designRefCard(r)); }
   else if (gid === 'refs.design') { for (const r of designRefs) if (hit(q, r.type, r.service, r.what, r.license, r.url)) push(designRefCard(r)); }
   else if (gid === 'refs.entries') { for (const e of entries) if (hit(q, e.statement, e.id, e.sub, optionLabel(aspectById[e.aspect], e.value), scopeText(e.scope), e.status)) push(entryCard(e)); }
@@ -1168,6 +1287,7 @@ function render() {
   $('#next').textContent = idx === screens.length - 1 ? '처음으로' : '다음';
   if (!scrShown(sc)) { root.innerHTML = `<div class="card"><p class="q">이 목차는 지금 고른 내용에는 해당하지 않습니다.</p><p class="hint">${esc(condText((sc.src || sc.cat || {}).when))}을(를) 고르면 나옵니다.</p></div>`; renderRibbon(); if ($('#tree')) renderTreeOnly(); placeScroll('flow:' + idx, y0); return; }
   ({intro: renderIntro, reffirst: renderRefFirst, dims: renderDims, taste: renderTaste, project: renderProject, structure: renderItems, review: renderItems, approve: renderItems, summary: renderSummary}[sc.kind])(root, sc);
+  if (RECO) root.insertBefore(recoPanel(), root.firstChild);
   try { sessionStorage.setItem(KEY + ':idx', String(idx)); } catch (e) {}
   renderRibbon();
   if ($('#tree')) { renderTreeOnly(); followTree(); }
@@ -1383,7 +1503,7 @@ function renderDims(root, sc) {
     const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'dim:' + did;
     const def = SPEC.defaults && SPEC.defaults.dimensions && SPEC.defaults.dimensions[did] != null;
     const cond = d.when || d.ask_when; if (cond) card.classList.add('sub');
-    card.innerHTML = `<p class="q">${esc(d.name)}${d.type === 'multi' ? ' <span class="badge">여러 개</span>' : ''}${def ? ' <span class="badge">지난번과 같음</span>' : ''}${state.dim_from[did] === 'reference' ? ' <span class="badge warn">레퍼런스에서</span>' : ''}</p>` + (cond ? `<p class="hint cond">↳ ${esc(condText(cond))}을(를) 골라서 나온 질문</p>` : '') + (d.desc ? `<p class="hint">${esc(d.desc)}</p>` : '');
+    card.innerHTML = `<p class="q">${esc(d.name)}${d.type === 'multi' ? ' <span class="badge">여러 개</span>' : ''}${def ? ' <span class="badge">지난번과 같음</span>' : ''}${state.dim_from[did] === 'reference' ? ' <span class="badge warn">레퍼런스에서</span>' : ''}</p>` + recoMark('dim', did) + (cond ? `<p class="hint cond">↳ ${esc(condText(cond))}을(를) 골라서 나온 질문</p>` : '') + (d.desc ? `<p class="hint">${esc(d.desc)}</p>` : '');
     const cur = state.dimensions[did];
     if (d.type === 'text') card.appendChild(freeInput(cur, v => { state.dimensions[did] = v; save(); }, d.desc || '직접 입력'));
     else {
@@ -1391,7 +1511,7 @@ function renderDims(root, sc) {
       let box = null;
       const freeBox = document.createElement('div'); freeBox.className = 'row';
       const rerender = () => { if (box.sync) box.sync(state.dimensions[did], d.primary ? state.dimensions[did + '_primary'] : null); else { const nb = optButtons(opts, state.dimensions[did], d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null); card.replaceChild(nb, box); box = nb; } freeBox.hidden = !(d.type === 'multi' ? asArr(state.dimensions[did]).includes('other') : state.dimensions[did] === 'other'); if ($('#tree')) renderTreeOnly(); };
-      const pick = id => { pickDim(did, id); if (DEP_KEYS.has(did)) { render(); return; } rerender(); };
+      const pick = id => { pickDim(did, id); if (DEP_KEYS.has(did) || recOf('dim', did)) { render(); return; } rerender(); };
       box = choiceBox('dim', did, opts, cur, d.type === 'multi', pick, d.primary ? state.dimensions[did + '_primary'] : null);
       card.appendChild(box);
       freeBox.appendChild(freeInput(state.dimensions[did + '_other'], v => { state.dimensions[did + '_other'] = v; save(); }, '기타 내용'));
@@ -1431,6 +1551,7 @@ function tasteCard(a) {
     head += `<div class="cur">${badges}<div>${esc(optionLabel(a, w.value))}</div><small>${esc(w.statement)}</small></div>`;
   } else head += '<p class="hint"><span class="badge warn">처음 정하는 항목</span> 아직 학습된 값이 없습니다. 예시에서 고르거나 트리의 지난 답·취향을 끌어다 놓으면 그 값으로 정해집니다.</p>';
   card.innerHTML = head;
+  const recEl = document.createElement('div'); card.appendChild(recEl);
   const row = document.createElement('div'); row.className = 'row';
   const mk = (label, c, on) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.dataset.c = c; b.textContent = label; b.onclick = on; return b; };
   const optsBox = document.createElement('div'); optsBox.style.marginTop = '8px';
@@ -1444,6 +1565,7 @@ function tasteCard(a) {
   }
   function paint() {
     const cur = state.aspects[a.id] || {};
+    recEl.innerHTML = recoMark('asp', a.id);
     if (dgrid) dgrid.sync(cur.choice === 'skip' ? null : (cur.value != null ? cur.value : (cur.choice === 'keep' && m ? m.winner.value : null)));
     for (const b of row.querySelectorAll('.btn')) b.setAttribute('aria-pressed', b.dataset.c === cur.choice ? 'true' : 'false');
     const showOpts = cur.choice === 'change' || cur.choice === 'new' || (m && m.conflict && !['skip', 'ref'].includes(cur.choice)) || (m && m.inferred && !['skip', 'ref'].includes(cur.choice));
@@ -1509,11 +1631,11 @@ function tasteCard(a) {
 function renderProject(root) {
   for (const q of projectQs.filter(whenOk)) {
     const card = document.createElement('div'); card.className = 'card'; card.dataset.drop = 'pq:' + q.id;
-    card.innerHTML = `<p class="q">${esc(q.text)}</p>`;
+    card.innerHTML = `<p class="q">${esc(q.text)}</p>` + recoMark('pq', q.id);
     const cur = state.project[q.id];
     if (q.type === 'text') { const t = document.createElement('textarea'); t.value = cur || ''; t.oninput = () => { state.project[q.id] = t.value; save(); }; card.appendChild(t); }
     else {
-      let box; const pick = id => { if (q.type === 'multi') { const arr = Array.isArray(state.project[q.id]) ? [...state.project[q.id]] : []; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); state.project[q.id] = arr; } else state.project[q.id] = id; save(); const nb = optButtons(visOpts(q.options), state.project[q.id], q.type === 'multi', pick); card.replaceChild(nb, box); box = nb; if ($('#tree')) renderTreeOnly(); };
+      let box; const pick = id => { if (q.type === 'multi') { const arr = Array.isArray(state.project[q.id]) ? [...state.project[q.id]] : []; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); state.project[q.id] = arr; } else state.project[q.id] = id; save(); if (recOf('pq', q.id)) { render(); return; } const nb = optButtons(visOpts(q.options), state.project[q.id], q.type === 'multi', pick); card.replaceChild(nb, box); box = nb; if ($('#tree')) renderTreeOnly(); };
       box = optButtons(visOpts(q.options), cur, q.type === 'multi', pick); card.appendChild(box);
       card.appendChild(opinionBox('pq:' + q.id));
     }
@@ -1602,13 +1724,14 @@ function cleanAnswers() { // 지금 조건에 안 맞아 숨은 질문·선택�
 function payload(stage) { // stage: 'references' = 「레퍼런스만 먼저 보내기」(분석해서 질문지를 채워 달라), 그 밖에는 'full'
   const c = cleanAnswers();
   const p = {spec_id: SPEC.spec_id || null, mode, stage: stage === 'references' ? 'references' : 'full', lecture: SPEC.lecture || null, submitted_at: new Date().toISOString(),
-    client: (window.claude && typeof window.claude.use === 'function') ? 'artifact' : 'file',
+    client: (window.claude && typeof window.claude.use === 'function') ? 'artifact' : 'file', context: workContext(),
     dimensions: c.dimensions, aspects: c.aspects, project: c.project, opinions: c.opinions, items: state.items, overall: state.overall, notes: state.notes,
     base_project: state.base_project, refs: state.refs, new_refs: state.new_refs};
   if (mode === 'interview') {
     p.references = refItems().map(r => ({where: String(r.where || '').trim(), note: String(r.note || '').trim(), follow: (r.follow && r.follow.length) ? r.follow : ['all'], from: r.from || ''}));
     p.ref_none = !!state.ref_none && !p.references.length;
     const df = Object.keys(state.dim_from).filter(k => state.dim_from[k] === 'reference' && k in c.dimensions);
+    if (RECO) p.recommend = recoPayload(c);
     if (PREFILL) p.prefill = {id: prefillKey, source: PREFILL.source || '', dims_kept: df, aspects_kept: Object.keys(c.aspects).filter(k => c.aspects[k].from === 'reference')};
   }
   return p;
@@ -1625,6 +1748,7 @@ function renderSummary(root) {
     const keep = Object.values(state.aspects).filter(x => x.choice === 'keep').length, change = Object.values(state.aspects).filter(x => x.choice === 'change').length, nw = Object.values(state.aspects).filter(x => x.choice === 'new').length, always = Object.values(state.aspects).filter(x => x.always).length;
     const nref = Object.values(p.aspects).filter(x => x.choice === 'ref').length, nskip = Object.values(p.aspects).filter(x => x.choice === 'skip').length;
     html += `<p class="small">취향: 그대로 ${keep} · 다르게 ${change} · 처음 정함 ${nw} · 레퍼런스대로 ${nref} · 제외 ${nskip} · 항상 바꾸기 제안 ${always}</p>`;
+    if (p.recommend) html += `<p class="small">대화 추천: ${p.recommend.stats.recommended}개 중 그대로 ${p.recommend.stats.kept} · 바꿈 ${p.recommend.stats.changed} · 지움 ${p.recommend.stats.cleared}${p.recommend.stats.hidden ? ' · 숨음 ' + p.recommend.stats.hidden : ''} — 바꾼 것은 다음 추천에 반영됩니다</p>`;
     html += `<p class="small">레퍼런스: ${p.references.length ? esc(p.references.map(r => short(r.where || r.note, 50)).join(' / ')) : (p.ref_none ? '이번엔 없이' : '없음')}</p>`;
     const open = aspects.filter(a => cats.some(c => a.sub.startsWith(c.id + '.')) && aspShown(a)).filter(a => { const m = matchAspect(a.id); const s = state.aspects[a.id]; return (m && (m.conflict || m.inferred) && !s) || (!m && !s); });
     if (open.length) html += `<p class="small ng">아직 답하지 않은 항목 ${open.length}개: ${esc(open.map(a => a.text).join(' / '))}</p>`;
@@ -1694,6 +1818,8 @@ function renderDashboard(root) {
   stats.appendChild(statTile(mistakes.length, '실수 기록', () => setView('store', 'mistakes')));
   stats.appendChild(statTile(designRefs.length, '레퍼런스 서비스', () => setView('store', 'refs')));
   stats.appendChild(statTile(templates.length, '템플릿', () => setView('store', 'templates')));
+  const rs = (store.reco && store.reco.stats) || null;
+  stats.appendChild(statTile(rs && rs.hit_rate != null ? Math.round(rs.hit_rate * 100) + '%' : '—', `대화 추천 적중률 (인터뷰 ${rs ? rs.interviews : 0}번 · 수정 요청 ${rs ? rs.corrections : 0})`, () => { const el = document.getElementById('recodash'); if (el && el.scrollIntoView) el.scrollIntoView({block: 'start'}); }));
   root.appendChild(stats);
   const grid = document.createElement('div'); grid.className = 'grid2';
   const prog = document.createElement('div'); prog.className = 'card'; prog.style.margin = '0';
@@ -1729,6 +1855,15 @@ function renderDashboard(root) {
   const lastL = lessons[lessons.length - 1], lastC = changes[changes.length - 1];
   rec.innerHTML = '<p class="q">최근 기록</p><div class="kv">' + `<b>교훈</b><span>${lastL ? esc(short(lastL.title, 80)) : '없음'}</span>` + `<b>저장소 변경</b><span>${lastC ? esc(short(`${lastC.date} ${lastC.target} — ${lastC.action}`, 90)) : '없음'}</span>` + `<b>시작 전 점검표</b><span>${checklist.length ? checklist.map(x => esc(x)).join('<br>') : '없음'}</span></div>`;
   grid.appendChild(rec);
+  const rd = document.createElement('div'); rd.className = 'card'; rd.style.margin = '0'; rd.id = 'recodash';
+  const now = RECO ? recoTally() : null;
+  rd.innerHTML = '<p class="q">대화 추천 — 스스로 진화</p><p class="hint">추천을 그대로 두면 맞힌 것, 바꾸면 틀린 것으로 기록합니다. 제작 중 「이건 바꿔」라고 고친 것은 5배 무게로 배웁니다. 같은 상황인데 다르게 끝난 칸은 작업 여건·상황 차이라는 단서가 확실할 때만 규칙을 나누고, 애매하면 그때그때 취향으로 쌓아 기우는 쪽이 분명해지면(80%) 그쪽을 미리 고릅니다.</p><div class="kv">'
+    + `<b>이번 인터뷰</b><span>${now ? `추천 ${now.total - now.hidden} · 그대로 ${now.kept} · 바꿈 ${now.changed + now.cleared}` : '대화 추천 없이 시작'}</span>`
+    + `<b>지금까지</b><span>${rs ? `추천 ${rs.recommended}칸 중 그대로 ${rs.kept} (${rs.hit_rate != null ? Math.round(rs.hit_rate * 100) + '%' : '—'}) · 규칙 ${store.reco.rules}개` : '기록 없음'}</span>`
+    + (rs && (rs.runs || []).length ? `<b>최근</b><span>${rs.runs.slice(-5).map(x => esc(`${x.date} ${lectureName(x.project)} ${x.hit_rate != null ? Math.round(x.hit_rate * 100) + '%' : '—'} (${x.kept}/${x.recommended})`)).join('<br>')}</span>` : '')
+    + (store.reco && (store.reco.shaky || []).length ? `<b>갈린 칸</b><span>${store.reco.shaky.slice(0, 5).map(x => esc(short(x, 110))).join('<br>')}</span>` : '')
+    + '</div>';
+  grid.appendChild(rd);
   root.appendChild(grid);
 }
 function renderStore(root) {
@@ -1786,6 +1921,7 @@ function renderHelp(root) {
 <p><b>기타 의견</b>: 질문마다 선택지 아래 「기타 의견」 칸에 자유롭게 적을 수 있습니다(사이드 트리의 같은 질문과 같은 칸). 참고를 끌어다 놓는 칸은 그 아래에 있습니다.</p>
 <p><b>레퍼런스 먼저</b>: 인터뷰 첫 화면 다음에 레퍼런스 사이트 목록이 나옵니다. 둘러보다 찾은 자료의 주소·파일 경로를 「찾은 레퍼런스」에 넣고 따를 것(전체 양식·글·디자인·구성·움직임)을 고르세요. 「레퍼런스만 먼저 보내기」를 누르면 Claude가 레퍼런스를 분석해 그 양식대로 질문지를 채운 페이지를 다시 드리고(「레퍼런스에서」 표시), 직접 답하면서 질문마다 「레퍼런스대로」를 골라도 됩니다.</p>
 <p><b>제외</b>: 이번 자료에 해당하지 않거나 정하지 않을 질문은 「제외」를 누릅니다.</p>
+<p><b>대화 추천</b>: Claude가 대화로 알아본 내용으로 답을 미리 골라 둔 칸에는 「대화 추천」과 한 줄 이유가 붙습니다. 다르면 그냥 바꾸면 「추천 → 바꿈」으로 바뀌고, 화면 위 요약판에 그대로·바꿈 수가 보입니다. 바꾼 것은 기록되어 다음 추천이 알아서 고쳐집니다(확인 질문 없음).</p>
 <p class="small">제출 JSON: stage(full · references) · dimensions · aspects(choice: keep/change/new/ref/skip · value/always/note/from/reason) · project · opinions(질문별 기타 의견) · references(찾은 레퍼런스: where/note/follow) · ref_none · base_project · refs · new_refs · items · overall.</p>`;
   root.appendChild(c);
 }

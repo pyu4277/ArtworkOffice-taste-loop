@@ -40,7 +40,10 @@ ch.choices = {'P1.1.formality|slogan': {aspect: 'P1.1.formality', option: 'sloga
   examples: {liked: [], disliked: []}, learned_from: ['demo_expo'], source: [{file: 'test'}], history: [{date: '2026-01-01', project: 'demo_expo', change: '처음 정함'}]}};
 writeJson(path.join(store, 'knowledge', 'choices.json'), ch);
 const k05 = path.join(store, 'knowledge', '05_실수_기록.md');
-fs.writeFileSync(k05, fs.readFileSync(k05, 'utf8').replace(/^(\|---.*)$/m, '$1\n| E1 | 2026-01-01 · demo | 누락 | 예시 증상 | 예시 원인 | 예시 방법 | 1회 |'));
+// 번호 칸 세 형식: 「E1」 · 합칠 때 번호를 바꾼 줄 「E2 (옛 E?-demo-1)」 · 작업 공간 임시 번호 「E?-demo-2」
+fs.writeFileSync(k05, fs.readFileSync(k05, 'utf8').replace(/^(\|---.*)$/m, '$1\n| E1 | 2026-01-01 · demo | 누락 | 예시 증상 | 예시 원인 | 예시 방법 | 1회 |'
+  + '\n| E2 (옛 E?-demo-1) | 2026-01-02 · demo | 절차 | 번호를 바꾼 예시 | 예시 원인 | 예시 방법 | 1회 |'
+  + '\n| E?-demo-2 | 2026-01-03 · demo | 버그 | 임시 번호 예시 | 예시 원인 | 예시 방법 | 1회 |'));
 fs.appendFileSync(path.join(store, 'knowledge', '01_교훈_기록.md'), '\n### 2026-01-01 — demo_expo / 예시\n- 예시 교훈\n');
 writeJson(path.join(proj, 'demo_prev', 'materials', '인터뷰', '01_제작인터뷰_답변.json'), {mode: 'interview', lecture: 'demo_prev', submitted_at: '2026-01-02T00:00:00Z',
   dimensions: {material_type: 'slides'}, aspects: {'P1.1.energy': {choice: 'new', value: 'calm'}}, project: {topic: '예시'}});
@@ -95,11 +98,26 @@ ok(scripts.length === 1, `script 블록 ${scripts.length}개 (1이어야 함)`);
 try { new Function(scripts[0].replace(/^<script>|<\/script>$/g, '')); ok(true, '스크립트 문법'); } catch (e) { ok(false, '스크립트 문법: ' + e.message); }
 ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일용 doctype · 자리표시자 치환');
 
+// 1-1) 실수 표: 괄호에 옛 표기가 붙은 줄 · 임시 번호 줄도 읽는다(1.4.1 — 전에는 괄호가 붙은 줄을 통째로 빠뜨렸다)
+{
+  const {w, d, errors} = open(fileA, false);
+  const PE = w.PE;
+  const ids = PE.store.mistakes.map(m => m.id).join(',');
+  const e2 = PE.store.mistakes.find(m => m.id === 'E2');
+  ok(ids === 'E1,E2,E?-demo-2' && !!e2 && e2.old === '옛 E?-demo-1' && e2.symptom === '번호를 바꾼 예시', `실수 표 번호 칸 세 형식: ${ids} · E2 옛 표기 ${e2 && e2.old}`);
+  PE.view('store', 'mistakes');
+  ok(d.querySelectorAll('#screen .rc[data-kind="mistake"]').length === 3, '저장소 → 실수 카드 3개');
+  d.querySelector('#storeq').value = 'demo-1'; d.querySelector('#storeq').dispatchEvent(new w.Event('input', {bubbles: true}));
+  const cards = d.querySelectorAll('#screen .rc[data-kind="mistake"]');
+  ok(cards.length === 1 && /E2/.test(cards[0].textContent) && /옛 E\?-demo-1/.test(cards[0].textContent), '옛 표기로 검색 → 그 카드 하나, 카드에 옛 표기가 보임');
+  ok(errors.length === 0, '실수 표 화면 오류 없음' + (errors.length ? ': ' + errors.join(' | ') : ''));
+}
+
 // 2) 판정 규칙·질문 유형·제출
 {
   const {w, d, errors} = open(fileA, false);
   const PE = w.PE;
-  ok(PE.store.projects.length === 1 && PE.store.past_answers.length === 1 && PE.store.mistakes.length === 1 && PE.store.lessons.length === 1 && Object.keys(PE.store.choices).length === 1, '저장소 주입: 프로젝트·지난 답변·실수·교훈·선택 기록 각 1');
+  ok(PE.store.projects.length === 1 && PE.store.past_answers.length === 1 && PE.store.mistakes.length === 3 && PE.store.lessons.length === 1 && Object.keys(PE.store.choices).length === 1, '저장소 주입: 프로젝트·지난 답변·교훈·선택 기록 각 1 · 실수 3(번호 칸 세 형식)');
   PE.setDim('material_type', 'video_promo');
   let m = PE.matchAspect('P2.5.on_screen_text');
   ok(m && m.winner.id === 'P2.5-260101-01' && !m.conflict, '좁은 범위 항목이 이김 (전시 영상 → 자막 한 줄)');
@@ -248,7 +266,7 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   PE.tree.search('coolors');
   ok(d.querySelectorAll('#tree .rc').length === 1, '트리 검색');
   PE.tree.search('');
-  PE.view('dashboard'); ok(d.querySelectorAll('#screen .stat').length === 9 && d.querySelectorAll('#screen .sim').length === 1, '대시보드 타일 9 · 비슷한 프로젝트 1');
+  PE.view('dashboard'); ok(d.querySelectorAll('#screen .stat').length === 10 && d.querySelectorAll('#screen .sim').length === 1, '대시보드 타일 10(대화 추천 적중률 포함) · 비슷한 프로젝트 1');
   PE.view('store', 'choices'); ok(d.querySelectorAll('#screen table tr').length === 2, '저장소 → 선택 기록 표');
   PE.view('help'); ok(/선택 펼치기/.test(d.querySelector('#screen').textContent), '도움말');
   PE.side(false); ok(!d.querySelector('#sidetab').hidden, '트리 닫기 → 손잡이');
@@ -328,9 +346,9 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   ok(PE.state.aspects['P1.1.energy'].choice === 'skip' && !PE.state.aspects['P1.1.energy'].from, '「제외」로 바꾸면 레퍼런스 표시가 빠짐');
   // P2.6 · P2.7
   ok(!PE.applicable('P2').some(a => a.startsWith('P2.7.')), 'P2.7 레퍼런스 질문은 2부에 없음(맨 앞으로 옮김)');
-  ok(!PE.applicable('P2').includes('P2.6.motion_strength'), 'PPT(X)만이면 P2.6 움직임 질문 숨김');
+  ok(PE.applicable('P2').includes('P2.6.motion_strength'), 'PPT(X)만이어도 P2.6 움직임 질문을 묻는다(질문 은행 v4 — 숨기지 않음)');
   PE.setDim('file_format', ['pptx', 'html']);
-  ok(PE.applicable('P2').includes('P2.6.motion_strength'), 'HTML도 고르면 P2.6 움직임 질문이 나타남');
+  ok(PE.applicable('P2').includes('P2.6.motion_strength'), 'HTML을 더해도 P2.6 움직임 질문 그대로');
   PE.setDim('file_format', ['mp4']); PE.setDim('material_type', ['video_promo']);
   ok(PE.applicable('P2').includes('P2.6.motion_still'), 'MP4 영상이면 P2.6 질문(정지 화면 검수 포함)');
   // 「이번엔 레퍼런스 없이」
@@ -374,6 +392,105 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   const html = fs.readFileSync(fileP, 'utf8');
   const dom2 = new JSDOM(html, {runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://localhost/', beforeParse(win) { win.scrollTo = () => {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); win.localStorage.setItem(k, w.localStorage.getItem(k)); } }});
   ok(dom2.window.PE.state.aspects['P1.1.energy'].value === 'lively', '다시 열어도 바꾼 답 유지(prefill 은 한 번만)');
+}
+// 4-3) 1.4.0 대화 추천: --recommend → 추천 답이 골라진 채로 시작 · 「대화 추천」/「추천 → 바꿈」 · 요약판 · 제출 차이 → recommend.py record/correct/suggest
+{
+  const RC = (args, env) => spawnSync(PY, [...PYARGS, path.join(HERE, 'recommend.py'), ...args], {encoding: 'utf8', env: Object.assign({}, process.env, env || ENV)});
+  const st = RC(['selftest']);
+  ok(st.status === 0 && /자체 시험 통과/.test(st.stdout), 'recommend.py 자체 시험' + (st.status ? ': ' + st.stdout.split('\n').filter(l => l.startsWith('FAIL')).join(' | ') : ''));
+  const rcF = path.join(proj, 'demo', 'materials', '인터뷰', '00_추천.json');
+  writeJson(rcF, {id: 'rc1', summary: 'materials/인터뷰/00_대화요약.md', signals: ['tag:강의', 'bad signal'],
+    dimensions: {material_type: {value: ['slides'], reason: '강의 발표자료라고 함', basis: 'said'}, file_format: {value: ['html'], reason: '발표는 HTML', basis: 'inferred'}, no_such: {value: 'x'}},
+    aspects: {'P2.4.theme': {value: 'dark', reason: '어두운 강의실', basis: 'said'}, 'P1.2.form': {value: 'sentence', reason: '짧은 문장 선호', basis: 'inferred'}, 'P9.x': {value: 'a'}, 'P1.1.energy': {value: 'no_such'}},
+    project: {delivery: {value: 'artifact', reason: '휴대폰으로 봄', basis: 'inferred'}}});
+  const ck = RC(['check', rcF]);
+  ok(ck.status === 1 && /no_such/.test(ck.stdout) && /P9\.x/.test(ck.stdout) && /bad signal/.test(ck.stdout) && /취향 2/.test(ck.stdout), 'recommend.py check: 없는 질문·값·틀린 신호를 알림 (반대 시험)');
+  const fileRc = path.join(tmp, 'out', '01_제작인터뷰_추천.html');
+  const r = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), '--lecture', 'demo', '--mode', 'interview', '--out', fileRc, '--recommend', rcF, '--like', 'demo_expo'], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  ok(r.status === 0 && /대화 추천: 1부 2개 · 취향 2개 · 3부 1개/.test(r.stderr), 'build --recommend (' + ((r.stderr.match(/대화 추천[^\n]*/) || [''])[0]) + ')');
+  const {w, d, errors} = open(fileRc, false);
+  const PE = w.PE, s = PE.state;
+  ok(s.dimensions.material_type.join() === 'slides' && s.dim_from.material_type === 'reco' && Array.isArray(s.dimensions.purpose) && s.dimensions.purpose.join() === 'exhibit', '순서: 대화 추천(콘텐츠 형태=발표자료)이 지난 프로젝트 기본값(홍보 영상)을 이기고, 추천이 없는 칸은 기본값');
+  ok(s.aspects['P1.2.form'].choice === 'keep' && s.aspects['P1.2.form'].value === 'sentence' && s.aspects['P2.4.theme'].choice === 'new' && s.aspects['P2.4.theme'].value === 'dark' && s.project.delivery === 'artifact', '취향: 학습값과 같으면 「그대로」, 처음이면 「처음 정함」으로 골라 둠 · 3부도 골라 둠');
+  PE.go(PE.screens.findIndex(x => x.id === 'S1'));
+  const panel = d.querySelector('#screen #recopanel');
+  ok(!!panel && d.querySelector('#screen').firstElementChild === panel && /대화 추천/.test(panel.textContent) && panel.querySelector('[data-n="kept"]').textContent === '5' && panel.querySelector('[data-n="changed"]').textContent === '0', '화면 위 요약판: 대화 추천 5 · 그대로 5 · 바꿈 0');
+  const mt = d.querySelector('#screen [data-drop="dim:material_type"] .recoline');
+  ok(mt && mt.dataset.st === 'kept' && /대화 추천/.test(mt.textContent) && /강의 발표자료라고 함/.test(mt.textContent) && /직접 말함/.test(mt.textContent), '1부 카드: 「대화 추천」 + 한 줄 이유 + 근거(직접 말함)');
+  w.__y = 300;
+  d.querySelector('#screen [data-drop="dim:file_format"] .opt[data-id="pptx"]').click();
+  const ff = d.querySelector('#screen [data-drop="dim:file_format"] .recoline');
+  ok(ff && ff.dataset.st === 'changed' && /추천 → 바꿈/.test(ff.textContent) && d.querySelector('#recopanel [data-n="changed"]').textContent === '1', '바꾸면 「추천 → 바꿈」(추천 → 지금) · 요약판 바꿈 1');
+  ok(w.scrollY === 300, '추천 칸을 바꿔 다시 그려도 스크롤 자리 유지');
+  PE.go(PE.screens.findIndex(x => x.id === 'P2'));
+  PE.setAspect('P2.4.theme', 'skip', null); PE.go(PE.screens.findIndex(x => x.id === 'P2'));
+  const th = d.querySelector('#screen [data-drop="aspect:P2.4.theme"] .recoline');
+  ok(th && th.dataset.st === 'cleared' && /\(비움\)/.test(th.textContent) && /어두운 강의실/.test(th.textContent), '취향 카드: 「제외」하면 「추천 → 바꿈」(비움) + 추천 이유');
+  PE.setAspect('P2.4.theme', 'change', 'light'); PE.go(PE.screens.findIndex(x => x.id === 'P2'));
+  ok(/바꾼 것 2개/.test(d.querySelector('#recopanel details summary').textContent), '요약판: 바꾼 것 목록(펼침)');
+  const p = PE.payload();
+  const it = k => p.recommend.items.find(x => x.key === k);
+  ok(p.recommend.id === 'rc1' && p.recommend.signals.join() === 'tag:강의' && it('asp.P2.4.theme').outcome === 'changed' && it('asp.P2.4.theme').final === 'light' && it('asp.P1.2.form').outcome === 'kept'
+    && it('dim.file_format').outcome === 'changed' && it('dim.file_format').final.join() === 'html,pptx' && it('pq.delivery').outcome === 'kept' && p.recommend.stats.kept === 3 && p.recommend.stats.changed === 2, '제출 JSON recommend: 항목별 추천 · 최종 · 결과(그대로 3 · 바꿈 2) · 신호');
+  PE.view('dashboard');
+  ok(/이번 인터뷰/.test(d.querySelector('#recodash').textContent) && /그대로 3/.test(d.querySelector('#recodash').textContent), '대시보드: 대화 추천 카드(이번 인터뷰 그대로 3)');
+  PE.view('flow');
+  PE.go(PE.screens.length - 1);
+  ok(/대화 추천: 5개 중 그대로 3 · 바꿈 2/.test(d.querySelector('#screen').textContent), '정리 화면: 대화 추천 결과 한 줄');
+  ok(errors.length === 0, '오류 없음' + (errors.length ? ': ' + errors.join(' | ') : ''));
+  // 다시 열어도 바꾼 답을 덮지 않는다(추천은 한 번만)
+  const html = fs.readFileSync(fileRc, 'utf8');
+  const dom2 = new JSDOM(html, {runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://localhost/', beforeParse(win) { win.scrollTo = () => {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); win.localStorage.setItem(k, w.localStorage.getItem(k)); } }});
+  ok(dom2.window.PE.state.aspects['P2.4.theme'].value === 'light' && dom2.window.PE.state.dimensions.file_format.join() === 'html,pptx', '다시 열어도 바꾼 답 유지(추천은 한 번만)');
+  // 기록 → 배우기
+  const ansF = path.join(proj, 'demo', 'materials', '인터뷰', '01_제작인터뷰_답변.json');
+  writeJson(ansF, p);
+  const rec1 = RC(['record', ansF]);
+  ok(rec1.status === 0 && /추천 그대로 3 · 바꿈 2 · 지움 0/.test(rec1.stdout) && /이번 적중률 60%/.test(rec1.stdout), 'record: 추천 결과 기록 · 적중률 60% (' + rec1.stdout.split('\n')[0] + ')');
+  const planF = path.join(tmp, 'plan_rc.md');
+  const ap = spawnSync(PY, [...PYARGS, path.join(HERE, 'answers_to_plan.py'), '--lecture', 'demo', '--answers', ansF, '--out', planF], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  const plan = ap.status === 0 ? fs.readFileSync(planF, 'utf8') : '';
+  ok(/## 대화 추천/.test(plan) && /추천 5칸 중 그대로 3 · 바꿈 2 · 지움 0 → 적중률 60%/.test(plan) && /`asp\.P2\.4\.theme` \| "dark" \| "light"/.test(plan), '계획 문서: 「대화 추천」 절(적중률 · 바꾼 칸 표)' + (ap.status ? ': ' + ap.stderr : ''));
+  const rec2 = RC(['record', ansF]);
+  ok(rec2.status === 0 && /이미 기록한 제출/.test(rec2.stdout), 'record 두 번 → 이중 기록 막음');
+  const bad = RC(['correct', '--project', 'demo', '--key', 'asp.P2.4.theme', '--value', '"purple"', '--said', '보라로']);
+  ok(bad.status !== 0 && /선택지에 없는 값/.test(bad.stdout), 'correct: 없는 값은 거절(반대 시험)');
+  const cor = RC(['correct', '--project', 'demo', '--key', 'pq.delivery', '--value', '"repo"', '--said', '결과물은 레포에 넣어 줘']);
+  ok(cor.status === 0 && /가중치 5/.test(cor.stdout) && /규칙 R-/.test(cor.stdout), 'correct: 수정 요청 한 번(가중치 5)으로 바로 규칙');
+  const sg = RC(['suggest', '--from', rcF]);
+  ok(sg.status === 0 && /pq\.delivery: 짐작한 값 대신 'repo'/.test(sg.stdout), 'suggest: 짐작한 추천(artifact)을 수정 요청 규칙(repo)이 이김');
+  const cs = spawnSync(PY, [...PYARGS, path.join(HERE, 'check_store.py'), '--no-summary'], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  ok(cs.status === 0 && /대화 추천: 기록 \d+건/.test(cs.stdout), 'check_store: 대화 추천 기록·규칙 검사 통과');
+  const fileD = path.join(tmp, 'out', '01_제작인터뷰_추천2.html');
+  build(['--lecture', 'demo2', '--mode', 'interview', '--out', fileD]);
+  const o2 = open(fileD, false);
+  o2.w.PE.view('dashboard');
+  ok(/60%/.test(o2.d.querySelector('#recodash').textContent) && !o2.d.querySelector('#recopanel') && o2.errors.length === 0, '다음 인터뷰 대시보드: 지금까지 적중률 60% · 추천 없이 열면 요약판 없음');
+  // 작업 여건: 넓은 화면에서는 차분하게(calm) 3번, 휴대폰에서는 경쾌하게(lively) 3번 → 확실한 단서(기기) → 페이지가 열린 자리의 기기로 고른다
+  ok(p.context && p.context.device === '넓은화면' && Number.isInteger(p.context.local_hour) && p.context.client === 'file', '제출 JSON context: 작업 여건(기기 · 시간 · 요일 · 여는 방식)');
+  const logF = path.join(store, 'knowledge', 'recommend_log.json');
+  const lg = JSON.parse(fs.readFileSync(logF, 'utf8'));
+  const ev = (proj, day, dev, v) => ({run: proj + '@x', date: '2026-01-0' + day, project: proj, kind: 'interview', signals: ['tag:강의', 'ctx:기기=' + dev], weight: 1, key: 'asp.P1.1.energy', recommended: null, final: v, outcome: 'answered'});
+  lg.events.push(ev('w1', 1, '넓은화면', 'calm'), ev('w2', 2, '넓은화면', 'calm'), ev('w3', 3, '넓은화면', 'calm'), ev('m1', 4, '휴대폰', 'lively'), ev('m2', 5, '휴대폰', 'lively'), ev('m3', 6, '휴대폰', 'lively'));
+  fs.writeFileSync(logF, JSON.stringify(lg, null, 1));
+  const ln = RC(['learn']);
+  const stt = RC(['stats']);
+  ok(ln.status === 0 && /asp\.P1\.1\.energy: 같은 칸이 2가지로 끝남 → 작업 여건·상황 차이로 판단 — 단서 ctx:기기=/.test(stt.stdout), 'learn · stats: 같은 칸이 갈린 까닭을 작업 여건(기기)으로 판단');
+  const fileX = path.join(tmp, 'out', '01_제작인터뷰_여건.html');
+  const rx = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), '--lecture', 'demo3', '--mode', 'interview', '--out', fileX, '--recommend', rcF], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+  ok(rx.status === 0 && /작업 여건 규칙 [1-9]/.test(rx.stderr), 'build --recommend: 작업 여건 규칙을 페이지에 넣음 (' + ((rx.stderr.match(/작업 여건 규칙 \d+개/) || [''])[0]) + ')');
+  const openAs = narrow => { const errs = []; const dm = new JSDOM(fs.readFileSync(fileX, 'utf8'), {runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://localhost/',
+    beforeParse(win) { win.scrollTo = () => {}; win.addEventListener('error', e => errs.push(e.message)); win.matchMedia = q => ({matches: narrow && /max-width/.test(q), addEventListener() {}, removeEventListener() {}}); }}); return {w: dm.window, errs}; };
+  const wide = openAs(false), phone = openAs(true);
+  const en = o => o.w.PE.state.aspects['P1.1.energy'] || {};
+  ok(en(wide).value === 'calm' && en(phone).value === 'lively' && wide.errs.length + phone.errs.length === 0, `열린 자리의 작업 여건으로 고름: 넓은 화면 → ${en(wide).value} · 휴대폰 → ${en(phone).value}`);
+  phone.w.PE.go(phone.w.PE.screens.findIndex(x => x.id === 'P1'));
+  const ec = phone.w.document.querySelector('#screen [data-drop="aspect:P1.1.energy"] .recoline');
+  ok(ec && /작업 여건/.test(ec.textContent) && /지금 작업 여건/.test(ec.textContent), '카드: 「대화 추천」 이유에 작업 여건 규칙과 근거 표시');
+  // 질문 은행 v3 → v4: P2.6 의 파일 형식 조건(v3 가 더한 것)만 빠진다
+  const mg = spawnSync(PY, [...PYARGS, '-c', 'import sys,json; sys.path.insert(0, sys.argv[1]); import upgrade_store as U; q={"version":3,"categories":[],"aspects":[{"id":"P2.6.a","sub":"P2.6","when":{"material_type":["slides"],"file_format":["html","mp4","other"]}},{"id":"P2.6.b","sub":"P2.6","when":{"file_format":["pptx"]}}]}; n,_=U.migrate_qs(q); print(json.dumps(n["aspects"]))', HERE], {encoding: 'utf8'});
+  const ma = JSON.parse(mg.stdout || '[]');
+  ok(ma.length === 2 && !ma[0].when && ma[0].applies_when.material_type.join() === 'slides' && !ma[0].applies_when.file_format && ma[1].when.file_format.join() === 'pptx', 'upgrade v4: v3 가 더한 파일 형식 조건만 빼고(콘텐츠 형태는 applies_when), 사용자가 단 다른 조건은 그대로');
 }
 // 5) 빈 저장소(starter) — 처음 설치한 사람
 {

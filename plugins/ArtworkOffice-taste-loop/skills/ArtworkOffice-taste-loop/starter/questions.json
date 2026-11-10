@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "updated": "2026-11-07",
   "note": "B층 질문 은행 — 취향 하위 항목(aspect)마다 질문·선택지·적용 조건. preferences.json의 entry.aspect / entry.value는 여기 id와 맞아야 한다(check_store.py가 대조). applies_when은 dimensions.json의 차원 id와 값 id로 쓴다. 선택지는 「등등」 규칙으로 채웠고 '기타'는 자유 입력이다. (starter 기본값 — 설치하면 init_store.py가 데이터 폴더로 복사하고, 그 뒤에는 데이터 폴더 쪽을 고친다.)",
   "categories": [
@@ -794,7 +794,7 @@
           "label": "절제"
         }
       ],
-      "when": {
+      "applies_when": {
         "material_type": [
           "slides",
           "video_explainer",
@@ -802,11 +802,6 @@
           "video_tutorial",
           "video_lecture",
           "interactive"
-        ],
-        "file_format": [
-          "html",
-          "mp4",
-          "other"
         ]
       }
     },
@@ -825,7 +820,7 @@
           "label": "조금 허용"
         }
       ],
-      "when": {
+      "applies_when": {
         "material_type": [
           "slides",
           "video_explainer",
@@ -833,11 +828,6 @@
           "video_tutorial",
           "video_lecture",
           "interactive"
-        ],
-        "file_format": [
-          "html",
-          "mp4",
-          "other"
         ]
       }
     },
@@ -856,17 +846,12 @@
           "label": "아니오"
         }
       ],
-      "when": {
+      "applies_when": {
         "material_type": [
           "video_explainer",
           "video_promo",
           "video_tutorial",
           "video_lecture"
-        ],
-        "file_format": [
-          "html",
-          "mp4",
-          "other"
         ]
       }
     },

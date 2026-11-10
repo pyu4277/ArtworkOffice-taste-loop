@@ -52,8 +52,43 @@ Write-Host "| .mcp.json | Claude Code MCP(figma, higgsfield) | optional | $(if (
 # 스킬 연결(junction) — 다른 프로젝트에서도 쓰려면 (docs/setup.md)
 $link = Join-Path $env:USERPROFILE '.claude\skills\ArtworkOffice-taste-loop'
 Write-Host "| ~/.claude/skills/ArtworkOffice-taste-loop | 다른 프로젝트에서 스킬 사용 | optional | $(if (Test-Path $link) { '연결됨' } else { '없음 (이 레포 안에서는 필요 없음)' }) | |"
-# Orca 는 명령으로 감지할 수 없다
-Write-Host '| Orca | 여러 에이전트 병렬 실행 | agent | (감지 불가 — 사용자가 알려 주세요) | |'
+# Orca (여러 에이전트 병렬 실행) — orca 명령이 있으면 앱 상태를 묻는다
+$orcaCmd = if ($env:ORCA_CLI_COMMAND) { $env:ORCA_CLI_COMMAND } else { 'orca' }
+Write-Host "| Orca | 여러 에이전트 병렬 실행 | agent | $(if (Test-Command $orcaCmd) { '가능' } else { '없음 (Orca 앱 설치)' }) | |"
+# 프로젝트 필수 도구 — 데이터 폴더의 env_tools.json (check_env.py 와 같은 규칙: command 는 실행해서 종료 코드 0, path_record 는 PC별 설치 기록)
+$storeDir = $null
+foreach ($c in @($env:TASTE_LOOP_STORE, (Join-Path (Get-Location) '.claude\ArtworkOffice-taste-loop-data'), (Join-Path $env:USERPROFILE '.claude\ArtworkOffice-taste-loop-data'))) {
+    if ($c -and (Test-Path (Join-Path $c 'env_tools.json'))) { $storeDir = $c; break }
+}
+if ($storeDir) {
+    $spec = Get-Content -Raw -Encoding UTF8 (Join-Path $storeDir 'env_tools.json') | ConvertFrom-Json
+    foreach ($t in @($spec.tools)) {
+        $status = '설치 필요'; $note = [string]$t.install; $chk = $t.check
+        if ($chk.command) {
+            $cmd = if ($chk.command -eq 'orca') { $orcaCmd } else { [string]$chk.command }
+            if (Test-Command $cmd) {
+                $cargs = @($chk.args)
+                try {
+                    # 출력을 다 받은 뒤 첫 줄을 쓴다 — Select-Object -First 는 실행 중인 프로그램을 끊어 종료 코드가 -1 이 된다
+                    $outAll = @(& $cmd @cargs 2>$null); $code = $LASTEXITCODE; $o = if ($outAll.Count) { [string]$outAll[0] } else { '' }
+                    if ($code -eq 0) { $status = '가능'; $note = if ($o -like '{*') { 'ok' } else { $o.Substring(0, [Math]::Min(60, $o.Length)) } }
+                    else { $note = "종료 코드 $code — $($t.install)" }
+                } catch { $note = "실행 실패 — $($t.install)" }
+            }
+        } elseif ($chk.path_record) {
+            $recFile = Join-Path (Get-Location) $chk.path_record
+            if (Test-Path $recFile) {
+                $rec = Get-Content -Raw -Encoding UTF8 $recFile | ConvertFrom-Json
+                $entry = @($rec.($chk.key).installs) | Where-Object { $_.computer -and ([string]$_.computer).ToUpper() -eq $env:COMPUTERNAME.ToUpper() } | Select-Object -First 1
+                if ($entry) {
+                    $missing = @(@($chk.needs) | Where-Object { -not (Test-Path (Join-Path $entry.path $_)) })
+                    if ($missing.Count -eq 0) { $status = '가능'; $note = $entry.path } else { $note = "$($entry.path) 에 $($missing -join ', ') 없음 — $($t.install)" }
+                } else { $note = "이 PC($env:COMPUTERNAME) 기록 없음 — $($t.install)" }
+            }
+        }
+        Write-Host "| $($t.name) | $($t.use) | $($t.level) | $status | $note |"
+    }
+}
 if (Test-Command 'ego-browser') {
     ego-browser nodejs -e "console.log('ego-browser ready')" 2>&1 | Select-Object -First 1 | ForEach-Object { Write-Host "ego-browser 실행 확인: $_" }
 }

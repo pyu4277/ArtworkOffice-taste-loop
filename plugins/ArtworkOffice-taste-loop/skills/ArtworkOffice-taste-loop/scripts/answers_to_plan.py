@@ -156,6 +156,29 @@ def reference_section(ans, asp_ans, opinions, aspects, dims):
     return L
 
 
+def recommend_section(ans):
+    """「대화 추천」 절(1.4.0) — 추천과 최종 답의 차이. 바꾼 칸은 다음 추천이 배우도록 recommend.py record 로 기록한다."""
+    rc = ans.get('recommend')
+    if not isinstance(rc, dict) or not rc.get('items'):
+        return []
+    st = rc.get('stats') or {}
+    n = st.get('recommended') or 0
+    L = ['## 대화 추천 (스킬 3.0 — 추천이 골라진 채로 시작한 인터뷰)', '',
+         f"- 추천 {n}칸 중 그대로 {st.get('kept', 0)} · 바꿈 {st.get('changed', 0)} · 지움 {st.get('cleared', 0)}"
+         + (f" · 숨음 {st.get('hidden')}" if st.get('hidden') else '')
+         + (f" → 적중률 {round(100 * st.get('kept', 0) / n)}%" if n else '')
+         + (f" · 대화 요약 `{rc.get('summary')}`" if rc.get('summary') else ''),
+         '- 기록: `python3 -I <skill>/scripts/recommend.py record materials/인터뷰/01_제작인터뷰_답변.json` (한 번만 — 두 번 하면 막는다)', '']
+    ch = [x for x in rc['items'] if x.get('outcome') in ('changed', 'cleared')]
+    if ch:
+        L += ['| 칸 | 추천 | 최종 | 추천 이유 |', '|---|---|---|---|']
+        for x in ch:
+            fin = '(비움)' if x.get('outcome') == 'cleared' else json.dumps(x.get('final'), ensure_ascii=False)
+            L.append(f"| `{x.get('key')}` | {json.dumps(x.get('recommended'), ensure_ascii=False)} | {fin} | {str(x.get('reason') or '').replace('|', '/')} |")
+        L.append('')
+    return L
+
+
 def target_label(target, dims, aspects, pq):
     if target == 'base':
         return '기본 양식'
@@ -229,6 +252,7 @@ def main(argv):
               f'- **{bp.get("title", bp.get("id"))}** (`{src}`) — 차원 {bp.get("dims_set", "?")}개 · 취향 {bp.get("aspects_set", "?")}개를 이 기록대로 맞춤 ({str(bp.get("applied_at", ""))[:10]})',
               '- 뜻: 사용자는 이 프로젝트의 설정을 **기본 셋팅**으로 원한다. 그 기록의 차원 값·적용 항목·결정·결과를 출발점으로 삼고, 아래 표에서 달라진 답만 차이로 다룬다. 추측으로 바꾸지 않는다.', '']
     L += reference_section(ans, ans.get('aspects') or {}, opinions, aspects, dims)
+    L += recommend_section(ans)
     L += ['## 사양 (차원 값 — 인터뷰 1부)', '', '| 차원 | 값 | 참고·기타 의견 |', '|---|---|---|']
     for d in dims['dimensions']:
         v = dv.get(d['id'])
