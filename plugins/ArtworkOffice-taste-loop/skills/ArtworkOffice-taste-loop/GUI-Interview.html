@@ -437,7 +437,7 @@ if (RECO && Array.isArray(RECO.ctx_rules) && RECO.ctx_rules.length) {
     if (!sec) continue;
     RECO[sec] = RECO[sec] || {};
     const cur = RECO[sec][id];
-    if (cur && cur.basis === 'said') continue; // 대화에서 직접 말한 값은 규칙이 바꾸지 않는다
+    if (cur && (cur.basis === 'said' || cur.basis === 'attached')) continue; // 대화에서 직접 말한 값 · 첨부자료에 적힌 값은 규칙이 바꾸지 않는다(1.5.0)
     if (r.no_preselect) { delete RECO[sec][id]; continue; }
     RECO[sec][id] = {value: clone(r.value), reason: '작업 여건: ' + r.reason, basis: 'rule:' + r.id};
   }
@@ -501,7 +501,7 @@ function recoName(it) { return it.kind === 'dim' ? ((dimById[it.id] || {}).name 
 function recoMark(kind, id) { // 카드 머리: 「대화 추천」 + 한 줄 이유, 바꾸면 「추천 → 바꿈」
   const r = recOf(kind, id); if (!r) return '';
   const st = recoStatus(kind, id);
-  const basis = String(r.basis || '').startsWith('rule:') ? (/^작업 여건/.test(r.reason || '') ? '지난 기록 · 지금 작업 여건' : /그때그때/.test(r.reason || '') ? '그때그때 취향 — 기우는 쪽' : '지난 기록에서 배움') : r.basis === 'said' ? '대화에서 직접 말함' : '대화에서 짐작';
+  const basis = String(r.basis || '').startsWith('rule:') ? (/^작업 여건/.test(r.reason || '') ? '지난 기록 · 지금 작업 여건' : /그때그때/.test(r.reason || '') ? '그때그때 취향 — 기우는 쪽' : '지난 기록에서 배움') : r.basis === 'said' ? '대화에서 직접 말함' : r.basis === 'attached' ? '첨부자료에서' + (r.from ? ' (' + r.from + ')' : '') : '대화에서 짐작';
   const why = (r.reason ? esc(r.reason) + ' · ' : '') + `<span class="small">${basis}</span>`;
   if (st === 'kept') return `<p class="recoline" data-reco="${esc(kind + '.' + id)}" data-st="kept"><span class="badge reco">대화 추천</span>${why}</p>`;
   if (st === 'changed' || st === 'cleared') return `<p class="recoline changed" data-reco="${esc(kind + '.' + id)}" data-st="${st}"><span class="badge warn">추천 → 바꿈</span>추천 <b>${esc(recoValText(kind, id, r.value))}</b> → 지금 <b>${esc(recoValText(kind, id, recoCur(kind, id)))}</b><br><span class="small">추천 이유: ${r.reason ? esc(r.reason) : '(없음)'} · ${basis}</span></p>`;

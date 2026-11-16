@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""대화 추천 — 기록하고 스스로 진화한다 (엔진 1.4.0, 사용자 결정 2026-11-09).
+"""대화 추천 — 기록하고 스스로 진화한다 (엔진 1.4.0, 사용자 결정 2026-11-09 · 1.5.0 첨부자료 먼저 · 더 물을 것 되돌기 2026-11-16).
 
 흐름
+  0. 미리 받은 첨부자료(파일 · 폴더 · 주소)를 먼저 끝까지 읽고, 거기서 알 수 있는 칸은 basis "attached"(+ 근거 from)로 채운다(1.5.0).
   1. Claude가 인터뷰 페이지를 만들기 전에 대화로 「무엇을 · 누구에게 · 왜 · 어떻게」를 알아본다.
      대화 요약은 <작업폴더>/materials/인터뷰/00_대화요약.md, 추천은 00_추천.json 에 쓴다(형식은 아래).
+     `recommend.py gaps 00_추천.json` 이 아직 빈 칸 · 짐작만 한 칸을 보여 준다 — 물을 것이 없을 때까지 묻고 다시 본다(1.5.0, 「rounds」 에 회차 기록).
   2. `recommend.py suggest --from 00_추천.json --write` — 지난 기록에서 배운 규칙으로 대화가 정하지 않은 칸을 채운다.
-     (대화에서 사용자가 직접 말한 것 basis "said" 는 규칙이 바꾸지 않는다. Claude가 짐작한 것 "inferred" 는
+     (대화에서 사용자가 직접 말한 것 basis "said" 와 첨부자료에 적힌 것 "attached" 는 규칙이 바꾸지 않는다. Claude가 짐작한 것 "inferred" 는
      수정 요청이 섞인 강한 규칙이 다르면 규칙이 이긴다.)
   3. `build_interview.py … --recommend 00_추천.json` — 인터뷰가 추천 답이 골라진 채로 열린다(「대화 추천」 표시 · 이유 · 요약판).
   4. 사용자가 제출하면 `recommend.py record <답변.json>` — 추천과 최종 답의 차이(그대로 · 바꿈 · 지움)와
@@ -33,12 +35,15 @@
 00_추천.json
   {"id": "<판 이름>", "source": "conversation", "summary": "materials/인터뷰/00_대화요약.md",
    "signals": ["tag:…", …],
-   "dimensions": {"<질문>": {"value": 값, "reason": "<한 줄 근거>", "basis": "said|inferred|rule:<id>"}},
+   "attachments": [{"path": "<파일 · 폴더 · 주소>", "read": "all|part", "found": "<알게 된 것 한 줄>"}],   (1.5.0, 없으면 [])
+   "rounds": [{"n": 1, "asked": ["dim.length", "pq.topic"], "answered": ["dim.length"]}],                 (1.5.0 묻기 회차)
+   "dimensions": {"<질문>": {"value": 값, "reason": "<한 줄 근거>", "basis": "said|attached|inferred|rule:<id>", "from": "<attached 일 때 근거 파일:쪽>"}},
    "aspects":    {"<취향 질문>": {…같은 꼴}},
    "project":    {"<3부 질문>": {…같은 꼴}}}
 
 사용법
   python3 recommend.py check <00_추천.json>                     질문 은행과 맞는지 검사(없는 질문·선택지를 알린다)
+  python3 recommend.py gaps <00_추천.json> [--all] [--json]     더 물을 것: 핵심 칸(CORE) 가운데 빈 칸 · 짐작만 한 칸(1.5.0, --all 은 보이는 모든 1부 · 3부 칸)
   python3 recommend.py suggest (--from <00_추천.json> [--write] | --signals "<신호>,<신호>")
   python3 recommend.py record <답변.json> [--project <작업폴더>]  (같은 제출은 두 번 기록하지 않는다)
   python3 recommend.py correct --project <작업폴더> --key <키> --value '<JSON 값>' --said "<사용자 원문>" [--signals "<신호>,…"]
@@ -75,7 +80,12 @@ MIN_MOOD_EVENTS = 3       # 그때그때 취향의 기울기를 쓰려면 최소
 NONE = '∅'                # 「미리 고르지 않음」(지움 · 제외)
 KEY_RE = re.compile(r'^(dim|asp|pq)\.[A-Za-z0-9_.\-]+$')
 SIG_RE = re.compile(r'^(dim\.[A-Za-z0-9_.\-]+=.+|tag:.+|ctx:[^=]+=.+)$')  # ctx: 작업 여건(페이지가 제출 때 자동으로 — 기기·시간대·요일·여는 방식)
-BASES = ('said', 'inferred')
+BASES = ('said', 'attached', 'inferred')   # attached: 첨부자료에 적혀 있음(1.5.0) — from 에 근거 파일 · 쪽
+PROTECTED = ('said', 'attached')           # 규칙이 바꾸지 않는 근거
+# 대화에서 먼저 물을 핵심 칸(스킬 3.0의 1 — 무엇을 · 누구에게 · 왜 · 어디서 보나 · 길이 · 마감 · 원자료 · 꼭 넣을 것 · 뺄 것 · 주제 · 얻어 갈 것).
+# 나머지 칸은 지난 기록 · 기본값으로 미리 고르고 인터뷰 페이지에서 확인한다(다 물으면 30개가 넘는다)
+CORE = ('dim.file_format', 'dim.material_type', 'dim.purpose', 'dim.audience_age', 'dim.venue', 'dim.length', 'dim.deadline',
+        'dim.sources', 'dim.must_include', 'dim.must_not', 'pq.topic', 'pq.goals')
 OUTCOMES = ('kept', 'changed', 'cleared', 'answered', 'corrected')
 SECTIONS = (('dimensions', 'dim'), ('aspects', 'asp'), ('project', 'pq'))
 
@@ -176,6 +186,20 @@ def clean_reco(reco, B=None):
         else:
             notes.append(f'신호 {s!r}: 형식은 dim.<질문>=<값> 또는 tag:<낱말> — 뺌')
     out['signals'] = sig
+    att = []
+    for a in reco.get('attachments') or []:
+        if isinstance(a, dict) and str(a.get('path') or '').strip():
+            att.append({'path': str(a['path']).strip(), 'read': a.get('read') if a.get('read') in ('all', 'part') else 'all',
+                        'found': str(a.get('found') or '')})
+        else:
+            notes.append(f'첨부자료 {a!r}: path 가 있는 객체여야 함 — 뺌')
+    out['attachments'] = att
+    rounds = []
+    for r in reco.get('rounds') or []:
+        if isinstance(r, dict) and isinstance(r.get('asked'), list):
+            rounds.append({'n': r.get('n', len(rounds) + 1), 'asked': [str(x) for x in r['asked']],
+                           'answered': [str(x) for x in r.get('answered') or []]})
+    out['rounds'] = rounds
     for sec, kind in SECTIONS:
         out[sec] = {}
         for qid, s in (reco.get(sec) or {}).items():
@@ -195,7 +219,11 @@ def clean_reco(reco, B=None):
             basis = str(s.get('basis') or 'inferred')
             if basis not in BASES and not basis.startswith('rule:'):
                 notes.append(f'{kind}.{qid}: basis {basis!r} → inferred'); basis = 'inferred'
+            if basis == 'attached' and not str(s.get('from') or '').strip():
+                notes.append(f'{kind}.{qid}: basis attached 인데 근거(from: 파일 · 쪽)가 없음 → inferred'); basis = 'inferred'
             out[sec][qid] = {'value': v, 'reason': str(s.get('reason') or ''), 'basis': basis}
+            if basis == 'attached':
+                out[sec][qid]['from'] = str(s['from']).strip()
     return out, notes
 
 
@@ -506,9 +534,10 @@ def merge(reco, picked):
         out.setdefault(sec, {})
         cur = out[sec].get(qid)
         strong = r['corrections'] > 0 or r['support'] >= 3
-        if cur and cur.get('basis') == 'said':
+        if cur and cur.get('basis') in PROTECTED:
             if not r['no_preselect'] and norm(cur.get('value')) != norm(r['value']):
-                lines.append(f'{key}: 대화에서 직접 말한 값 유지 (규칙 {r["id"]} 은 {r["value"]!r})')
+                what = '대화에서 직접 말한 값' if cur.get('basis') == 'said' else '첨부자료에 적힌 값'
+                lines.append(f'{key}: {what} 유지 (규칙 {r["id"]} 은 {r["value"]!r})')
             continue
         if cur and not (strong and (r['no_preselect'] or norm(cur.get('value')) != norm(r['value']))):
             continue
@@ -725,6 +754,71 @@ def cmd_suggest(argv):
     return 0
 
 
+def gaps(reco, B=None, dims_doc=None):
+    """더 물을 것(1.5.0): [(키, 이름, 상태, 핵심인가)] — 상태 empty 빈 칸 · inferred 짐작만 · asked2 두 번 물었는데 답 없음(짐작으로 두고 페이지에서 확인).
+    1부는 지금까지 고른 값으로 보이는 질문만(숨은 하위 질문은 위 질문을 정해야 나온다), 화면 순서대로. 3부는 전부."""
+    import structure as SX
+    import upgrade_store as UP
+    B = B or bank()
+    if dims_doc is None:
+        dims_doc, _ = UP.migrate_dims(load_json(ST.path('dimensions.json')))
+    ans = {}
+    for qid, s in (reco.get('dimensions') or {}).items():
+        if not re.search(r'_(other|primary)$', qid):
+            ans[qid] = s.get('value') if isinstance(s, dict) else s
+    asked = collections.Counter()
+    for r in reco.get('rounds') or []:
+        for k in r.get('asked') or []:
+            if k not in (r.get('answered') or []):
+                asked[k] += 1
+    order = [d for s in dims_doc.get('screens', []) for d in s.get('dimensions', [])]
+    order += [d for d in B[0] if d not in order]
+    out = []
+
+    def judge(key, cur):
+        if cur and cur.get('basis') != 'inferred':
+            return None
+        if asked[key] >= 2:
+            return 'asked2'
+        return 'inferred' if cur else 'empty'
+    for did in order:
+        d = B[0].get(did)
+        if not d or d.get('retired') or not SX.dim_shown(d, ans, dims_doc.get('screens')):
+            continue
+        st = judge('dim.' + did, (reco.get('dimensions') or {}).get(did))
+        if st:
+            out.append(('dim.' + did, d.get('name') or did, st, 'dim.' + did in CORE))
+    for qid, q in B[2].items():
+        if q.get('retired'):
+            continue
+        st = judge('pq.' + qid, (reco.get('project') or {}).get(qid))
+        if st:
+            out.append(('pq.' + qid, q.get('text') or q.get('title') or qid, st, 'pq.' + qid in CORE))
+    return out
+
+
+def cmd_gaps(argv):
+    if not argv:
+        print(__doc__); return 2
+    reco, notes = clean_reco(load_json(argv[0]))
+    for n in notes:
+        print('알림: ' + n)
+    g = gaps(reco)
+    if '--json' in argv:
+        print(json.dumps([{'key': k, 'name': n, 'state': s, 'core': c} for k, n, s, c in g], ensure_ascii=False, indent=1))
+        return 0
+    label = {'empty': '빈 칸', 'inferred': '짐작만 함', 'asked2': '두 번 물었는데 답 없음 — 그만 묻고 페이지에서 확인'}
+    show = g if '--all' in argv else [x for x in g if x[3]]
+    for k, n, s, c in show:
+        print(f"{'핵심' if c else '    '}  {label[s]:<6}  {k}  {n}")
+    ask = [x for x in g if x[3] and x[2] != 'asked2']
+    rest = [x for x in g if not x[3]]
+    print(f"더 물을 것(핵심) {len(ask)}개"
+          + (f' · 핵심 아닌 빈 칸 {len(rest)}개는 지난 기록 · 기본값으로 미리 고르고 페이지에서 확인' + ('' if '--all' in argv else '(--all 로 보기)') if rest else '')
+          + (' — 핵심은 다 찼습니다. 인터뷰 페이지로 넘어갑니다.' if not ask else ''))
+    return 0
+
+
 def cmd_check(argv):
     if not argv:
         print(__doc__); return 2
@@ -861,6 +955,25 @@ def cmd_selftest():
     ok(m['aspects']['P2.4.theme']['value'] == 'dark', '사용자가 직접 말한 값은 규칙이 바꾸지 않음')
     m, _ = merge({'aspects': {'P2.4.theme': {'value': 'dark', 'basis': 'inferred'}}}, {TH: rule})
     ok(m['aspects']['P2.4.theme']['value'] == 'light', '짐작한 값은 강한 규칙이 이김')
+    m, _ = merge({'aspects': {'P2.4.theme': {'value': 'dark', 'basis': 'attached', 'from': 'a.pdf:3'}}}, {TH: rule})
+    ok(m['aspects']['P2.4.theme']['value'] == 'dark', '첨부자료에 적힌 값도 규칙이 바꾸지 않음(1.5.0)')
+    # 9-1) 첨부자료 근거 · 더 물을 것(1.5.0) — 가짜 질문 은행으로
+    FB = ({'file_format': {'id': 'file_format', 'name': '파일 형식', 'type': 'multi', 'values': [{'id': 'html'}, {'id': 'pdf'}]},
+           'pdf_export': {'id': 'pdf_export', 'name': 'PDF 변환본', 'type': 'single', 'values': [{'id': 'y'}, {'id': 'n'}], 'when': {'file_format': ['html']}},
+           'length': {'id': 'length', 'name': '길이', 'type': 'single', 'values': [{'id': 's'}, {'id': 'l'}]}},
+          {}, {'topic': {'id': 'topic', 'text': '주제', 'type': 'text'}})
+    FD = {'screens': [{'id': 'S1', 'dimensions': ['file_format', 'pdf_export', 'length']}], 'dimensions': list(FB[0].values())}
+    cr, nt = clean_reco({'dimensions': {'length': {'value': 's', 'basis': 'attached'}}, 'attachments': [{'path': 'a.pdf', 'found': 'x'}]}, FB)
+    ok(cr['dimensions']['length']['basis'] == 'inferred' and any('근거' in x for x in nt) and cr['attachments'][0]['read'] == 'all',
+       'attached 인데 근거(from)가 없으면 짐작으로 내림 · 첨부자료 목록 정리')
+    g = gaps({'dimensions': {'length': {'value': 's', 'basis': 'inferred'}}}, FB, FD)
+    ok([k for k, _, s, _c in g] == ['dim.file_format', 'dim.length', 'pq.topic'] and dict((k, s) for k, _, s, _c in g)['dim.length'] == 'inferred'
+       and [c for *_, c in g] == [True, True, True],
+       f'더 물을 것: 빈 칸 · 짐작만 한 칸, 숨은 하위 질문(pdf_export)은 위 질문 전에는 안 나옴 — {g}')
+    g = gaps({'dimensions': {'file_format': {'value': ['html'], 'basis': 'said'}, 'length': {'value': 's', 'basis': 'attached', 'from': 'a.pdf:1'}},
+              'rounds': [{'n': 1, 'asked': ['pq.topic']}, {'n': 2, 'asked': ['pq.topic']}]}, FB, FD)
+    ok([(k, s, c) for k, _, s, c in g] == [('dim.pdf_export', 'empty', False), ('pq.topic', 'asked2', True)],
+       f'위 질문을 정하면 하위 질문이 나오고, 두 번 물었는데 답 없는 칸은 그만 묻는다 — {g}')
     # 10) 쓰기·다시 배우기(바뀐 판단을 history 에) · 검사
     ev = [mk('A', 1, S, 'dark'), mk('B', 2, S, 'dark'), mk('C', 3, S + ['tag:야외'], 'light'), mk('D', 4, S + ['tag:야외'], 'light')]
     write_log({'version': 1, 'events': ev}, tmp)
@@ -890,6 +1003,8 @@ def main(argv):
         return cmd_suggest(rest)
     if cmd == 'check':
         return cmd_check(rest)
+    if cmd == 'gaps':
+        return cmd_gaps(rest)
     if cmd == 'learn':
         if not ST.STORE_WRITABLE:
             print('데이터 폴더가 없습니다(starter 를 쓰는 중).'); return 1

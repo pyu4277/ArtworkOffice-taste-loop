@@ -457,6 +457,27 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   const ap = spawnSync(PY, [...PYARGS, path.join(HERE, 'answers_to_plan.py'), '--lecture', 'demo', '--answers', ansF, '--out', planF], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
   const plan = ap.status === 0 ? fs.readFileSync(planF, 'utf8') : '';
   ok(/## 대화 추천/.test(plan) && /추천 5칸 중 그대로 3 · 바꿈 2 · 지움 0 → 적중률 60%/.test(plan) && /`asp\.P2\.4\.theme` \| "dark" \| "light"/.test(plan), '계획 문서: 「대화 추천」 절(적중률 · 바꾼 칸 표)' + (ap.status ? ': ' + ap.stderr : ''));
+  // 1.5.0 첨부자료 먼저 · 더 물을 것: attached 근거는 「첨부자료에서 (파일:쪽)」로 보이고, gaps 가 핵심 빈 칸을 알려 준다
+  {
+    const rcA = path.join(proj, 'demo', 'materials', '인터뷰', '00_추천_첨부.json');
+    writeJson(rcA, {id: 'rcA', attachments: [{path: 'materials/공문.pdf', found: '대상 · 목적'}],
+      dimensions: {purpose: {value: ['exhibit'], reason: '공문에 전시용이라고 적힘', basis: 'attached', from: '공문.pdf:2'}, material_type: {value: ['slides'], basis: 'attached'}},
+      rounds: [{n: 1, asked: ['pq.topic'], answered: []}, {n: 2, asked: ['pq.topic'], answered: []}]});
+    const ckA = RC(['check', rcA]);
+    ok(ckA.status === 1 && /근거\(from/.test(ckA.stdout), 'check: attached 인데 근거(from)가 없으면 알리고 짐작으로 내림 (반대 시험)');
+    const gp = RC(['gaps', rcA, '--all', '--json']);
+    let g = [];
+    try { g = JSON.parse(gp.stdout.slice(gp.stdout.indexOf('['))); } catch (e) { g = []; }
+    const gk = k => g.find(x => x.key === k);
+    ok(gp.status === 0 && g.length > 0 && !gk('dim.purpose') && gk('dim.material_type') && gk('dim.material_type').state === 'inferred' && (!gk('pq.topic') || gk('pq.topic').state === 'asked2'),
+      'gaps: 첨부자료로 찬 칸은 빼고, 근거 없는 칸은 짐작으로, 두 번 물은 칸은 그만 묻기 (' + g.length + '칸)');
+    const fileA = path.join(tmp, 'out', '01_제작인터뷰_첨부.html');
+    const rA = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), '--lecture', 'demo', '--mode', 'interview', '--out', fileA, '--recommend', rcA], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+    const oA = rA.status === 0 ? open(fileA, false) : null;
+    if (oA) oA.w.PE.go(oA.w.PE.screens.findIndex(x => x.id === 'S1'));
+    const pl = oA && oA.d.querySelector('#screen [data-drop="dim:purpose"] .recoline');
+    ok(!!pl && /첨부자료에서 \(공문\.pdf:2\)/.test(pl.textContent) && /전시용이라고 적힘/.test(pl.textContent) && oA.errors.length === 0, '1부 카드: 근거 「첨부자료에서 (공문.pdf:2)」 + 한 줄 이유' + (rA.status ? ': ' + rA.stderr : ''));
+  }
   // 표시 블록은 한 줄 전체일 때만 표시다(1.4.2, 실수 기록 E49): 다시 돌려도 블록 하나 · 글 속 표시 글자는 그대로 · 시작 줄이 둘이면 멈추고 안 고침
   const MARK = '<!-- taste-loop:begin -->';
   const AP = () => spawnSync(PY, [...PYARGS, path.join(HERE, 'answers_to_plan.py'), '--lecture', 'demo', '--answers', ansF, '--out', planF], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
