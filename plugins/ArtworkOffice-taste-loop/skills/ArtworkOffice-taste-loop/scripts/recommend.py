@@ -11,7 +11,7 @@
      수정 요청이 섞인 강한 규칙이 다르면 규칙이 이긴다.)
   3. `build_interview.py … --recommend 00_추천.json` — 인터뷰가 추천 답이 골라진 채로 열린다(「대화 추천」 표시 · 이유 · 요약판).
   4. 사용자가 제출하면 `recommend.py record <답변.json>` — 추천과 최종 답의 차이(그대로 · 바꿈 · 지움)와
-     추천 없이 답한 것까지 상황 신호와 함께 기록하고 규칙을 다시 배운다.
+     추천 없이 답한 것까지 상황 신호와 함께 기록하고 규칙을 다시 배운다. 첨부자료에 적힌 칸(basis attached)은 그 프로젝트의 사실이라 배우지 않는다.
   5. 제작 중이든 끝난 뒤든 사용자가 「이건 ○○로 바꿔」라고 고치면 `recommend.py correct …` — 가중치 5(보통 기록의 5배)로
      기록한다. 사용자 결정(2026-11-09): 수정 요청은 보상 점수가 훨씬 높아 보정이 더 잘 되게.
   사용자에게 확인 질문을 하지 않는다. 같은 상황인데 다르게 끝난 칸(「갈린 칸」, 기록 파일의 shaky)은 두 갈래로 나눈다(사용자 결정 2026-11-09):
@@ -43,7 +43,8 @@
 
 사용법
   python3 recommend.py check <00_추천.json>                     질문 은행과 맞는지 검사(없는 질문·선택지를 알린다)
-  python3 recommend.py gaps <00_추천.json> [--all] [--json]     더 물을 것: 핵심 칸(CORE) 가운데 빈 칸 · 짐작만 한 칸(1.6.0, --all 은 보이는 모든 1부 · 3부 칸)
+  python3 recommend.py gaps <00_추천.json> [--all] [--json]     더 물을 것: 핵심 칸(CORE) 가운데 빈 칸 · 짐작만 한 칸(1.6.0, --all 은 보이는 모든 1부 · 3부 칸,
+                                                                --json 도 같은 범위 · 알림은 stderr)
   python3 recommend.py suggest (--from <00_추천.json> [--write] | --signals "<신호>,<신호>")
   python3 recommend.py record <답변.json> [--project <작업폴더>]  (같은 제출은 두 번 기록하지 않는다)
   python3 recommend.py correct --project <작업폴더> --key <키> --value '<JSON 값>' --said "<사용자 원문>" [--signals "<신호>,…"]
@@ -120,8 +121,8 @@ def unnorm(s):
     return None if s == NONE else json.loads(s)
 
 
-def bank():
-    """(1부 질문 {id: d}, 취향 질문 {id: a}, 3부 질문 {id: q}) — 이관·반영 대기 편집을 적용한 지금 모습."""
+def bank_docs():
+    """(dimensions 문서, questions 문서) — 이관·반영 대기 편집을 적용한 지금 모습. 목차(screens)도 같은 적용본이다(R02)."""
     import upgrade_store as UP
     import structure_edits as SE
     dims, _ = UP.migrate_dims(load_json(ST.path('dimensions.json')))
@@ -130,6 +131,12 @@ def bank():
         dims, qs, _n, _p = SE.with_pending(dims, qs)
     except Exception:  # noqa: BLE001  편집 기록이 없거나 깨져도 추천은 원본 은행으로
         pass
+    return dims, qs
+
+
+def bank():
+    """(1부 질문 {id: d}, 취향 질문 {id: a}, 3부 질문 {id: q}) — 이관·반영 대기 편집을 적용한 지금 모습."""
+    dims, qs = bank_docs()
     return ({d['id']: d for d in dims.get('dimensions', [])},
             {a['id']: a for a in qs.get('aspects', [])},
             {q['id']: q for q in qs.get('project_questions', [])})
@@ -195,13 +202,33 @@ def clean_reco(reco, B=None):
             notes.append(f'첨부자료 {a!r}: path 가 있는 객체여야 함 — 뺌')
     out['attachments'] = att
     rounds = []
-    for r in reco.get('rounds') or []:
-        if isinstance(r, dict) and isinstance(r.get('asked'), list):
-            rounds.append({'n': r.get('n', len(rounds) + 1), 'asked': [str(x) for x in r['asked']],
-                           'answered': [str(x) for x in r.get('answered') or []]})
+    for i, r in enumerate(reco.get('rounds') or []):
+        keys = {}
+        for f in ('asked', 'answered'):
+            raw = r.get(f) if isinstance(r, dict) else None
+            if raw is None and f == 'answered':
+                raw = []
+            if not isinstance(raw, list) or not all(isinstance(x, str) and KEY_RE.match(x) for x in raw):
+                keys = None; break
+            keys[f] = list(dict.fromkeys(raw))  # 한 회차 안 같은 칸은 한 번
+        if keys is None:
+            notes.append(f'rounds[{i}] {r!r}: asked · answered 는 칸 키(dim.|asp.|pq.) 목록이어야 함 — 뺌'); continue
+        rounds.append({'n': r.get('n', len(rounds) + 1), 'asked': keys['asked'], 'answered': keys['answered']})
     out['rounds'] = rounds
+
+    def basis_of(where, s):
+        """(근거, from) — attached 는 공백 아닌 문자열 from 이 있어야 한다(없거나 문자열이 아니면 짐작으로 내림)."""
+        basis = str(s.get('basis') or 'inferred')
+        if basis not in BASES and not basis.startswith('rule:'):
+            notes.append(f'{where}: basis {basis!r} → inferred'); basis = 'inferred'
+        src = s.get('from')
+        if basis == 'attached' and not (isinstance(src, str) and src.strip()):
+            notes.append(f'{where}: basis attached 인데 근거(from: 파일 · 쪽 글)가 없거나 글이 아님 → inferred'); basis = 'inferred'
+        return basis, (src.strip() if basis == 'attached' else None)
     for sec, kind in SECTIONS:
         out[sec] = {}
+        if not isinstance(reco.get(sec) or {}, dict):
+            notes.append(f'{sec}: 객체여야 함 — 뺌'); continue
         for qid, s in (reco.get(sec) or {}).items():
             if not isinstance(s, dict) or 'value' not in s:
                 s = {'value': s}
@@ -209,21 +236,23 @@ def clean_reco(reco, B=None):
             if kind == 'dim' and base != qid:  # 기타 내용 · 주 대상은 값 검사 없이(주 대상은 고른 값 중 하나여야 한다)
                 if not item_of('dim.' + base, B):
                     notes.append(f'dim.{qid}: 질문 은행에 없는 질문 — 뺌'); continue
-                out[sec][qid] = {'value': s.get('value'), 'reason': str(s.get('reason') or ''), 'basis': s.get('basis') or 'inferred'}
+                if norm(s.get('value')) == NONE:
+                    notes.append(f'dim.{qid}: 값 없음 — 뺌'); continue
+                basis, src = basis_of(f'dim.{qid}', s)
+                out[sec][qid] = {'value': s.get('value'), 'reason': str(s.get('reason') or ''), 'basis': basis}
+                if src:
+                    out[sec][qid]['from'] = src
                 continue
             v, prob = check_value(f'{kind}.{qid}', s.get('value'), B)
             if prob:
                 notes.append(prob + ' — 뺌'); continue
-            if v is None:
+            basis, src = basis_of(f'{kind}.{qid}', s)
+            # 빈 목록 · 빈 글은 빈 칸(gaps 가 다시 묻게). 단 사용자가 직접 「없음」이라고 답한 것(said)은 답이다 — 남겨 규칙이 덮지 않게(R02)
+            if v is None or ((norm(v) == NONE or (isinstance(v, str) and not v.strip())) and basis != 'said'):
                 notes.append(f'{kind}.{qid}: 값 없음 — 뺌'); continue
-            basis = str(s.get('basis') or 'inferred')
-            if basis not in BASES and not basis.startswith('rule:'):
-                notes.append(f'{kind}.{qid}: basis {basis!r} → inferred'); basis = 'inferred'
-            if basis == 'attached' and not str(s.get('from') or '').strip():
-                notes.append(f'{kind}.{qid}: basis attached 인데 근거(from: 파일 · 쪽)가 없음 → inferred'); basis = 'inferred'
             out[sec][qid] = {'value': v, 'reason': str(s.get('reason') or ''), 'basis': basis}
-            if basis == 'attached':
-                out[sec][qid]['from'] = str(s['from']).strip()
+            if src:
+                out[sec][qid]['from'] = src
     return out, notes
 
 
@@ -325,7 +354,8 @@ def learn(events):
     order = sorted(first, key=lambda p: (first[p], p))
     rank = {p: i for i, p in enumerate(order)}
     n = len(order)
-    use = [e for e in events if e.get('outcome') in OUTCOMES and KEY_RE.match(e.get('key') or '')]
+    use = [e for e in events if e.get('outcome') in OUTCOMES and KEY_RE.match(e.get('key') or '')
+           and e.get('basis') != 'attached']  # 첨부자료 칸은 프로젝트 사실 — 옛 기록에 있어도 배우지 않는다(R02)
     score = collections.defaultdict(lambda: collections.defaultdict(float))    # 감쇠 뒤
     support = collections.defaultdict(lambda: collections.defaultdict(float))  # 감쇠 전
     count = collections.defaultdict(lambda: collections.defaultdict(int))
@@ -486,13 +516,30 @@ def rule_key(r):
     return (KIND_RANK.get(r.get('kind', 'plain'), 1), len(r['when']), r['confidence'], r['support'])
 
 
-def suggest(signals, rules):
+def _adopted(r, cur):
+    """merge() 가 이 규칙을 그 칸에 실제로 쓰는가(cur = 추천 파일의 지금 칸 또는 None). merge 와 같은 조건."""
+    if not cur:
+        return True
+    if cur.get('basis') in PROTECTED:
+        return False
+    return r['corrections'] > 0 or r['support'] >= 3
+
+
+def suggest(signals, rules, current=None):
     """신호 → {키: 규칙}. 확실한 단서 규칙 > 보통 규칙 > 그때그때 취향의 기울기, 같으면 구체적인(조건이 많은) 것 · 몫이 큰 것.
     작업 여건(ctx:) 조건이 든 규칙은 여기서 쓰지 않는다 — 인터뷰 페이지가 열릴 때 그 자리의 여건으로 판정한다(ctx_rules).
-    추천한 1부 값은 신호에 더해 다시 본다."""
-    sig = set(signals)
+    추천한 1부 값은 신호에 더해 다시 본다. current(추천 파일의 지금 칸 {키: 칸})가 있으면 merge 가 실제로 쓸 규칙 값만 더하고,
+    그 규칙이 바꿀 지금 값의 신호는 뺀다 — 보호된 답(said · attached)이나 약한 규칙이 못 바꾸는 짐작과 어긋난 값이
+    다른 규칙을 부르지 않게(R03 · R04)."""
+    current = current or {}
+    base = set(signals)
+    sig = set(base)
     picked = {}
-    for _ in range(3):
+    seen = set()
+    # 수렴할 때까지 본다(R05: 3회로 끊으면 중간 추천이 철회된 것이 끝까지 전파되지 않아 전제 없는 파생 추천만 남았다).
+    # 같은 신호가 다시 나오면(순환) 거기서 멈춘다 — 그때 picked 는 지금 sig 에서 조건이 맞는 규칙만이다.
+    for _ in range(len(rules) + 3):
+        seen.add(frozenset(sig))
         best = {}
         for r in rules:
             if any(w.lstrip('!').startswith('ctx:') for w in r['when']) or not _match(r['when'], sig):
@@ -501,12 +548,19 @@ def suggest(signals, rules):
             if r['key'] not in best or k > best[r['key']][0]:
                 best[r['key']] = (k, r)
         picked = {key: r for key, (_, r) in best.items()}
-        new = set(sig)
+        new = set(base)
         for key, r in picked.items():
-            if key.startswith('dim.') and not r['no_preselect']:
+            cur = current.get(key)
+            if not key.startswith('dim.') or not _adopted(r, cur):
+                continue
+            if cur:  # 규칙이 지금 값을 바꾸거나 뺀다 — 그 값의 신호는 더 이상 상황이 아니다
+                cv = cur.get('value')
+                for x in (cv if isinstance(cv, list) else [cv]):
+                    new.discard(f'{key}={x}')
+            if not r['no_preselect']:
                 for x in (r['value'] if isinstance(r['value'], list) else [r['value']]):
                     new.add(f'{key}={x}')
-        if new == sig:
+        if new == sig or frozenset(new) in seen:
             break
         sig = new
     return picked
@@ -595,7 +649,8 @@ def events_from_answers(p, project, B):
         key, o = it.get('key'), it.get('outcome')
         if not KEY_RE.match(key or '') or o not in ('kept', 'changed', 'cleared'):
             done.add(key); continue  # hidden(조건이 바뀌어 숨음)은 배우지 않는다
-        if not learnable(item_of(key, B)):
+        if not learnable(item_of(key, B)) or it.get('basis') == 'attached':
+            # 첨부자료에 적힌 값(attached)은 그 프로젝트의 사실이지 취향이 아니다 — 다른 프로젝트로 넘어갈 규칙에 넣지 않는다(1.6.0 교차 검토 R01, 「추론」)
             done.add(key); continue
         ev.append(dict(base, key=key, recommended=it.get('recommended'), final=None if o == 'cleared' else it.get('final'), outcome=o, basis=it.get('basis')))
         done.add(key)
@@ -734,10 +789,13 @@ def cmd_suggest(argv):
         reco, notes = clean_reco(load_json(src), B)
         for n in notes:
             print('알림: ' + n)
+        if reco is None:
+            return 1
         sig = reco_signals(reco) | set(signals)
     else:
         reco, sig = None, set(signals)
-    picked = suggest(sig, rules)
+    current = {f'{kind}.{qid}': s for sec, kind in SECTIONS for qid, s in ((reco or {}).get(sec) or {}).items() if isinstance(s, dict)}
+    picked = suggest(sig, rules, current)
     picked = {k: r for k, r in picked.items() if item_of(k, B) and (r['no_preselect'] or not check_value(k, r['value'], B)[1])}
     if reco is None:
         print(json.dumps({k: {'value': r['value'], 'no_preselect': r['no_preselect'], 'reason': r['reason'], 'rule': r['id']} for k, r in sorted(picked.items())}, ensure_ascii=False, indent=1))
@@ -756,27 +814,27 @@ def cmd_suggest(argv):
 
 def gaps(reco, B=None, dims_doc=None):
     """더 물을 것(1.6.0): [(키, 이름, 상태, 핵심인가)] — 상태 empty 빈 칸 · inferred 짐작만 · asked2 두 번 물었는데 답 없음(짐작으로 두고 페이지에서 확인).
-    1부는 지금까지 고른 값으로 보이는 질문만(숨은 하위 질문은 위 질문을 정해야 나온다), 화면 순서대로. 3부는 전부."""
+    1부 · 3부 모두 지금까지 고른 1부 값으로 보이는 질문만(숨은 하위 질문은 위 질문을 정해야 나온다), 1부는 화면 순서대로.
+    물은 횟수는 rounds 의 asked 로 센다(answered 에 들었어도 근거가 짐작이면 아직 빈 것과 같다)."""
     import structure as SX
     import upgrade_store as UP
     B = B or bank()
     if dims_doc is None:
-        dims_doc, _ = UP.migrate_dims(load_json(ST.path('dimensions.json')))
+        dims_doc, _ = bank_docs()
     ans = {}
     for qid, s in (reco.get('dimensions') or {}).items():
         if not re.search(r'_(other|primary)$', qid):
             ans[qid] = s.get('value') if isinstance(s, dict) else s
-    asked = collections.Counter()
+    asked = collections.Counter()  # 물은 횟수 — 답이 애매해(짐작으로 남아) 「answered」 에 들었어도 센다(같은 칸은 두 번까지)
     for r in reco.get('rounds') or []:
-        for k in r.get('asked') or []:
-            if k not in (r.get('answered') or []):
-                asked[k] += 1
+        for k in dict.fromkeys(r.get('asked') or []):
+            asked[k] += 1
     order = [d for s in dims_doc.get('screens', []) for d in s.get('dimensions', [])]
     order += [d for d in B[0] if d not in order]
     out = []
 
     def judge(key, cur):
-        if cur and cur.get('basis') != 'inferred':
+        if cur and cur.get('basis') in PROTECTED:  # 확정은 사용자가 말함 · 첨부자료뿐 — 짐작 · 지난 기록 규칙은 아직 확인 전(R02)
             return None
         if asked[key] >= 2:
             return 'asked2'
@@ -789,7 +847,7 @@ def gaps(reco, B=None, dims_doc=None):
         if st:
             out.append(('dim.' + did, d.get('name') or did, st, 'dim.' + did in CORE))
     for qid, q in B[2].items():
-        if q.get('retired'):
+        if q.get('retired') or not SX.when_ok(q, ans):  # 화면과 같이 보이는 조건(when)을 본다
             continue
         st = judge('pq.' + qid, (reco.get('project') or {}).get(qid))
         if st:
@@ -801,14 +859,16 @@ def cmd_gaps(argv):
     if not argv:
         print(__doc__); return 2
     reco, notes = clean_reco(load_json(argv[0]))
-    for n in notes:
-        print('알림: ' + n)
+    for n in notes:  # 알림은 stderr — --json 의 stdout 은 JSON 만
+        print('알림: ' + n, file=sys.stderr)
+    if reco is None:
+        return 1
     g = gaps(reco)
-    if '--json' in argv:
-        print(json.dumps([{'key': k, 'name': n, 'state': s, 'core': c} for k, n, s, c in g], ensure_ascii=False, indent=1))
-        return 0
-    label = {'empty': '빈 칸', 'inferred': '짐작만 함', 'asked2': '두 번 물었는데 답 없음 — 그만 묻고 페이지에서 확인'}
     show = g if '--all' in argv else [x for x in g if x[3]]
+    if '--json' in argv:
+        print(json.dumps([{'key': k, 'name': n, 'state': s, 'core': c} for k, n, s, c in show], ensure_ascii=False, indent=1))
+        return 0
+    label = {'empty': '빈 칸', 'inferred': '짐작 · 지난 기록만', 'asked2': '두 번 물었는데 답 없음 — 그만 묻고 페이지에서 확인'}
     for k, n, s, c in show:
         print(f"{'핵심' if c else '    '}  {label[s]:<6}  {k}  {n}")
     ask = [x for x in g if x[3] and x[2] != 'asked2']
@@ -825,6 +885,8 @@ def cmd_check(argv):
     reco, notes = clean_reco(load_json(argv[0]))
     for n in notes:
         print('알림: ' + n)
+    if reco is None:
+        return 1
     n = {sec: len(reco.get(sec) or {}) for sec, _ in SECTIONS}
     print(f"추천: 1부 {n['dimensions']} · 취향 {n['aspects']} · 3부 {n['project']} · 신호 {len(reco['signals'])}")
     return 1 if notes else 0
@@ -974,6 +1036,98 @@ def cmd_selftest():
               'rounds': [{'n': 1, 'asked': ['pq.topic']}, {'n': 2, 'asked': ['pq.topic']}]}, FB, FD)
     ok([(k, s, c) for k, _, s, c in g] == [('dim.pdf_export', 'empty', False), ('pq.topic', 'asked2', True)],
        f'위 질문을 정하면 하위 질문이 나오고, 두 번 물었는데 답 없는 칸은 그만 묻는다 — {g}')
+    # 9-2) 교차 검토 R01 고침: 빈 값 · 보조 칸 근거 · 글이 아닌 from · 3부 보이는 조건 · 애매한 답 횟수 · rounds 꼴 · 첨부 칸은 배우지 않음
+    cr, nt = clean_reco({'dimensions': {'file_format': {'value': [], 'basis': 'attached', 'from': 'a.pdf:1'}, 'length': {'value': '', 'basis': 'inferred'}},
+                         'project': {'topic': {'value': '  ', 'basis': 'inferred'}}}, FB)
+    ok(not cr['dimensions'] and not cr['project'] and len(nt) == 3 and '값 없음' in nt[0] and '값 없음' in nt[2], f'빈 목록 · 빈 글 값은 빈 칸으로 뺌(다시 묻게) — {nt}')
+    said_none, _ = clean_reco({'dimensions': {'file_format': {'value': [], 'basis': 'said'}}}, FB)
+    rule_pdf = {'id': 'R-p', 'kind': 'plain', 'when': [], 'key': 'dim.file_format', 'value': ['pdf'], 'no_preselect': False, 'confidence': 1, 'support': 5, 'corrections': 1, 'reason': 'r'}
+    ok(said_none['dimensions'].get('file_format', {}).get('value') == [] and merge(said_none, {'dim.file_format': rule_pdf})[0]['dimensions']['file_format']['value'] == []
+       and 'dim.file_format' not in [k for k, *_ in gaps(said_none, FB, FD)],
+       '사용자가 직접 「없음」이라고 한 빈 답(said)은 남고, 규칙이 덮지 않고, 다시 묻지 않음(R02)')
+    ok([k for k, _, s, _c in gaps(cr, FB, FD)] == ['dim.file_format', 'dim.length', 'pq.topic'], '빈 값으로 뺀 칸은 gaps 에 다시 나옴')
+    FB2 = ({**FB[0], 'audience_age': {'id': 'audience_age', 'name': '대상', 'type': 'multi', 'values': [{'id': 'adult'}, {'id': 'kid'}]}}, {}, FB[2])
+    cr, nt = clean_reco({'dimensions': {'audience_age': {'value': ['adult'], 'basis': 'said'},
+                                        'audience_age_primary': {'value': 'adult', 'basis': 'attached', 'from': ' 자료/공문 <1>.pdf:2 '},
+                                        'audience_age_other': {'value': 'x', 'basis': 'attached'}}}, FB2)
+    d = cr['dimensions']
+    ok(d['audience_age_primary'].get('from') == '자료/공문 <1>.pdf:2' and d['audience_age_primary']['basis'] == 'attached'
+       and d['audience_age_other']['basis'] == 'inferred' and 'from' not in d['audience_age_other'] and any('audience_age_other' in x for x in nt),
+       '보조 칸(_primary · _other)도 근거 검사: from 보존(유니코드 · 특수문자), from 없으면 짐작으로')
+    bad_from = [123, True, {'f': 'a'}, ['a.pdf'], '   ', None]
+    res = [clean_reco({'dimensions': {'length': {'value': 's', 'basis': 'attached', 'from': f}}}, FB)[0]['dimensions']['length'] for f in bad_from]
+    ok(all(x['basis'] == 'inferred' and 'from' not in x for x in res), 'from 이 글이 아니거나 비면(123 · true · 객체 · 목록 · 공백 · null) 짐작으로 내림')
+    FB3 = (FB[0], {}, {**FB[2], 'html_only': {'id': 'html_only', 'text': 'HTML 전용', 'type': 'text', 'when': {'file_format': ['html']}}})
+    gk = lambda fmt: [k for k, *_ in gaps({'dimensions': {'file_format': {'value': [fmt], 'basis': 'said'}}}, FB3, FD)]
+    ok('pq.html_only' not in gk('pdf') and 'pq.html_only' in gk('html'), '3부 질문도 화면과 같은 보이는 조건(when)으로 — 숨은 질문은 묻지 않음')
+    two = {'dimensions': {'length': {'value': 's', 'basis': 'inferred'}},
+           'rounds': [{'n': 1, 'asked': ['dim.length'], 'answered': ['dim.length']}, {'n': 2, 'asked': ['dim.length'], 'answered': ['dim.length']}]}
+    ruled = {'dimensions': {'length': {'value': 's', 'basis': 'rule:R-x'}}}
+    r_src = {'id': 'R-s', 'kind': 'plain', 'when': [], 'key': 'dim.sources', 'value': ['user_video'], 'no_preselect': False, 'confidence': 1, 'support': 5, 'corrections': 1, 'reason': 's'}
+    r_mp4 = {'id': 'R-m', 'kind': 'plain', 'when': ['dim.sources=user_video'], 'key': 'dim.file_format', 'value': ['mp4'], 'no_preselect': False, 'confidence': 1, 'support': 5, 'corrections': 1, 'reason': 'm'}
+    ok('dim.file_format' not in suggest(set(), [r_src, r_mp4], {'dim.sources': {'value': [], 'basis': 'said'}}) and 'dim.file_format' in suggest(set(), [r_src, r_mp4]),
+       '보호된 칸(said 「없음」)에 대한 규칙 값은 다음 규칙을 부르지 않음(R03)')
+    weak = dict(r_src, support=2, corrections=0)
+    cur_photo = {'dim.sources': {'value': ['user_photos'], 'basis': 'inferred'}}
+    ok('dim.file_format' not in suggest({'dim.sources=user_photos'}, [weak, r_mp4], cur_photo)
+       and 'dim.file_format' in suggest({'dim.sources=user_photos'}, [r_src, r_mp4], cur_photo),
+       '약한 규칙이 못 바꾸는 짐작과 어긋난 값은 다음 규칙을 부르지 않고, 강한 규칙으로 바뀐 값은 부름(R04)')
+    r_photo_pdf = dict(r_mp4, id='R-pp', when=['dim.sources=user_photos'], value=['docx'])
+    ok('dim.file_format' not in suggest({'dim.sources=user_photos'}, [r_src, r_photo_pdf], cur_photo),
+       '강한 규칙이 바꾼 지금 값(user_photos)의 신호는 빠져 옛 값의 규칙이 발동하지 않음(R04)')
+    r_sl = dict(r_mp4, id='R-sl', when=['dim.sources=user_photos'], key='dim.material_type', value=['slides'])
+    r_pdf = dict(r_mp4, id='R-pd', when=['dim.material_type=slides'], key='dim.file_format', value=['pdf'])
+    r_dk = dict(r_mp4, id='R-dk', when=['dim.file_format=pdf'], key='dim.theme', value=['dark'])
+    chain = suggest({'dim.sources=user_photos'}, [r_src, r_sl, r_pdf, r_dk], cur_photo)
+    ok(set(chain) == {'dim.sources'}, f'중간 추천이 철회되면 그 뒤 파생 추천도 끝까지 철회됨(R05) — {sorted(chain)}')
+    r_a = dict(r_mp4, id='R-a', when=['!dim.theme=x'], key='dim.theme', value=['x'])
+    ok(isinstance(suggest(set(), [r_a]), dict), '규칙이 서로 켜고 끄는 순환에서도 끝남(R05)')
+    ok(dict((k, s) for k, _, s, _c in gaps(ruled, FB, FD)).get('dim.length') == 'inferred', '지난 기록 규칙(rule:)으로만 채운 칸도 확인 전 — gaps 에 나옴(R02)')
+    old_att = [dict(mk(p, i, S, ['pdf'], key='dim.file_format', outcome='kept', rec=['pdf']), basis='attached') for i, p in enumerate('PQ', 1)]
+    ok(not [x for x in learn(old_att)['rules'] if x['key'] == 'dim.file_format'], '옛 기록에 남은 첨부자료 칸(attached)도 learn 이 배우지 않음(R02)')
+    import structure_edits as SE_
+    real_wp = SE_.with_pending
+
+    def retire_first(dims, qs):
+        d, q, n, p = real_wp(dims, qs)
+        d = json.loads(json.dumps(d)); d['screens'][0]['retired'] = True
+        return d, q, n, p
+    first = [x for x in bank_docs()[0]['screens'][0].get('dimensions', [])]
+    SE_.with_pending = retire_first
+    try:
+        hidden = [k for k, *_ in gaps({})]
+    finally:
+        SE_.with_pending = real_wp
+    ok(bool(first) and not any(k == 'dim.' + d for d in first for k in hidden), f'gaps 의 목차도 반영 대기 편집을 적용한 것 — 뺀 목차의 질문은 묻지 않음(R02, {first[:3]})')
+    ok(dict((k, s) for k, _, s, _c in gaps(clean_reco(two, FB)[0], FB, FD)).get('dim.length') == 'asked2',
+       '애매한 답(answered 에 들었지만 근거가 짐작)도 물은 횟수로 셈 → 두 번이면 그만 묻기')
+    cr, nt = clean_reco({'rounds': [{'n': 1, 'asked': ['dim.length', 'dim.length']}, {'n': 2, 'asked': 'dim.length'},
+                                    {'n': 3, 'asked': ['dim.length'], 'answered': 'dim.length'}, 'x']}, FB)
+    ok(cr['rounds'] == [{'n': 1, 'asked': ['dim.length'], 'answered': []}] and sum('rounds[' in x for x in nt) == 3
+       and dict((k, s) for k, _, s, _c in gaps(cr, FB, FD)).get('dim.length') == 'empty',
+       'rounds 꼴 검사: 글 하나인 asked · answered 와 객체 아닌 회차는 알리고 뺌, 한 회차 안 같은 칸은 한 번')
+    ok(clean_reco([1, 2], FB)[0] is None and clean_reco({'dimensions': ['x']}, FB)[0]['dimensions'] == {}, 'JSON 객체가 아닌 추천 파일 · 객체가 아닌 칸 묶음은 오류 없이 알림')
+    pay = {'recommend': {'items': [{'key': 'dim.length', 'outcome': 'kept', 'recommended': 's', 'final': 's', 'basis': 'attached'},
+                                   {'key': 'dim.file_format', 'outcome': 'changed', 'recommended': ['html'], 'final': ['pdf'], 'basis': 'inferred'}]},
+           'dimensions': {'length': 's', 'file_format': ['pdf']}, 'submitted_at': '2026-01-09T00:00:00'}
+    ok([e['key'] for e in events_from_answers(pay, 'T', FB)] == ['dim.file_format'], '첨부자료 칸(attached)은 record 가 배우지 않음 — 프로젝트 사실이지 취향이 아님')
+    import contextlib
+    import io
+    jf = tmp / 'reco_gaps.json'
+    jf.write_text(json.dumps({'dimensions': {'length': {'value': 's', 'basis': 'attached'}}}), encoding='utf-8')
+    so, se = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(so), contextlib.redirect_stderr(se):
+        rc_ = cmd_gaps([str(jf), '--json'])
+    try:
+        js = json.loads(so.getvalue())
+    except ValueError:
+        js = None
+    ok(rc_ == 0 and isinstance(js, list) and all(x['core'] for x in js) and '알림' in se.getvalue(),
+       'gaps --json: stdout 은 JSON 만(알림은 stderr) · --all 없으면 핵심 칸만')
+    jf.write_text('[1]', encoding='utf-8')
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        rc_ = cmd_gaps([str(jf)])
+    ok(rc_ == 1, 'gaps: JSON 객체가 아닌 파일은 오류 없이 종료 코드 1')
     # 10) 쓰기·다시 배우기(바뀐 판단을 history 에) · 검사
     ev = [mk('A', 1, S, 'dark'), mk('B', 2, S, 'dark'), mk('C', 3, S + ['tag:야외'], 'light'), mk('D', 4, S + ['tag:야외'], 'light')]
     write_log({'version': 1, 'events': ev}, tmp)

@@ -460,22 +460,46 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   // 1.6.0 첨부자료 먼저 · 더 물을 것: attached 근거는 「첨부자료에서 (파일:쪽)」로 보이고, gaps 가 핵심 빈 칸을 알려 준다
   {
     const rcA = path.join(proj, 'demo', 'materials', '인터뷰', '00_추천_첨부.json');
+    const EVIL = '<img src=x onerror="globalThis.probe=1">|"q" & 자료.pdf:3'; // from 은 글로만 보여야 한다(교차 검토 R01)
     writeJson(rcA, {id: 'rcA', attachments: [{path: 'materials/공문.pdf', found: '대상 · 목적'}],
-      dimensions: {purpose: {value: ['exhibit'], reason: '공문에 전시용이라고 적힘', basis: 'attached', from: '공문.pdf:2'}, material_type: {value: ['slides'], basis: 'attached'}},
+      dimensions: {purpose: {value: ['exhibit'], reason: '공문에 전시용이라고 적힘', basis: 'attached', from: '공문.pdf:2'}, material_type: {value: ['slides'], basis: 'attached'},
+        file_format: {value: ['html'], basis: 'attached', from: EVIL}, sources: {value: [], reason: '원자료 없다고 함', basis: 'said'}},
+      aspects: {'P2.4.theme': {value: 'dark', reason: '어두운 바탕이라고 말함', basis: 'said'}},
       rounds: [{n: 1, asked: ['pq.topic'], answered: []}, {n: 2, asked: ['pq.topic'], answered: []}]});
     const ckA = RC(['check', rcA]);
     ok(ckA.status === 1 && /근거\(from/.test(ckA.stdout), 'check: attached 인데 근거(from)가 없으면 알리고 짐작으로 내림 (반대 시험)');
     const gp = RC(['gaps', rcA, '--all', '--json']);
-    let g = [];
-    try { g = JSON.parse(gp.stdout.slice(gp.stdout.indexOf('['))); } catch (e) { g = []; }
+    let g = [], gc = null;
+    try { g = JSON.parse(gp.stdout); } catch (e) { g = []; } // stdout 전체가 JSON 이어야 한다(알림은 stderr)
+    const gpc = RC(['gaps', rcA, '--json']);
+    try { gc = JSON.parse(gpc.stdout); } catch (e) { gc = null; }
+    ok(gpc.status === 0 && Array.isArray(gc) && gc.length > 0 && gc.every(x => x.core) && gc.length < g.length && /근거\(from/.test(gpc.stderr),
+      'gaps --json: stdout 은 JSON 만 · 알림은 stderr · --all 없으면 핵심 칸만 (' + (gc ? gc.length : 'JSON 아님') + '칸)');
     const gk = k => g.find(x => x.key === k);
-    ok(gp.status === 0 && g.length > 0 && !gk('dim.purpose') && gk('dim.material_type') && gk('dim.material_type').state === 'inferred' && (!gk('pq.topic') || gk('pq.topic').state === 'asked2'),
+    ok(gp.status === 0 && g.length > 0 && !gk('dim.purpose') && gk('dim.material_type') && gk('dim.material_type').state === 'inferred' && !!gk('pq.topic') && gk('pq.topic').state === 'asked2',
       'gaps: 첨부자료로 찬 칸은 빼고, 근거 없는 칸은 짐작으로, 두 번 물은 칸은 그만 묻기 (' + g.length + '칸)');
     const fileA = path.join(tmp, 'out', '01_제작인터뷰_첨부.html');
     const rA = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), '--lecture', 'demo', '--mode', 'interview', '--out', fileA, '--recommend', rcA], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
     const oA = rA.status === 0 ? open(fileA, false) : null;
     if (oA) oA.w.PE.go(oA.w.PE.screens.findIndex(x => x.id === 'S1'));
     const pl = oA && oA.d.querySelector('#screen [data-drop="dim:purpose"] .recoline');
+    let sl = null;
+    if (oA) for (let i = 0; i < oA.w.PE.screens.length && !sl; i++) { oA.w.PE.go(i); sl = oA.d.querySelector('#screen [data-drop="dim:sources"] .recoline'); }
+    ok(!!sl && sl.dataset.st === 'kept', '「없음」이라고 직접 말한 빈 답(said)은 그대로 두면 「대화 추천」(바꿈 아님) (' + (sl ? sl.dataset.st : '카드 없음') + ')');
+    if (oA) oA.w.PE.go(oA.w.PE.screens.findIndex(x => x.id === 'S1'));
+    // 레퍼런스 채움(--prefill)이 사용자가 직접 말한 「없음」(said 빈 답)을 덮지 않는다(R03)
+    const pfA = path.join(proj, 'demo', 'materials', '인터뷰', '00_레퍼런스_채움_첨부.json');
+    writeJson(pfA, {id: 'pfA', source: 'reference', dimensions: {sources: ['user_video']}, aspects: {'P2.4.theme': {value: 'light', reason: '레퍼런스는 밝음'}}});
+    const fileP = path.join(tmp, 'out', '01_제작인터뷰_첨부_채움.html');
+    const rP = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), '--lecture', 'demo', '--mode', 'interview', '--out', fileP, '--prefill', pfA, '--recommend', rcA], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+    const oP = rP.status === 0 ? open(fileP, false) : null;
+    const srcV = oP && oP.w.PE.state.dimensions.sources;
+    ok(Array.isArray(srcV) && srcV.length === 0 && oP.errors.length === 0, '레퍼런스 채움이 직접 말한 「없음」 빈 답을 덮지 않음 (' + JSON.stringify(srcV) + ')' + (rP.status ? ': ' + rP.stderr : ''));
+    const thV = oP && oP.w.PE.state.aspects['P2.4.theme'];
+    ok(!!thV && thV.value === 'dark' && thV.choice !== 'ref', '레퍼런스 채움이 직접 말한 취향 답(said)도 덮지 않음 (' + JSON.stringify(thV && thV.value) + ')');
+    const fl = oA && oA.d.querySelector('#screen [data-drop="dim:file_format"] .recoline');
+    ok(!!fl && fl.textContent.includes('첨부자료에서 (' + EVIL + ')') && !fl.querySelector('img') && oA.w.probe === undefined,
+      '1부 카드: from 의 < " | & 는 글로만 보임(태그 · 이벤트 실행 없음)');
     ok(!!pl && /첨부자료에서 \(공문\.pdf:2\)/.test(pl.textContent) && /전시용이라고 적힘/.test(pl.textContent) && oA.errors.length === 0, '1부 카드: 근거 「첨부자료에서 (공문.pdf:2)」 + 한 줄 이유' + (rA.status ? ': ' + rA.stderr : ''));
   }
   // 표시 블록은 한 줄 전체일 때만 표시다(1.4.2): 다시 돌려도 블록 하나 · 글 속 표시 글자는 그대로 · 시작 줄이 둘이면 멈추고 안 고침

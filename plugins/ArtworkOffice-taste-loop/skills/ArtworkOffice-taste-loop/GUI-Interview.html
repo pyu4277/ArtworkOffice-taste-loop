@@ -437,7 +437,7 @@ if (RECO && Array.isArray(RECO.ctx_rules) && RECO.ctx_rules.length) {
     if (!sec) continue;
     RECO[sec] = RECO[sec] || {};
     const cur = RECO[sec][id];
-    if (cur && (cur.basis === 'said' || cur.basis === 'attached')) continue; // 대화에서 직접 말한 값 · 첨부자료에 적힌 값은 규칙이 바꾸지 않는다(1.5.0)
+    if (cur && (cur.basis === 'said' || cur.basis === 'attached')) continue; // 대화에서 직접 말한 값 · 첨부자료에 적힌 값은 규칙이 바꾸지 않는다(1.6.0)
     if (r.no_preselect) { delete RECO[sec][id]; continue; }
     RECO[sec][id] = {value: clone(r.value), reason: '작업 여건: ' + r.reason, basis: 'rule:' + r.id};
   }
@@ -447,12 +447,13 @@ if (RECO) for (const kind of ['dim', 'asp', 'pq']) for (const [id, r] of Object.
 const recOf = (kind, id) => (RECO && (RECO[RECO_SEC[kind]] || {})[id]) || null;
 const doPrefill = !!(PREFILL && state.prefill_applied !== prefillKey);
 const doReco = !!(RECO && state.reco_applied !== recoKey);
-if (doPrefill) for (const [k, v] of Object.entries(PREFILL.dimensions || {})) if (dimById[k.replace(/_(other|primary)$/, '')] && emptyV(state.dimensions[k])) { state.dimensions[k] = clone(v); state.dim_from[k] = 'reference'; }
+const recoFixed = (sec, k) => { const r = RECO && (RECO[sec] || {})[k]; return !!r && (r.basis === 'said' || r.basis === 'attached'); }; // 말함 · 첨부자료 답(「없음」 빈 답 포함)은 레퍼런스 채움도 덮지 않는다(R03)
+if (doPrefill) for (const [k, v] of Object.entries(PREFILL.dimensions || {})) if (dimById[k.replace(/_(other|primary)$/, '')] && emptyV(state.dimensions[k]) && !recoFixed('dimensions', k)) { state.dimensions[k] = clone(v); state.dim_from[k] = 'reference'; }
 if (doReco) for (const [k, r] of Object.entries(RECO.dimensions || {})) { const b = k.replace(/_(other|primary)$/, ''); if (dimById[b] && r && emptyV(state.dimensions[k])) { state.dimensions[k] = clone(r.value); if (b === k) state.dim_from[k] = 'reco'; } }
 fillDefaults();
 if (doPrefill) { // 이미 답한 칸은 건드리지 않는다
   for (const [aid, s] of Object.entries(PREFILL.aspects || {})) {
-    if (!aspectById[aid] || !s || aspectAnswered(aid)) continue;
+    if (!aspectById[aid] || !s || aspectAnswered(aid) || recoFixed('aspects', aid)) continue; // 말함 · 첨부자료 답은 덮지 않는다(R04)
     state.aspects[aid] = {choice: 'ref', value: s.value == null ? null : clone(s.value), reason: s.reason || '', from: 'reference', winner: ((matchAspect(aid) || {}).winner || {}).id || null};
   }
   if (Array.isArray(PREFILL.references) && !state.references.length) state.references = PREFILL.references.map(r => Object.assign(newRefItem(), clone(r)));
@@ -488,7 +489,7 @@ function recoStatus(kind, id) { // kept 그대로 · changed 바꿈 · cleared �
   if (!recOf(kind, id)) return null;
   if (recoHidden(kind, id)) return 'hidden';
   const v = recoCur(kind, id);
-  if (emptyV(v)) return 'cleared';
+  if (emptyV(v)) return emptyV(recOf(kind, id).value) ? 'kept' : 'cleared'; // 「없음」 추천(said 빈 답)을 그대로 두면 그대로(R02)
   return norm(v) === norm(recOf(kind, id).value) ? 'kept' : 'changed';
 }
 function recoValText(kind, id, v) {
@@ -501,7 +502,7 @@ function recoName(it) { return it.kind === 'dim' ? ((dimById[it.id] || {}).name 
 function recoMark(kind, id) { // 카드 머리: 「대화 추천」 + 한 줄 이유, 바꾸면 「추천 → 바꿈」
   const r = recOf(kind, id); if (!r) return '';
   const st = recoStatus(kind, id);
-  const basis = String(r.basis || '').startsWith('rule:') ? (/^작업 여건/.test(r.reason || '') ? '지난 기록 · 지금 작업 여건' : /그때그때/.test(r.reason || '') ? '그때그때 취향 — 기우는 쪽' : '지난 기록에서 배움') : r.basis === 'said' ? '대화에서 직접 말함' : r.basis === 'attached' ? '첨부자료에서' + (r.from ? ' (' + r.from + ')' : '') : '대화에서 짐작';
+  const basis = String(r.basis || '').startsWith('rule:') ? (/^작업 여건/.test(r.reason || '') ? '지난 기록 · 지금 작업 여건' : /그때그때/.test(r.reason || '') ? '그때그때 취향 — 기우는 쪽' : '지난 기록에서 배움') : r.basis === 'said' ? '대화에서 직접 말함' : r.basis === 'attached' ? '첨부자료에서' + (r.from ? ' (' + esc(r.from) + ')' : '') : '대화에서 짐작'; // basis 는 HTML 로 들어간다 — from 은 반드시 esc
   const why = (r.reason ? esc(r.reason) + ' · ' : '') + `<span class="small">${basis}</span>`;
   if (st === 'kept') return `<p class="recoline" data-reco="${esc(kind + '.' + id)}" data-st="kept"><span class="badge reco">대화 추천</span>${why}</p>`;
   if (st === 'changed' || st === 'cleared') return `<p class="recoline changed" data-reco="${esc(kind + '.' + id)}" data-st="${st}"><span class="badge warn">추천 → 바꿈</span>추천 <b>${esc(recoValText(kind, id, r.value))}</b> → 지금 <b>${esc(recoValText(kind, id, recoCur(kind, id)))}</b><br><span class="small">추천 이유: ${r.reason ? esc(r.reason) : '(없음)'} · ${basis}</span></p>`;
