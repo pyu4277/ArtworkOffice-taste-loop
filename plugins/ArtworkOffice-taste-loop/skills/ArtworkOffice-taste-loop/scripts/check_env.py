@@ -81,7 +81,7 @@ def jsdom_path():
 
 def python_cmd():
     """실제로 실행되는 파이썬 3.8 이상 명령을 고른다. 이름 찾기(which)만으로 판정하지 않는다:
-    Windows 의 python3 는 마이크로소프트 스토어 바로가기(실행하면 오류만 내는 가짜)일 수 있다(실수 기록 E22)."""
+    Windows 의 python3 는 마이크로소프트 스토어 바로가기(실행하면 오류만 내는 가짜)일 수 있다."""
     for c in (['python', 'py', 'python3'] if os.name == 'nt' else ['python3', 'python', 'py']):
         if not shutil.which(c):
             continue
@@ -176,7 +176,7 @@ def collect():
     cloud = os.environ.get('CLAUDE_CODE_REMOTE') == 'true'
     rows = []
     for cmd, use, where, level in TOOLS:
-        if cmd == 'python3':  # 이름이 아니라 실제로 실행되는 명령으로 판정한다(E22)
+        if cmd == 'python3':  # 이름이 아니라 실제로 실행되는 명령으로 판정한다
             py = python_cmd()
             label = cmd if py in ('', 'python3') else f'{cmd}→{py}'
             if py:

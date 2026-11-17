@@ -75,7 +75,7 @@ def clean(cell):
 
 def md_tables(text):
     """Markdown 표 → [(머리 셀 목록, [행 셀 목록...]), ...]. 구분 행(---)의 바로 앞 행이 머리다.
-    칸 안의 `\\|` 는 칸 구분이 아니라 글자 | 다(GitHub 표와 같은 규칙 — 1.4.2, 실수 기록 E21 행)."""
+    칸 안의 `\\|` 는 칸 구분이 아니라 글자 | 다(GitHub 표와 같은 규칙 — 1.4.2)."""
     tables, header, rows = [], None, []
     for line in text.splitlines() + ['']:
         s = line.strip()

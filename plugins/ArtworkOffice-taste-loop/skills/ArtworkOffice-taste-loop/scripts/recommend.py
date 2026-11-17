@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""대화 추천 — 기록하고 스스로 진화한다 (엔진 1.4.0, 사용자 결정 2026-11-09 · 1.5.0 첨부자료 먼저 · 더 물을 것 되돌기 2026-11-16).
+"""대화 추천 — 기록하고 스스로 진화한다 (엔진 1.4.0, 사용자 결정 2026-11-09 · 1.6.0 첨부자료 먼저 · 더 물을 것 되돌기 2026-11-16).
 
 흐름
-  0. 미리 받은 첨부자료(파일 · 폴더 · 주소)를 먼저 끝까지 읽고, 거기서 알 수 있는 칸은 basis "attached"(+ 근거 from)로 채운다(1.5.0).
+  0. 미리 받은 첨부자료(파일 · 폴더 · 주소)를 먼저 끝까지 읽고, 거기서 알 수 있는 칸은 basis "attached"(+ 근거 from)로 채운다(1.6.0).
   1. Claude가 인터뷰 페이지를 만들기 전에 대화로 「무엇을 · 누구에게 · 왜 · 어떻게」를 알아본다.
      대화 요약은 <작업폴더>/materials/인터뷰/00_대화요약.md, 추천은 00_추천.json 에 쓴다(형식은 아래).
-     `recommend.py gaps 00_추천.json` 이 아직 빈 칸 · 짐작만 한 칸을 보여 준다 — 물을 것이 없을 때까지 묻고 다시 본다(1.5.0, 「rounds」 에 회차 기록).
+     `recommend.py gaps 00_추천.json` 이 아직 빈 칸 · 짐작만 한 칸을 보여 준다 — 물을 것이 없을 때까지 묻고 다시 본다(1.6.0, 「rounds」 에 회차 기록).
   2. `recommend.py suggest --from 00_추천.json --write` — 지난 기록에서 배운 규칙으로 대화가 정하지 않은 칸을 채운다.
      (대화에서 사용자가 직접 말한 것 basis "said" 와 첨부자료에 적힌 것 "attached" 는 규칙이 바꾸지 않는다. Claude가 짐작한 것 "inferred" 는
      수정 요청이 섞인 강한 규칙이 다르면 규칙이 이긴다.)
@@ -35,15 +35,15 @@
 00_추천.json
   {"id": "<판 이름>", "source": "conversation", "summary": "materials/인터뷰/00_대화요약.md",
    "signals": ["tag:…", …],
-   "attachments": [{"path": "<파일 · 폴더 · 주소>", "read": "all|part", "found": "<알게 된 것 한 줄>"}],   (1.5.0, 없으면 [])
-   "rounds": [{"n": 1, "asked": ["dim.length", "pq.topic"], "answered": ["dim.length"]}],                 (1.5.0 묻기 회차)
+   "attachments": [{"path": "<파일 · 폴더 · 주소>", "read": "all|part", "found": "<알게 된 것 한 줄>"}],   (1.6.0, 없으면 [])
+   "rounds": [{"n": 1, "asked": ["dim.length", "pq.topic"], "answered": ["dim.length"]}],                 (1.6.0 묻기 회차)
    "dimensions": {"<질문>": {"value": 값, "reason": "<한 줄 근거>", "basis": "said|attached|inferred|rule:<id>", "from": "<attached 일 때 근거 파일:쪽>"}},
    "aspects":    {"<취향 질문>": {…같은 꼴}},
    "project":    {"<3부 질문>": {…같은 꼴}}}
 
 사용법
   python3 recommend.py check <00_추천.json>                     질문 은행과 맞는지 검사(없는 질문·선택지를 알린다)
-  python3 recommend.py gaps <00_추천.json> [--all] [--json]     더 물을 것: 핵심 칸(CORE) 가운데 빈 칸 · 짐작만 한 칸(1.5.0, --all 은 보이는 모든 1부 · 3부 칸)
+  python3 recommend.py gaps <00_추천.json> [--all] [--json]     더 물을 것: 핵심 칸(CORE) 가운데 빈 칸 · 짐작만 한 칸(1.6.0, --all 은 보이는 모든 1부 · 3부 칸)
   python3 recommend.py suggest (--from <00_추천.json> [--write] | --signals "<신호>,<신호>")
   python3 recommend.py record <답변.json> [--project <작업폴더>]  (같은 제출은 두 번 기록하지 않는다)
   python3 recommend.py correct --project <작업폴더> --key <키> --value '<JSON 값>' --said "<사용자 원문>" [--signals "<신호>,…"]
@@ -80,7 +80,7 @@ MIN_MOOD_EVENTS = 3       # 그때그때 취향의 기울기를 쓰려면 최소
 NONE = '∅'                # 「미리 고르지 않음」(지움 · 제외)
 KEY_RE = re.compile(r'^(dim|asp|pq)\.[A-Za-z0-9_.\-]+$')
 SIG_RE = re.compile(r'^(dim\.[A-Za-z0-9_.\-]+=.+|tag:.+|ctx:[^=]+=.+)$')  # ctx: 작업 여건(페이지가 제출 때 자동으로 — 기기·시간대·요일·여는 방식)
-BASES = ('said', 'attached', 'inferred')   # attached: 첨부자료에 적혀 있음(1.5.0) — from 에 근거 파일 · 쪽
+BASES = ('said', 'attached', 'inferred')   # attached: 첨부자료에 적혀 있음(1.6.0) — from 에 근거 파일 · 쪽
 PROTECTED = ('said', 'attached')           # 규칙이 바꾸지 않는 근거
 # 대화에서 먼저 물을 핵심 칸(스킬 3.0의 1 — 무엇을 · 누구에게 · 왜 · 어디서 보나 · 길이 · 마감 · 원자료 · 꼭 넣을 것 · 뺄 것 · 주제 · 얻어 갈 것).
 # 나머지 칸은 지난 기록 · 기본값으로 미리 고르고 인터뷰 페이지에서 확인한다(다 물으면 30개가 넘는다)
@@ -755,7 +755,7 @@ def cmd_suggest(argv):
 
 
 def gaps(reco, B=None, dims_doc=None):
-    """더 물을 것(1.5.0): [(키, 이름, 상태, 핵심인가)] — 상태 empty 빈 칸 · inferred 짐작만 · asked2 두 번 물었는데 답 없음(짐작으로 두고 페이지에서 확인).
+    """더 물을 것(1.6.0): [(키, 이름, 상태, 핵심인가)] — 상태 empty 빈 칸 · inferred 짐작만 · asked2 두 번 물었는데 답 없음(짐작으로 두고 페이지에서 확인).
     1부는 지금까지 고른 값으로 보이는 질문만(숨은 하위 질문은 위 질문을 정해야 나온다), 화면 순서대로. 3부는 전부."""
     import structure as SX
     import upgrade_store as UP
@@ -956,8 +956,8 @@ def cmd_selftest():
     m, _ = merge({'aspects': {'P2.4.theme': {'value': 'dark', 'basis': 'inferred'}}}, {TH: rule})
     ok(m['aspects']['P2.4.theme']['value'] == 'light', '짐작한 값은 강한 규칙이 이김')
     m, _ = merge({'aspects': {'P2.4.theme': {'value': 'dark', 'basis': 'attached', 'from': 'a.pdf:3'}}}, {TH: rule})
-    ok(m['aspects']['P2.4.theme']['value'] == 'dark', '첨부자료에 적힌 값도 규칙이 바꾸지 않음(1.5.0)')
-    # 9-1) 첨부자료 근거 · 더 물을 것(1.5.0) — 가짜 질문 은행으로
+    ok(m['aspects']['P2.4.theme']['value'] == 'dark', '첨부자료에 적힌 값도 규칙이 바꾸지 않음(1.6.0)')
+    # 9-1) 첨부자료 근거 · 더 물을 것(1.6.0) — 가짜 질문 은행으로
     FB = ({'file_format': {'id': 'file_format', 'name': '파일 형식', 'type': 'multi', 'values': [{'id': 'html'}, {'id': 'pdf'}]},
            'pdf_export': {'id': 'pdf_export', 'name': 'PDF 변환본', 'type': 'single', 'values': [{'id': 'y'}, {'id': 'n'}], 'when': {'file_format': ['html']}},
            'length': {'id': 'length', 'name': '길이', 'type': 'single', 'values': [{'id': 's'}, {'id': 'l'}]}},

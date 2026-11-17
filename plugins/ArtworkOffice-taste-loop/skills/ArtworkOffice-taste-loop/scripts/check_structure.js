@@ -222,11 +222,29 @@ print(json.dumps({'dims':d,'qs':q,'problems':p,'vis':vis,'qs2':q2,'p2':len(p2)},
   ok(s.status === 0 && /검사: 문제 없음/.test(s.stdout), 'preview: 검사 문제 없음' + (s.status ? '\n' + s.stdout + s.stderr : ''));
   s = py([path.join(HERE, 'structure_edits.py'), 'apply']);
   ok(s.status === 0 && /--yes/.test(s.stdout) && !JSON.parse(fs.readFileSync(path.join(store, 'dimensions.json'), 'utf8')).dimensions.some(x => x.id === 'd_test'), 'apply(--yes 없음) → 파일 안 바뀜');
-  s = py([path.join(HERE, 'structure_edits.py'), 'apply', '--yes']);
+  {  // 변경이력 표 아래에 다른 절 · 다른 표 · 코드 블록이 있어도 새 줄은 변경이력 표 안에, 확인자는 --by 값(1.5.0)
+    const chp = path.join(store, 'knowledge', '02_변경이력.md');
+    if (fs.existsSync(chp)) fs.appendFileSync(chp, '\n### 뒤 절\n\n| x | y |\n|---|---|\n| 1 | 2 |\n\n```\n| example |\n```\n');
+    const st = py([path.join(HERE, 'structure_edits.py'), 'selftest']);
+    ok(st.status === 0 && /자체 시험 통과/.test(st.stdout), 'structure_edits.py selftest' + (st.status ? '\n' + st.stdout + st.stderr : ''));
+    const bad = py([path.join(HERE, 'structure_edits.py'), 'apply', '--by', '--yes']);
+    ok(bad.status === 2 && !JSON.parse(fs.readFileSync(path.join(store, 'dimensions.json'), 'utf8')).dimensions.some(x => x.id === 'd_test'), 'apply --by --yes(값 없는 --by) → 종료 코드 2, 반영 안 함');
+  }
+  s = py([path.join(HERE, 'structure_edits.py'), 'apply', '--yes', '--by', '사용자 확인']);
   const dimsAfter = JSON.parse(fs.readFileSync(path.join(store, 'dimensions.json'), 'utf8'));
   const led = JSON.parse(fs.readFileSync(path.join(store, 'knowledge', 'structure_edits.json'), 'utf8'));
   ok(s.status === 0 && JSON.stringify(dimsAfter.dimensions) === JSON.stringify(PYR.dims.dimensions) && led.batches.every(b => b.status === 'applied'), 'apply --yes → dimensions.json 반영 · 묶음 「반영됨」' + (s.status ? '\n' + s.stdout + s.stderr : ''));
-  {  // 줄바꿈 LF 고정(실수 기록 E22): Windows 파이썬의 write_text 는 CRLF 로 써서 PC와 클라우드 결과가 달라진다
+  {  // 변경이력: 새 줄이 표 안(뒤 절 앞)에 있고 마지막 칸이 --by 값
+    const chp = path.join(store, 'knowledge', '02_변경이력.md');
+    if (fs.existsSync(chp)) {
+      const L = fs.readFileSync(chp, 'utf8').split('\n');
+      const at = L.findIndex(l => /구조 편집 SE-/.test(l)), sec = L.findIndex(l => /^### 뒤 절/.test(l));
+      ok(at > 0 && sec > at && /^\|/.test(L[at - 1]) && /\| 사용자 확인 \|$/.test(L[at]) && L.filter(l => /구조 편집 SE-/.test(l)).length === 1,
+        '변경이력: 새 줄은 변경이력 표의 마지막 줄 뒤 · 확인자 칸은 --by 값' + (at > 0 ? '' : ' — 줄 없음'));
+      ok(L.join('\n').includes('```\n| example |\n```') && L.join('\n').includes('| 1 | 2 |'), '변경이력: 뒤쪽 표 · 코드 블록은 그대로');
+    }
+  }
+  {  // 줄바꿈 LF 고정: Windows 파이썬의 write_text 는 CRLF 로 써서 PC와 클라우드 결과가 달라진다
     const written = ['dimensions.json', 'questions.json', path.join('knowledge', 'structure_edits.json'), path.join('knowledge', '02_변경이력.md')]
       .filter(f => fs.existsSync(path.join(store, f)));
     const crlf = written.filter(f => fs.readFileSync(path.join(store, f)).includes('\r\n'));

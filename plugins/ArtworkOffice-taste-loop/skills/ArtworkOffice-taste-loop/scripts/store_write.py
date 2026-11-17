@@ -17,7 +17,7 @@ json.load → json.dump 로 다시 쓰면 항목마다 6줄로 맞춘 손 정렬
                                                              빈 줄 자리는 git 의 마지막 판을 따른다). --check: 다르면 종료 코드 1
   python3 store_write.py selftest                             지금 두 파일이 이 도구의 형식과 바이트까지 같은지 확인
 공통: --dry-run 은 쓰지 않고 바뀔 줄 수만 알린다. <바꿀 칸.json> 자리에 JSON 글을 바로 써도 된다.
-쓴 뒤 JSON 을 다시 읽어 확인하고, 줄바꿈은 LF 로 쓴다(실수 기록 E22). 다음 단계: check_store.py (값 · 범위 · 충돌 검증).
+쓴 뒤 JSON 을 다시 읽어 확인하고, 줄바꿈은 LF 로 쓴다. 다음 단계: check_store.py (값 · 범위 · 충돌 검증).
 """
 import datetime
 import json

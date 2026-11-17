@@ -146,7 +146,7 @@ def reference_section(ans, asp_ans, opinions, aspects, dims):
     for m in memo:
         L.append(f'- (질문 메모에서 지정) {m["where"]} — {" · ".join(m["questions"][:6])}' + (f' 외 {len(m["questions"]) - 6}곳' if len(m['questions']) > 6 else ''))
     if refs or memo or ref_asp:
-        L += ['', '### 먼저 할 일 — 참고 자료는 기준표로 바꿔야 지켜진다 (실수 기록 E37)', '',
+        L += ['', '### 먼저 할 일 — 참고 자료는 기준표로 바꿔야 지켜진다', '',
               '- [ ] 레퍼런스를 끝까지 분석해 **기준표**를 먼저 만든다 → `materials/인터뷰/00_레퍼런스_기준표.md`: 「따를 것」에 맞춰 글(장당 글자 수 · 문장 꼴 · 제목 꼴 · 글머리 · 표 꼴) · 디자인(색 · 글꼴 · 배치 · 여백) · 구성(흐름 · 장 수 · 시간 배분). 읽은 범위(쪽 · 장 번호)를 적는다',
               ('- [ ] 질문지 답 초안을 `materials/인터뷰/00_레퍼런스_채움.json`({"id", "source", "doc", "references", "dimensions", "aspects": {"<질문>": {"value", "reason"}}})으로 쓰고 '
                '`build_interview.py … --prefill materials/인터뷰/00_레퍼런스_채움.json`으로 인터뷰를 다시 만든다(같은 경로 · 같은 게시 URL) → 사용자가 「레퍼런스에서」 표시를 확인해 제출')
@@ -396,7 +396,7 @@ def main(argv):
     block = '\n'.join(L)
     if out.exists():
         s = out.read_text(encoding='utf-8')
-        # 표시는 한 줄 전체일 때만 표시다. 본문 글 속 같은 글자를 표시로 보면 그 자리부터 블록 끝까지 덮어쓴다(실수 기록 E49, 1.4.2)
+        # 표시는 한 줄 전체일 때만 표시다. 본문 글 속 같은 글자를 표시로 보면 그 자리부터 블록 끝까지 덮어쓴다(1.4.2)
         b, e = mark_lines(s, BEGIN), mark_lines(s, END)
         if not b and not e:
             ob, oe = mark_lines(s, OLD_MARKS[0]), mark_lines(s, OLD_MARKS[1])
@@ -411,7 +411,7 @@ def main(argv):
             s = s.rstrip('\n') + '\n\n' + block + '\n'
         else:
             print(f'멈춤: {out} 의 표시 블록 줄이 시작 {len(b)}개 · 끝 {len(e)}개입니다(시작 1 · 끝 1, 시작이 앞이어야 함). '
-                  '문서를 고치지 않았습니다 — 표시 줄을 확인한 뒤 다시 실행하세요(실수 기록 E49).', file=sys.stderr)
+                  '문서를 고치지 않았습니다 — 표시 줄을 확인한 뒤 다시 실행하세요.', file=sys.stderr)
             return 1
         out.write_bytes(s.encode('utf-8'))  # 줄바꿈을 LF 로 고정: Windows 에서 만들어도 클라우드와 같은 파일이 된다
         print('갱신:', out)
