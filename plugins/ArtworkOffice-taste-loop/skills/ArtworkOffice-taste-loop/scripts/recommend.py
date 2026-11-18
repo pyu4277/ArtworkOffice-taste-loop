@@ -1024,8 +1024,12 @@ def cmd_listen(argv):
             except OSError as e:
                 print(f'듣기를 닫지 못했습니다(아직 듣는 중 — 제작은 막힘): {path} ({e})'); return 1
     if done:
-        print(f'듣기 끝 — 받은 말씀 {n}개({summ}). 다음(스킬 3.0): 0 첨부자료를 끝까지 읽기 → 들은 말씀과 함께 한 번에 분석 → 1 · 1-1 gaps 의 빈 핵심 칸만 한 번에 묻기 '
+        print(f'듣기 끝 — 받은 말씀 {n}개({summ}). 다음(스킬 3.0): 0 받은 자료를 하나하나 다 열어 처음부터 끝까지 분석 · 정리 → 들은 말씀과 함께 한 번에 분석 → 1 · 1-1 gaps 의 빈 핵심 칸만 한 번에 묻기 '
               '→ 2~5 대화 요약 · 추천 · 인터뷰 페이지 → 6 답 기록 → 0-1 준비 완료 점검표 · 사용자 확인 → 3.1의 5 계획 → 제작')
+        import check_ready as CR
+        lec = path.parent.parent.parent if path.parts[-2:] == ('인터뷰', '00_추천.json') else path.parent
+        for line in CR.material_plan_lines(lec, [str(a.get('path')) for a in reco.get('attachments') or [] if isinstance(a, dict) and str(a.get('path') or '').strip()]):
+            print(line)
     else:
         print(LISTEN_ACK)
     return 0
@@ -1371,6 +1375,17 @@ def cmd_selftest():
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             cmd_listen([str(pf), '--said', 'D:/자료/작년_보고서.pdf 이거 그대로 따라 해줘'])
         ok([a.get('path') for a in load_json(pf).get('attachments', [])] == ['D:/자료/작년_보고서.pdf'], '듣는 중 말씀 속 경로는 첨부자료로 적어 둠(준비 점검표가 요구 — R04)')
+        given_dir = lt / '받은폴더'
+        (given_dir / 'sub').mkdir(parents=True)
+        for fn in ('a.pdf', 'sub/b.hwp', 'Thumbs.db'):
+            (given_dir / fn).write_bytes(b'x')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cmd_listen([str(pf), '--said', given_dir.as_posix() + ' 폴더 자료 전부 봐'])
+        with contextlib.redirect_stdout(io.StringIO()) as od, contextlib.redirect_stderr(io.StringIO()):
+            cdn = cmd_listen([str(pf), '--done'])
+        out_d = od.getvalue()
+        ok(cdn == 0 and '하나하나' in out_d and '처음부터 끝까지' in out_d and 'D:/자료/작년_보고서.pdf' in out_d and '안의 파일 2개' in out_d and ' add --lecture ' in out_d,
+           f'1.8.0: 듣기를 닫으면 받은 자료를 하나씩(폴더는 안의 파일 수) 보이고 하나하나 열어 분석하라고(init · add) 안내 — {out_d[-300:]}')
         pd = lt / 'pd' / 'materials' / '인터뷰' / '00_추천.json'
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             cmd_listen([str(pd), '--said', '첫 말씀'])
