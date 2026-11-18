@@ -332,6 +332,9 @@ def main(argv):
             rc, notes = RC.clean_reco(load_json(a['recommend']), ({d['id']: d for d in dims['dimensions']}, {x['id']: x for x in qs['aspects']}, {x['id']: x for x in qs.get('project_questions', [])}))
             for n in notes:
                 print('알림: ' + n, file=sys.stderr)
+            if rc and rc.get('listening'):  # 사전 인터뷰 듣기 모드(1.7.0) — 「됐어」 전에는 인터뷰 페이지도 내밀지 않는다
+                print('멈춤: 사전 인터뷰가 아직 듣는 중입니다(listening). 사용자가 「됐어」라고 한 뒤 recommend.py listen <00_추천.json> --done 으로 닫고 다시 만듭니다.', file=sys.stderr)
+                return 1
             if rc:
                 rc.setdefault('id', pathlib.Path(a['recommend']).stem)
                 # 작업 여건(ctx:) 규칙은 페이지가 열릴 때 그 자리의 여건(기기·시간대·요일·여는 방식)으로 판정한다

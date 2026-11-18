@@ -37,11 +37,18 @@
    "signals": ["tag:…", …],
    "attachments": [{"path": "<파일 · 폴더 · 주소>", "read": "all|part", "found": "<알게 된 것 한 줄>"}],   (1.6.0, 없으면 [])
    "rounds": [{"n": 1, "asked": ["dim.length", "pq.topic"], "answered": ["dim.length"]}],                 (1.6.0 묻기 회차)
+   "listening": true,                                                                                       (1.7.0 듣기 모드 — listen 이 열고 닫는다)
    "dimensions": {"<질문>": {"value": 값, "reason": "<한 줄 근거>", "basis": "said|attached|inferred|rule:<id>", "from": "<attached 일 때 근거 파일:쪽>"}},
    "aspects":    {"<취향 질문>": {…같은 꼴}},
    "project":    {"<3부 질문>": {…같은 꼴}}}
 
 사용법
+  python3 recommend.py listen <00_추천.json> [--said "<원문>" | --said=<원문> | --said-file <UTF-8 파일> | --said -] [--done]
+                                                                사전 인터뷰 듣기 모드(1.7.0, 기본): 사용자가 「됐어」라고 할 때까지 답 · 질문 · 요약 없이 듣기만 한다.
+                                                                --said 는 말씀을 같은 폴더 00_대화요약.md 끝에 글자 그대로 덧붙이고 listening 을 연다(파일이 없으면 만든다).
+                                                                화면에는 한 줄만: 「(듣는 중 — 「됐어」라고 하시면 정리해 드립니다)」. --done 은 듣기를 닫는다.
+                                                                듣는 동안 gaps · check · suggest 는 종료 3(gaps --json 은 {"listening": true, "gaps": []}), check_ready.py 는 제작을 막는다.
+                                                                --said - 는 표준 입력을 UTF-8 로 읽는다(Windows PowerShell 5.1 의 파이프는 한글을 ? 로 바꾼다 — 거기서는 --said-file).
   python3 recommend.py check <00_추천.json>                     질문 은행과 맞는지 검사(없는 질문·선택지를 알린다)
   python3 recommend.py gaps <00_추천.json> [--all] [--json]     더 물을 것: 핵심 칸(CORE) 가운데 빈 칸 · 짐작만 한 칸(1.6.0, --all 은 보이는 모든 1부 · 3부 칸,
                                                                 --json 도 같은 범위 · 알림은 stderr)
@@ -186,6 +193,13 @@ def clean_reco(reco, B=None):
         return None, ['추천 파일은 JSON 객체여야 합니다']
     out = {k: reco[k] for k in ('id', 'source', 'summary') if reco.get(k)}
     out.setdefault('source', 'conversation')
+    if isinstance(reco.get('listening'), bool):
+        out['listening'] = reco['listening']
+    elif 'listening' in reco and reco['listening'] is not None:
+        out['listening'] = True  # bool 이 아니면(「"true"」 등) 듣는 중으로 본다 — 묻기 · 추천 덮어쓰기를 막는 쪽(R05)
+        notes.append(f"listening {reco['listening']!r}: true/false 여야 함 — 듣는 중으로 봄")  # 듣기 모드(1.7.0) — 정리 · 저장해도 지우지 않는다(gaps 가 묻지 않게 · 다시 열 때 알림)
+    if isinstance(reco.get('heard'), int) and not isinstance(reco.get('heard'), bool) and reco['heard'] >= 0:
+        out['heard'] = reco['heard']  # 들은 말씀 개수(R03 — suggest --write 뒤에도 번호가 이어지게)
     sig = []
     for s in reco.get('signals') or []:
         if isinstance(s, str) and SIG_RE.match(s.strip()):
@@ -194,9 +208,13 @@ def clean_reco(reco, B=None):
             notes.append(f'신호 {s!r}: 형식은 dim.<질문>=<값> 또는 tag:<낱말> — 뺌')
     out['signals'] = sig
     att = []
-    for a in reco.get('attachments') or []:
+    atts = reco.get('attachments')
+    if atts is not None and not isinstance(atts, list):
+        notes.append(f'attachments {atts!r}: 목록이어야 함 — 뺌')
+        atts = []
+    for a in atts or []:
         if isinstance(a, dict) and str(a.get('path') or '').strip():
-            att.append({'path': str(a['path']).strip(), 'read': a.get('read') if a.get('read') in ('all', 'part') else 'all',
+            att.append({'path': str(a['path']).strip(), 'read': a.get('read') if a.get('read') in ('all', 'part') else 'unknown',  # 모르면 「다 읽음」으로 적지 않는다(R02)
                         'found': str(a.get('found') or '')})
         else:
             notes.append(f'첨부자료 {a!r}: path 가 있는 객체여야 함 — 뺌')
@@ -791,6 +809,14 @@ def cmd_suggest(argv):
             print('알림: ' + n)
         if reco is None:
             return 1
+        raw = load_json(src)
+        ra = raw.get('attachments') if isinstance(raw, dict) else None
+        if write and ra is not None and (not isinstance(ra, list) or any(not (isinstance(a, dict) and str(a.get('path') or '').strip()) for a in ra)):
+            print('멈춤: attachments 에 path 가 없는 항목이 있어 --write 로 덮어쓰지 않습니다(틀린 항목을 지우면 준비 점검표가 첨부자료를 못 봄 — R04). 고친 뒤 다시 실행합니다.')
+            return 1
+        if reco.get('listening'):  # 듣기 모드(1.7.0): 「됐어」 전에는 추천도 만들지 않는다
+            print('듣는 중 — 사용자가 「됐어」라고 할 때까지 추천을 만들지 않습니다(recommend.py listen <00_추천.json> --done)')
+            return 3
         sig = reco_signals(reco) | set(signals)
     else:
         reco, sig = None, set(signals)
@@ -863,6 +889,11 @@ def cmd_gaps(argv):
         print('알림: ' + n, file=sys.stderr)
     if reco is None:
         return 1
+    if reco.get('listening'):  # 사전 인터뷰 듣기 모드(1.7.0): 사용자가 「됐어」라고 하기 전에는 아무것도 묻지 않는다
+        print('듣는 중 — 사용자가 「됐어」라고 할 때까지 묻지 않습니다. 끝나면 recommend.py listen <00_추천.json> --done', file=sys.stderr)
+        if '--json' in argv:
+            print(json.dumps({'listening': True, 'gaps': []}))  # 「물을 것 없음」([])과 구별되게
+        return 3
     g = gaps(reco)
     show = g if '--all' in argv else [x for x in g if x[3]]
     if '--json' in argv:
@@ -879,6 +910,127 @@ def cmd_gaps(argv):
     return 0
 
 
+LISTEN_ACK = '(듣는 중 — 「됐어」라고 하시면 정리해 드립니다)'
+LISTEN_HEAD = '### 듣기 모드 말씀 '
+
+
+def cmd_listen(argv):
+    """사전 인터뷰 듣기 모드(1.7.0): 말씀을 글자 그대로 쌓고, 「됐어」 전에는 묻지 않게 listening 을 연다."""
+    if not argv or argv[0].startswith('--'):
+        print(__doc__); return 2
+    path, said, done, i, anywhere = pathlib.Path(argv[0]), None, False, 1, False
+    while i < len(argv):
+        a = argv[i]
+        if a == '--anywhere' and not anywhere:
+            anywhere = True; i += 1
+        elif a.startswith('--said=') and said is None:
+            said = a[len('--said='):]; i += 1
+        elif a == '--said' and i + 1 < len(argv) and said is None and argv[i + 1] not in ('--said', '--done', '--said-file'):
+            # 「--said -」 는 표준 입력에서 읽는다(Windows PowerShell 5.1 은 인자 속 큰따옴표를 지운다)
+            if argv[i + 1] == '-':
+                try:
+                    said = sys.stdin.buffer.read().decode('utf-8-sig')
+                except (OSError, UnicodeDecodeError) as e:
+                    print(f'표준 입력을 UTF-8 로 읽지 못했습니다: {e}'); return 1
+            else:
+                said = argv[i + 1]
+            i += 2
+        elif a == '--said-file' and i + 1 < len(argv) and said is None:
+            try:
+                said = pathlib.Path(argv[i + 1]).read_bytes().decode('utf-8-sig')
+            except (OSError, UnicodeDecodeError) as e:
+                print(f'말씀 파일을 읽지 못했습니다: {e}'); return 1
+            i += 2
+        elif a == '--done' and not done:
+            done = True; i += 1
+        else:
+            print(__doc__); return 2
+    if said is not None and not said.strip():
+        print('빈 말씀은 적지 않습니다'); return 2
+    if path.is_dir():
+        print(f'추천 파일 자리에 폴더가 있습니다: {path}'); return 1
+    if path.parts[-2:] != ('인터뷰', '00_추천.json') and not anywhere:
+        # 잘못 넘긴 경로로 프로젝트 밖에 추천 파일 · 대화 요약을 만들지 않게 거절한다(R06 · R08). 정말 다른 자리면 --anywhere
+        print(f'추천 파일은 <작업폴더>/materials/인터뷰/00_추천.json 자리여야 합니다(준비 점검표 검사도 그 자리만 봄) — 아무것도 쓰지 않음: {path}\n'
+              '  다른 자리에 일부러 쓰려면 --anywhere 를 붙입니다'); return 2
+    if path.exists():
+        try:
+            reco = load_json(path)
+        except (ValueError, OSError) as e:
+            print(f'추천 파일을 읽지 못했습니다: {path} ({e})'); return 1
+        if not isinstance(reco, dict):
+            print(f'추천 파일은 JSON 객체여야 합니다: {path}'); return 1
+    elif said is None:
+        print(f'아직 들은 말씀이 없습니다(추천 파일 없음): {path}'); return 1
+    else:
+        reco = {'id': path.stem, 'source': 'conversation', 'summary': 'materials/인터뷰/00_대화요약.md', 'signals': [], 'attachments': [],
+                'rounds': [], 'dimensions': {}, 'aspects': {}, 'project': {}}
+    if said is None and done and reco.get('pending_said'):
+        print(f'적지 못한 말씀이 남아 있어 듣기를 닫지 않습니다 — 그 말씀(추천 파일의 pending_said)을 --said-file 로 다시 적으며 --done 을 붙입니다: {path}'); return 1
+    if said is not None and reco.get('listening') is False:
+        print('알림: 듣기를 닫은 뒤 새 말씀 — 다시 듣기 모드를 엽니다(「됐어」를 다시 받으면 --done)', file=sys.stderr)
+    summ = path.parent / '00_대화요약.md'
+    n = int(reco.get('heard') or 0) if isinstance(reco.get('heard'), int) else 0  # 개수는 추천 파일에 센다(말씀 속 같은 제목 글에 흔들리지 않게 — R02)
+    entries = []
+    if said is not None:
+        # 앞서 적지 못한 말씀(pending_said)이 있으면 그것부터 원문 그대로 함께 적는다 — 새 말씀만 적고 앞 말씀을 지우지 않게(R07)
+        pend = reco.get('pending_said')
+        pend = [pend] if isinstance(pend, str) else [x for x in pend if isinstance(x, str)] if isinstance(pend, list) else []
+        entries = [x for x in pend if x != said] + [said]
+        first = n + 1
+        n += len(entries)
+        reco['heard'] = n
+        # 말씀 속 파일 · 폴더 경로 · 주소는 받은 자료다 — 첨부자료로 적어 두어 준비 점검표가 요구하게 한다(읽기는 「됐어」 뒤 — R04)
+        import check_ready as CR
+        if reco.get('attachments') is None:
+            reco['attachments'] = []
+        if not isinstance(reco['attachments'], list):
+            print(f'추천 파일의 attachments 가 목록이 아닙니다 — 고친 뒤 같은 말씀을 다시 적습니다(아무것도 쓰지 않음): {path}'); return 1
+        lec = path.parent.parent.parent if path.parts[-2:] == ('인터뷰', '00_추천.json') else path.parent
+        seen = {str(x.get('path')) for x in reco['attachments'] if isinstance(x, dict)}
+        for p in CR.find_paths('\n'.join(entries), (lec, ST.project_root())):
+            if p not in seen:
+                reco['attachments'].append({'path': p, 'read': 'unknown', 'found': f'듣기 모드 말씀 {n}에서'})
+                seen.add(p)
+    reco['listening'] = True if said is not None else not done  # 말씀이 있으면 그것을 적은 뒤에야 닫는다(R04)
+    try:
+        # 추천 파일(듣는 중 표시)을 먼저 쓴다 — 말씀 붙이기가 실패해도 「듣는 중」이 남아 제작이 막힌다(R03). 이것이 실패하면 말씀도 붙이지 않는다(겹침 없음)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((json.dumps(reco, ensure_ascii=False, indent=1) + '\n').encode('utf-8'))
+    except OSError as e:
+        print(f'추천 파일을 쓰지 못했습니다 — 말씀도 적지 않았습니다: {path} ({e})'); return 1
+    if said is not None:
+        try:
+            old = summ.read_bytes() if summ.exists() else '# 대화 요약\n'.encode('utf-8')
+            stamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            # 앞 기록은 바이트 그대로 두고 새 기록만 붙인다(원문의 줄바꿈 · 끝 빈 줄을 바꾸지 않게 — R02). 원문 끝에 줄바꿈이 없을 때만 하나 붙인다
+            sep = b'' if old.endswith(b'\n') else b'\n'
+            add = ''.join(f'\n{LISTEN_HEAD}{first + k} · {stamp} (원문 그대로)\n\n{x}{"" if x.endswith(chr(10)) else chr(10)}' for k, x in enumerate(entries))
+            summ.write_bytes(old + sep + add.encode('utf-8'))
+        except OSError as e:
+            # 적지 못한 말씀(앞서 못 적은 것 포함)을 추천 파일에 남기고 센 수를 되돌린다 — 그 말씀 없이 --done 으로 닫히지 않게(R06 · R07)
+            reco['pending_said'] = entries
+            reco['heard'] = first - 1
+            try:
+                path.write_bytes((json.dumps(reco, ensure_ascii=False, indent=1) + '\n').encode('utf-8'))
+            except OSError:
+                pass
+            print(f'말씀을 대화 요약에 적지 못했습니다(듣는 중 표시는 남아 제작은 막힘 — 고친 뒤 같은 말씀을 다시 적습니다): {summ} ({e})'); return 1
+        if done or 'pending_said' in reco:  # 마지막 말씀을 적은 뒤에 닫는다 · 남아 있던 적지 못한 말씀 표시는 지운다
+            reco.pop('pending_said', None)
+            reco['listening'] = not done
+            try:
+                path.write_bytes((json.dumps(reco, ensure_ascii=False, indent=1) + '\n').encode('utf-8'))
+            except OSError as e:
+                print(f'듣기를 닫지 못했습니다(아직 듣는 중 — 제작은 막힘): {path} ({e})'); return 1
+    if done:
+        print(f'듣기 끝 — 받은 말씀 {n}개({summ}). 다음(스킬 3.0): 0 첨부자료를 끝까지 읽기 → 들은 말씀과 함께 한 번에 분석 → 1 · 1-1 gaps 의 빈 핵심 칸만 한 번에 묻기 '
+              '→ 2~5 대화 요약 · 추천 · 인터뷰 페이지 → 6 답 기록 → 0-1 준비 완료 점검표 · 사용자 확인 → 3.1의 5 계획 → 제작')
+    else:
+        print(LISTEN_ACK)
+    return 0
+
+
 def cmd_check(argv):
     if not argv:
         print(__doc__); return 2
@@ -889,6 +1041,9 @@ def cmd_check(argv):
         return 1
     n = {sec: len(reco.get(sec) or {}) for sec, _ in SECTIONS}
     print(f"추천: 1부 {n['dimensions']} · 취향 {n['aspects']} · 3부 {n['project']} · 신호 {len(reco['signals'])}")
+    if reco.get('listening'):
+        print('듣는 중 — 사용자가 「됐어」라고 할 때까지 이 추천으로 인터뷰를 열지 않습니다(recommend.py listen … --done)')
+        return 3
     return 1 if notes else 0
 
 
@@ -1026,7 +1181,7 @@ def cmd_selftest():
           {}, {'topic': {'id': 'topic', 'text': '주제', 'type': 'text'}})
     FD = {'screens': [{'id': 'S1', 'dimensions': ['file_format', 'pdf_export', 'length']}], 'dimensions': list(FB[0].values())}
     cr, nt = clean_reco({'dimensions': {'length': {'value': 's', 'basis': 'attached'}}, 'attachments': [{'path': 'a.pdf', 'found': 'x'}]}, FB)
-    ok(cr['dimensions']['length']['basis'] == 'inferred' and any('근거' in x for x in nt) and cr['attachments'][0]['read'] == 'all',
+    ok(cr['dimensions']['length']['basis'] == 'inferred' and any('근거' in x for x in nt) and cr['attachments'][0]['read'] == 'unknown',
        'attached 인데 근거(from)가 없으면 짐작으로 내림 · 첨부자료 목록 정리')
     g = gaps({'dimensions': {'length': {'value': 's', 'basis': 'inferred'}}}, FB, FD)
     ok([k for k, _, s, _c in g] == ['dim.file_format', 'dim.length', 'pq.topic'] and dict((k, s) for k, _, s, _c in g)['dim.length'] == 'inferred'
@@ -1141,6 +1296,146 @@ def cmd_selftest():
     d = read_log(tmp); d['events'].append(dict(ev[0])); write_log(d, tmp)
     e, _ = validate(tmp)
     ok(any('두 번' in x for x in e) and any('옛것' in x for x in e), '같은 제출 두 번 · 옛 규칙 파일을 잡음(반대 시험)')
+    # 듣기 모드(1.7.0): 말씀은 글자 그대로 쌓이고, 「됐어」 전에는 gaps 가 묻지 않는다
+    import contextlib
+    import io
+    lt = pathlib.Path(tempfile.mkdtemp(prefix='tl-listen-'))
+    try:
+        rf = lt / 'materials' / '인터뷰' / '00_추천.json'
+        said1, said2 = '이번엔 작년 거랑 똑같이 | 그런데 <표>는 빼고\n둘째 줄도 그대로', '그리고 마감은 다음 주야'
+        with contextlib.redirect_stdout(io.StringIO()) as o1:
+            c1 = cmd_listen([str(rf), '--said', said1])
+        with contextlib.redirect_stdout(io.StringIO()):
+            c2 = cmd_listen([str(rf), '--said', said2])
+        sm = (rf.parent / '00_대화요약.md').read_text(encoding='utf-8')
+        ok(c1 == 0 and c2 == 0 and said1 in sm and said2 in sm and sm.count(LISTEN_HEAD) == 2 and o1.getvalue().strip() == LISTEN_ACK,
+           '듣기 모드: 말씀 둘을 글자 그대로 쌓고 화면에는 한 줄만')
+        ok(load_json(rf).get('listening') is True and clean_reco(load_json(rf))[0].get('listening') is True, '듣기 모드: listening 열림(정리해도 남음)')
+        with contextlib.redirect_stdout(io.StringIO()) as og, contextlib.redirect_stderr(io.StringIO()):
+            cg = cmd_gaps([str(rf), '--json'])
+        ok(cg == 3 and json.loads(og.getvalue() or 'null') == {'listening': True, 'gaps': []}, f'듣는 중에는 gaps 가 물을 것을 내지 않음(종료 {cg}, 「물을 것 없음」과 구별)')
+        with contextlib.redirect_stdout(io.StringIO()):
+            cd = cmd_listen([str(rf), '--done'])
+        with contextlib.redirect_stdout(io.StringIO()) as og2, contextlib.redirect_stderr(io.StringIO()):
+            cg2 = cmd_gaps([str(rf), '--json'])
+        ok(cd == 0 and load_json(rf).get('listening') is False and cg2 == 0 and json.loads(og2.getvalue() or 'null'), '「됐어」(--done) 뒤에는 gaps 가 빈 핵심 칸을 냄')
+        with contextlib.redirect_stdout(io.StringIO()):
+            ok(cmd_listen([str(rf), '--said', '  ']) == 2 and cmd_listen([str(rf), '--bogus']) == 2 and cmd_listen([str(rf), '--said', '--done']) == 2,
+               '듣기 모드: 빈 말씀 · 모르는 인자 · 값 자리의 옵션(--said --done)은 거절(R02)')
+            before = (rf.parent / '00_대화요약.md').read_bytes()
+            raw = 'first\r\nsecond\n\n\n'
+            cmd_listen([str(rf), '--said=' + raw])
+            mid = (rf.parent / '00_대화요약.md').read_bytes()
+            cmd_listen([str(rf), '--said', '--done 이라고 적어도 원문'])
+            after = (rf.parent / '00_대화요약.md').read_bytes()
+        ok(mid.startswith(before) and raw.encode('utf-8') in mid and after.startswith(mid) and '--done 이라고 적어도 원문'.encode('utf-8') in after,
+           '듣기 모드: 앞 기록은 바이트 그대로 · 새 말씀만 붙음(CRLF · 끝 빈 줄 보존, --said=… 지원 — R02)')
+        heading = LISTEN_HEAD + '9 이라는 글을 말씀에 넣어도'
+        sf = lt / 'said.txt'
+        sf.write_bytes('그가 "좋아" 했어\r\n'.encode('utf-8'))
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cmd_listen([str(rf), '--said', heading])
+            c_file = cmd_listen([str(rf), '--said-file', str(sf)])
+            ck = cmd_check([str(rf)])
+            lone = cmd_listen([str(lt / 'none' / '인터뷰' / '00_추천.json'), '--done'])
+            (lt / 'arr' / '인터뷰').mkdir(parents=True)
+            (lt / 'arr' / '인터뷰' / '00_추천.json').write_text('["x"]', encoding='utf-8')
+            arr = cmd_listen([str(lt / 'arr' / '인터뷰' / '00_추천.json'), '--said', 'x'])
+            dirarg = cmd_listen([str(lt), '--said', 'x'])
+            (lt / 'bad' / '인터뷰').mkdir(parents=True)
+            (lt / 'bad' / '인터뷰' / '00_추천.json').write_text('{', encoding='utf-8')
+            broken = cmd_listen([str(lt / 'bad' / '인터뷰' / '00_추천.json'), '--said', 'x'])
+        sm2 = (rf.parent / '00_대화요약.md').read_bytes()
+        ok(c_file == 0 and '그가 "좋아" 했어\r\n'.encode('utf-8') in sm2, '듣기 모드: --said-file 은 큰따옴표 · 줄바꿈까지 원문 그대로(R02)')
+        ok(load_json(rf).get('heard') == 6, f"듣기 모드: 말씀 개수는 추천 파일에 셈(말씀 속 제목 글에 흔들리지 않음 — {load_json(rf).get('heard')})")
+        ok(ck == 3, f'듣는 중에는 check 도 종료 3(R02, {ck})')
+        ok(lone == 1 and dirarg == 1 and broken == 1 and arr == 1, f'듣기 모드: 말씀 없는 --done · 폴더 · 깨진 파일은 추적 출력 없이 종료 1 ({lone} · {dirarg} · {broken})')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cmd_listen([str(rf), '--done'])
+            cs0 = cmd_suggest(['--from', str(rf), '--write'])
+            r0 = load_json(rf)
+            cmd_listen([str(rf), '--said', '다시 한 말씀'])
+            r1 = load_json(rf)
+        ff = lt / 'fail' / '인터뷰' / '00_추천.json'
+        (ff.parent / '00_대화요약.md').mkdir(parents=True)  # 대화 요약 자리에 폴더 → 말씀 붙이기가 실패
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cf = cmd_listen([str(ff), '--said', '됐어', '--done'])
+        ok(cf == 1 and load_json(ff).get('listening') is True, f'마지막 말씀을 못 적으면 듣기를 닫지 않음(제작은 막힘 — R04, 종료 {cf})')
+        bad_att = lt / 'badatt' / '인터뷰' / '00_추천.json'
+        bad_att.parent.mkdir(parents=True)
+        bad_att.write_text(json.dumps({'attachments': ['materials/a.pdf']}), encoding='utf-8')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cba = cmd_suggest(['--from', str(bad_att), '--write'])
+        ok(cba == 1 and load_json(bad_att) == {'attachments': ['materials/a.pdf']}, f'틀린 첨부 목록은 suggest --write 가 덮어쓰지 않음(R04, 종료 {cba})')
+        pf = lt / 'pf' / 'materials' / '인터뷰' / '00_추천.json'
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cmd_listen([str(pf), '--said', 'D:/자료/작년_보고서.pdf 이거 그대로 따라 해줘'])
+        ok([a.get('path') for a in load_json(pf).get('attachments', [])] == ['D:/자료/작년_보고서.pdf'], '듣는 중 말씀 속 경로는 첨부자료로 적어 둠(준비 점검표가 요구 — R04)')
+        pd = lt / 'pd' / 'materials' / '인터뷰' / '00_추천.json'
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cmd_listen([str(pd), '--said', '첫 말씀'])
+            sm = pd.parent / '00_대화요약.md'
+            sm.unlink(); sm.mkdir()  # 요약 파일 자리를 폴더로 막아 쓰기 실패를 만든다
+            q1 = cmd_listen([str(pd), '--said', '마지막 말씀', '--done'])
+            q2 = cmd_listen([str(pd), '--done'])
+            sm.rmdir()
+            q3 = cmd_listen([str(pd), '--said', '마지막 말씀', '--done'])
+        fin = load_json(pd)
+        ok(q1 == 1 and q2 == 1 and q3 == 0 and fin.get('listening') is False and 'pending_said' not in fin and '마지막 말씀' in (pd.parent / '00_대화요약.md').read_text(encoding='utf-8'),
+           f'적지 못한 마지막 말씀이 남으면 --done 만으로 닫히지 않고, 다시 적으면 닫힘(R06, {q1} {q2} {q3})')
+        pe = lt / 'pe' / 'materials' / '인터뷰' / '00_추천.json'
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cmd_listen([str(pe), '--said', '첫 말씀'])
+            se = pe.parent / '00_대화요약.md'
+            se.unlink(); se.mkdir()
+            e1 = cmd_listen([str(pe), '--said', '마지막 요구사항'])
+            se.rmdir()
+            e2 = cmd_listen([str(pe), '--said', '됐어', '--done'])
+        txt_e = (pe.parent / '00_대화요약.md').read_text(encoding='utf-8')
+        fe = load_json(pe)
+        ok(e1 == 1 and e2 == 0 and '마지막 요구사항' in txt_e and '됐어' in txt_e and txt_e.index('마지막 요구사항') < txt_e.index('됐어') and fe.get('heard') == 3 and 'pending_said' not in fe,
+           f'적지 못한 말씀은 다음 말씀 앞에 원문 그대로 함께 적히고 지워지지 않음(R07, {e1} {e2} heard={fe.get("heard")})')
+        out8 = lt / 'Documents' / '00_추천.json'
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            o1 = cmd_listen([str(out8), '--said', 'last message', '--done'])
+            o2 = cmd_listen([str(out8), '--said', 'x', '--anywhere'])
+        ok(o1 == 2 and o2 == 0, f'기본 자리(…/인터뷰/00_추천.json)가 아니면 아무것도 쓰지 않고 거절, --anywhere 면 씀(R08, {o1} {o2})')
+        empty = lt / 'empty.json'
+        empty.write_bytes(b'')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            codes = [main(['check', str(empty)]), main(['gaps', str(empty)]), main(['suggest', '--from', str(empty)])]
+        ok(codes == [1, 1, 1] and empty.read_bytes() == b'', f'빈 JSON 파일은 오류 없이 종료 1 · 파일 그대로(R07, {codes})')
+        pn = lt / 'pn' / 'materials' / '인터뷰' / '00_추천.json'
+        pn.parent.mkdir(parents=True)
+        pn.write_text(json.dumps({'attachments': None}), encoding='utf-8')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cpn = cmd_listen([str(pn), '--said', 'https://example.org/ref', '--done'])
+            p5 = lt / 'p5' / 'materials' / '인터뷰' / '00_추천.json'
+            p5.parent.mkdir(parents=True)
+            p5.write_text(json.dumps({'attachments': 5}), encoding='utf-8')
+            cp5 = cmd_listen([str(p5), '--said', 'x'])
+            ok_id = lt / 'okid.json'
+            ok_id.write_text(json.dumps({'id': 'test'}), encoding='utf-8')
+            cid = cmd_suggest(['--from', str(ok_id), '--write'])
+            c5 = cmd_suggest(['--from', str(p5), '--write'])
+        ok(cpn == 0 and [a.get('path') for a in load_json(pn)['attachments']] == ['https://example.org/ref'], f'attachments: null 이어도 말씀 속 주소를 적음(R05, 종료 {cpn})')
+        ok(cp5 == 1 and load_json(p5) == {'attachments': 5}, f'attachments 가 목록이 아니면 아무것도 쓰지 않고 종료 1(R05, {cp5})')
+        ok(cid == 0, f'첨부 칸이 없는 추천도 suggest --write 가 됨(R05, 종료 {cid})')
+        ok(c5 == 1, f'attachments: 5 → 추적 출력 없이 --write 거절(R05, 종료 {c5})')
+        ls = lt / 'ls.json'
+        ls.write_text(json.dumps({'listening': 'true', 'attachments': []}), encoding='utf-8')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cls = cmd_suggest(['--from', str(ls), '--write'])
+            cgs = cmd_gaps([str(ls)])
+        ok(cls == 3 and cgs == 3 and load_json(ls).get('listening') == 'true', f'bool 아닌 listening 은 듣는 중으로 — suggest · gaps 종료 3, 파일 그대로(R05, {cls} · {cgs})')
+        ok(cs0 == 0 and r0.get('listening') is False and r0.get('heard') == 6 and r1.get('heard') == 7 and r1.get('listening') is True,
+           f"suggest --write 뒤에도 듣기 개수 · 닫힘 표시가 남음(R03, {r0.get('heard')} → {r1.get('heard')})")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cs = cmd_suggest(['--from', str(rf), '--write'])
+        ok(cs == 3 and load_json(rf).get('listening') is True, f'듣는 중에는 suggest 가 추천을 고치지 않음(종료 {cs})')
+    finally:
+        import shutil
+        shutil.rmtree(lt, ignore_errors=True)
     print('실패 ' + str(len(fails)) if fails else '자체 시험 통과')
     return 1 if fails else 0
 
@@ -1149,6 +1444,15 @@ def main(argv):
     if not argv:
         print(__doc__); return 2
     cmd, rest = argv[0], argv[1:]
+    if cmd != 'selftest':
+        try:
+            return _dispatch(cmd, rest)
+        except (ValueError, OSError) as e:  # 빈 파일 · 깨진 JSON · 못 읽는 파일 — 아무것도 쓰지 않고 종료 1(R07)
+            print(f'파일을 읽지 못했습니다(아무것도 바꾸지 않음): {e}'); return 1
+    return _dispatch(cmd, rest)
+
+
+def _dispatch(cmd, rest):
     if cmd == 'record':
         return cmd_record(rest)
     if cmd == 'correct':
@@ -1159,6 +1463,8 @@ def main(argv):
         return cmd_check(rest)
     if cmd == 'gaps':
         return cmd_gaps(rest)
+    if cmd == 'listen':
+        return cmd_listen(rest)
     if cmd == 'learn':
         if not ST.STORE_WRITABLE:
             print('데이터 폴더가 없습니다(starter 를 쓰는 중).'); return 1

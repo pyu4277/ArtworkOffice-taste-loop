@@ -528,7 +528,7 @@ function recoPayload(c) { // 추천과 최종 답의 차이 → recommend.py rec
       else if (it.kind === 'pq') fin = c.project[it.id];
       else { const s = c.aspects[it.id]; fin = !s || !s.choice || s.choice === 'skip' ? null : (s.value == null && s.choice === 'keep' ? recoCur('asp', it.id) : s.value); }
     }
-    return {key: it.key, recommended: clone(it.r.value), final: fin == null ? null : clone(fin), outcome: out, reason: it.r.reason || '', basis: it.r.basis || ''};
+    return {key: it.key, recommended: clone(it.r.value), final: fin == null ? null : clone(fin), outcome: out, reason: it.r.reason || '', basis: it.r.basis || '', from: it.r.basis === 'attached' ? String(it.r.from || '') : ''}; // from: 첨부자료 근거 파일 — 준비 점검표가 그 파일이 목록에 있는지 본다(1.7.0)
   });
   const t = recoTally();
   return {id: recoKey, source: RECO.source || 'conversation', summary: RECO.summary || '', signals: RECO.signals || [], items, stats: {recommended: t.total - t.hidden, kept: t.kept, changed: t.changed, cleared: t.cleared, hidden: t.hidden}};

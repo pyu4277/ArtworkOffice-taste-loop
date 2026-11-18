@@ -500,6 +500,13 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
     const fl = oA && oA.d.querySelector('#screen [data-drop="dim:file_format"] .recoline');
     ok(!!fl && fl.textContent.includes('첨부자료에서 (' + EVIL + ')') && !fl.querySelector('img') && oA.w.probe === undefined,
       '1부 카드: from 의 < " | & 는 글로만 보임(태그 · 이벤트 실행 없음)');
+    const rcL = path.join(proj, 'demo', 'materials', '인터뷰', '00_추천_듣는중.json');
+    writeJson(rcL, {id: 'rcL', listening: true});
+    const fileL = path.join(tmp, 'out', '01_제작인터뷰_듣는중.html');
+    const rL = spawnSync(PY, [...PYARGS, path.join(HERE, 'build_interview.py'), '--lecture', 'demo', '--mode', 'interview', '--out', fileL, '--recommend', rcL], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+    ok(rL.status === 1 && !fs.existsSync(fileL) && /듣는 중/.test(rL.stderr), '듣기 모드(1.7.0): 「됐어」 전에는 인터뷰 페이지를 만들지 않음 (종료 ' + rL.status + ')');
+    const itA = oA &&(oA.w.PE.payload().recommend || {items: []}).items.find(x => x.key === 'dim.file_format');
+    ok(!!itA && itA.basis === 'attached' && itA.from === EVIL, '제출 JSON recommend.items: 첨부자료 칸은 근거 파일(from)도 보냄 — 준비 점검표가 그 파일을 찾는다(1.7.0)');
     ok(!!pl && /첨부자료에서 \(공문\.pdf:2\)/.test(pl.textContent) && /전시용이라고 적힘/.test(pl.textContent) && oA.errors.length === 0, '1부 카드: 근거 「첨부자료에서 (공문.pdf:2)」 + 한 줄 이유' + (rA.status ? ': ' + rA.stderr : ''));
   }
   // 표시 블록은 한 줄 전체일 때만 표시다(1.4.2): 다시 돌려도 블록 하나 · 글 속 표시 글자는 그대로 · 시작 줄이 둘이면 멈추고 안 고침
@@ -515,6 +522,37 @@ ok(src.startsWith('<!doctype html>') && !/__TITLE__|__SPEC__/.test(src), '파일
   fs.writeFileSync(planF, dup);
   const ap3 = AP();
   ok(ap3.status === 1 && fs.readFileSync(planF, 'utf8') === dup && /멈춤/.test(ap3.stderr), '표시 시작 줄이 둘 → 멈추고 문서를 고치지 않음(반대 시험)');
+  // 1.7.0 준비 완료 점검표: 받은 자료가 있으면 점검표가 통과하고 사용자가 확인한 뒤에만 계획을 만든다(멈추면 아무것도 쓰지 않음)
+  {
+    const lecR = path.join(proj, 'demo_ready');
+    const readyF = path.join(lecR, 'materials', '00_준비점검표.json');
+    const ansR = path.join(lecR, 'materials', '인터뷰', '01_제작인터뷰_답변.json');
+    const planR = path.join(tmp, 'plan_ready.md');
+    const APR = () => spawnSync(PY, [...PYARGS, path.join(HERE, 'answers_to_plan.py'), '--lecture', 'demo_ready', '--answers', ansR, '--out', planR], {encoding: 'utf8', env: Object.assign({}, process.env, ENV)});
+    writeJson(ansR, Object.assign({}, p, {references: [{where: 'D:/자료/지난_결과물.pdf', follow: ['all']}]}));
+    const r1 = APR();
+    ok(r1.status === 1 && !fs.existsSync(planR) && /점검표가 없습니다/.test(r1.stderr), '준비 점검표: 레퍼런스를 받았는데 점검표 없음 → 멈추고 계획 문서를 쓰지 않음 (종료 ' + r1.status + ')');
+    const good = {version: 1, materials: [{path: 'D:/자료/지난_결과물.pdf', kind: 'reference', read_by: 'leader', read: 'all', range: '1~10쪽 전부', tool: '문서 변환기'}],
+      keep: [{item: '제목 꼴', value: '두 줄 제목', from: '지난_결과물.pdf:1쪽'}], change: [], subtopics: [],
+      confirmed: {by: '사용자', at: '2026-01-01', said: '이대로 시작해'}};
+    writeJson(readyF, Object.assign({}, good, {materials: [Object.assign({}, good.materials[0], {read_by: 'helper'})]}));
+    const r2 = APR();
+    ok(r2.status === 1 && !fs.existsSync(planR) && /리더가 직접 읽지 않았습니다/.test(r2.stderr), '준비 점검표: 보조가 읽은 자료 → 멈춤 (반대 시험)');
+    writeJson(readyF, Object.assign({}, good, {keep: []}));
+    const r2b = APR();
+    ok(r2b.status === 1 && !fs.existsSync(planR) && /keep/.test(r2b.stderr), '준비 점검표: 레퍼런스 대조표(그대로 쓸 것) 없음 → 멈춤 (반대 시험)');
+    writeJson(readyF, Object.assign({}, good, {confirmed: {by: '사용자', at: '2026-01-01', said: ''}}));
+    const r2c = APR();
+    ok(r2c.status === 1 && !fs.existsSync(planR) && /사용자 확인이 없습니다/.test(r2c.stderr), '준비 점검표: 사용자 확인 없음 → 멈춤 (반대 시험)');
+    writeJson(readyF, good);
+    const r3 = APR();
+    const planTxt = r3.status === 0 ? fs.readFileSync(planR, 'utf8') : '';
+    ok(r3.status === 0 && /## 준비 완료 점검표/.test(planTxt) && /이대로 시작해/.test(planTxt) && /## 레퍼런스 먼저/.test(planTxt), '준비 점검표 통과 → 계획 문서에 「준비 완료 점검표」 절' + (r3.status ? ': ' + r3.stderr : ''));
+    writeJson(path.join(lecR, 'materials', '인터뷰', '00_추천.json'), {id: 'rr', attachments: [{path: 'materials/공문.pdf', found: '대상'}]});
+    fs.rmSync(planR, {force: true});
+    const r4 = APR();
+    ok(r4.status === 1 && !fs.existsSync(planR) && /공문\.pdf/.test(r4.stderr), '준비 점검표: 00_추천.json 첨부자료가 점검표에 빠짐 → 멈춤 (반대 시험)');
+  }
   const rec2 = RC(['record', ansF]);
   ok(rec2.status === 0 && /이미 기록한 제출/.test(rec2.stdout), 'record 두 번 → 이중 기록 막음');
   const bad = RC(['correct', '--project', 'demo', '--key', 'asp.P2.4.theme', '--value', '"purple"', '--said', '보라로']);

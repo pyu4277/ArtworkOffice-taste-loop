@@ -10,6 +10,9 @@
 - 환경 점검 표는 check_env.py 를 실행해 넣는다(클라우드·Linux·macOS). PC 결과는 사용자가 붙여 넣는다.
 - 인터뷰 페이지에서 끌어다 넣은 것도 옮긴다: base_project(기본 양식 — 그 프로젝트 기록을 출발점으로 삼는다),
   refs(질문별 참고 — 적용 취향 표의 「참고」 칸과 「참고로 넣은 것」 절), new_refs(새 레퍼런스 메모 — 6절에서 서랍에 등록).
+- 준비 완료 점검표(1.7.0, check_ready.py): 받은 자료(레퍼런스 · 메모의 참고 자료 · 「레퍼런스대로」 · 첨부자료 근거 추천 ·
+  00_추천.json attachments)가 있는데 <작업폴더>/materials/00_준비점검표.json 이 없거나, 점검표가 있는데 통과하지 못하면
+  아무것도 쓰지 않고 종료 코드 1 로 멈춘다. 통과하면 계획 문서에 「준비 완료 점검표」 절을 넣는다.
 """
 import datetime
 import json
@@ -221,11 +224,37 @@ def main(argv):
     qs, _o = UP.migrate_qs(json.loads(ST.path('questions.json').read_text(encoding='utf-8')))
     dims, qs, _n, _p = SE.with_pending(dims, qs)  # 반영 대기 구조 편집도 인터뷰 페이지와 같게 적용
     prefs = json.loads(ST.path('preferences.json').read_text(encoding='utf-8'))
-    ans = json.loads(pathlib.Path(a['answers']).read_text(encoding='utf-8'))
+    try:
+        ans = json.loads(pathlib.Path(a['answers']).read_text(encoding='utf-8-sig'))  # BOM(PowerShell 5.1) 도 읽는다
+    except (ValueError, OSError) as e:
+        print(f'멈춤: 답변 JSON 을 읽지 못했습니다: {a["answers"]} ({e})', file=sys.stderr)
+        return 1
+    if not isinstance(ans, dict):
+        print(f'멈춤: 답변 JSON 은 객체여야 합니다: {a["answers"]}', file=sys.stderr)
+        return 1
     aspects = {x['id']: x for x in qs['aspects']}
     pq = {x['id']: x for x in qs.get('project_questions', [])}
     name = lecture_name(a['lecture'])
     out = pathlib.Path(a.get('out') or REPO / a['lecture'] / 'materials' / '00_제작계획.md')
+    # 준비 완료 점검표(1.7.0): 받은 자료가 있으면 점검표가 통과하고 사용자가 확인한 뒤에만 계획을 만든다. 통과하지 못하면 아무것도 쓰지 않는다
+    if ans.get('stage') == 'references':  # 「레퍼런스만 먼저 보내기」 — 계획이 아니라 분석 단계(스킬 3.1-0의 2)
+        print('멈춤: 「레퍼런스만 먼저 보내기」 답으로는 계획 문서를 만들지 않습니다. 레퍼런스를 끝까지 분석해 준비 완료 점검표 · '
+              '기준표 · 채움 답(00_레퍼런스_채움.json)을 만들고 build_interview.py --prefill 로 다시 만든 인터뷰의 제출 답으로 실행합니다(스킬 3.1-0).', file=sys.stderr)
+        return 1
+    import check_ready as CR
+    others = [o for o in CR.answer_files(REPO / a['lecture']) if o.resolve() != pathlib.Path(a['answers']).resolve()]
+    others_ok, others_bad = CR.load_answers(others)
+    if others_bad:  # 읽지 못한 답에 받은 자료가 있는지 알 수 없다 — check_ready 명령과 같이 멈춘다(R05)
+        print('멈춤: 인터뷰 폴더의 답 파일을 읽지 못했습니다(받은 자료가 있는지 알 수 없음) — 고친 뒤 다시 실행합니다: ' + ' · '.join(str(f) for f in others_bad), file=sys.stderr)
+        return 1
+    ready_ok, ready_notes, ready_doc = CR.gate(REPO / a['lecture'], [ans] + others_ok)  # check_ready 명령과 같은 범위(R04)
+    if not ready_ok:
+        print('멈춤: 준비 완료 점검표 — 받은 자료를 다 읽고 정리 · 분석한 뒤에 시작합니다(스킬 3.0의 0-1). 계획 문서를 쓰지 않았습니다.', file=sys.stderr)
+        for n in ready_notes:
+            print(n, file=sys.stderr)
+        return 1
+    for n in ready_notes:
+        print(n)
     today = datetime.date.today().isoformat()
     # 숨은 질문·선택지의 답은 뺀다(인터뷰 페이지의 cleanAnswers 와 같은 규칙)
     dv, ans['aspects'], ans['project'] = SX.clean_answers(dims, qs, dict(ans, dimensions=UP.migrate_answers_dims(ans.get('dimensions') or {})))
@@ -258,6 +287,8 @@ def main(argv):
         L += ['## 기본 양식 (사용자가 인터뷰에서 끌어다 놓은 지난 프로젝트)', '',
               f'- **{bp.get("title", bp.get("id"))}** (`{src}`) — 차원 {bp.get("dims_set", "?")}개 · 취향 {bp.get("aspects_set", "?")}개를 이 기록대로 맞춤 ({str(bp.get("applied_at", ""))[:10]})',
               '- 뜻: 사용자는 이 프로젝트의 설정을 **기본 셋팅**으로 원한다. 그 기록의 차원 값·적용 항목·결정·결과를 출발점으로 삼고, 아래 표에서 달라진 답만 차이로 다룬다. 추측으로 바꾸지 않는다.', '']
+    if ready_doc is not None:
+        L += CR.summary_lines(ready_doc, 'materials/' + CR.READY_REL[1])
     L += reference_section(ans, ans.get('aspects') or {}, opinions, aspects, dims)
     L += recommend_section(ans)
     L += ['## 사양 (차원 값 — 인터뷰 1부)', '', '| 차원 | 값 | 참고·기타 의견 |', '|---|---|---|']
